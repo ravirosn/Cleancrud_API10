@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".dockerignore" />
+    <File Path="Dockerfile.txt" />
+  </Folder>
+  <Project Path="CleanCrud.API/CleanCrud.API.csproj" />
+  <Project Path="CleanCrud.Application/CleanCrud.Application.csproj" />
+  <Project Path="CleanCrud.Domain/CleanCrud.Domain.csproj" />
+  <Project Path="CleanCrud.Infrastructure/CleanCrud.Infrastructure.csproj" />
+</Solution>
