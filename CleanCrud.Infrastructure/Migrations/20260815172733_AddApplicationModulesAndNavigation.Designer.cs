@@ -4,6 +4,7 @@ using CleanCrud.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CleanCrud.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260815172733_AddApplicationModulesAndNavigation")]
+    partial class AddApplicationModulesAndNavigation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -100,17 +103,6 @@ namespace CleanCrud.Infrastructure.Migrations
                             Icon = "package",
                             IsActive = true,
                             Name = "Asset Management System"
-                        },
-                        new
-                        {
-                            Id = 4,
-                            Code = "POWERBI",
-                            CreatedAtUtc = new DateTime(2026, 8, 15, 0, 0, 0, 0, DateTimeKind.Utc),
-                            Description = "View embedded Power BI dashboards and reports.",
-                            DisplayOrder = 4,
-                            Icon = "bar-chart",
-                            IsActive = true,
-                            Name = "Analytics and Reports"
                         });
                 });
 
@@ -328,19 +320,6 @@ namespace CleanCrud.Infrastructure.Migrations
                             IsActive = true,
                             Name = "Asset Assignments",
                             QueryUrl = "/api/asset/assignments"
-                        },
-                        new
-                        {
-                            Id = 10,
-                            ActionName = "GetEmbedConfig",
-                            ApplicationModuleId = 4,
-                            ControllerName = "PowerBi",
-                            CreatedAtUtc = new DateTime(2026, 8, 15, 0, 0, 0, 0, DateTimeKind.Utc),
-                            DisplayOrder = 1,
-                            Icon = "bar-chart-2",
-                            IsActive = true,
-                            Name = "Power BI Report",
-                            QueryUrl = "/api/power-bi/embed-config"
                         });
                 });
 
@@ -525,20 +504,6 @@ namespace CleanCrud.Infrastructure.Migrations
                         .HasPrecision(0)
                         .HasColumnType("datetime2(0)");
 
-                    b.Property<string>("DisplayName")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(320)
-                        .HasColumnType("nvarchar(320)");
-
-                    b.Property<Guid?>("EntraObjectId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("EntraTenantId")
-                        .HasColumnType("uniqueidentifier");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -548,6 +513,7 @@ namespace CleanCrud.Infrastructure.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("PasswordHash")
+                        .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
@@ -560,10 +526,6 @@ namespace CleanCrud.Infrastructure.Migrations
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique();
-
-                    b.HasIndex("EntraTenantId", "EntraObjectId")
-                        .IsUnique()
-                        .HasFilter("[EntraTenantId] IS NOT NULL AND [EntraObjectId] IS NOT NULL");
 
                     b.ToTable("Users");
                 });

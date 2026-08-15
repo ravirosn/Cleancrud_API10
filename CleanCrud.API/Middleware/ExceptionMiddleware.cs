@@ -26,12 +26,15 @@ namespace CleanCrud.API.Middleware
             catch (Exception ex)
             {
                 context.Response.ContentType = "application/json";
-                //context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
-                context.Response.StatusCode =(int)HttpStatusCode.InternalServerError;
+                context.Response.StatusCode = ex is ArgumentException
+                    ? StatusCodes.Status400BadRequest
+                    : StatusCodes.Status500InternalServerError;
                 var response = new ApiResponse<object>
                 {
                     Success = false,
-                    Message = ex.Message,
+                    Message = ex is ArgumentException
+                        ? ex.Message
+                        : "An unexpected server error occurred.",
                     Data = null
                 };
 
@@ -42,4 +45,3 @@ namespace CleanCrud.API.Middleware
         }
     }
 }
-    

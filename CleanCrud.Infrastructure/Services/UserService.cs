@@ -27,14 +27,17 @@ namespace CleanCrud.Infrastructure.Services
         }
         public async Task<User?> LoginAsync(LoginDto dto)
         {
+            if (Encoding.UTF8.GetByteCount(dto.Password) > 72)
+                return null;
+
             var user = await _userRepository.GetByUserNameAsync(dto.UserName);
 
-            if (user == null)
+            if (user == null || !user.IsActive || user.PasswordHash is null)
                 return null;
 
             //if (user.Password != dto.Password)
             //    return null;
-            if (!_passwordService.VerifyPassword(dto.Password, user.Password))
+            if (!_passwordService.VerifyPassword(dto.Password, user.PasswordHash))
                 return null;
 
             return user;
@@ -42,12 +45,19 @@ namespace CleanCrud.Infrastructure.Services
 
         public async Task AddUserAsync(RegisterDto dto)
         {
+            if (Encoding.UTF8.GetByteCount(dto.Password) > 72)
+                throw new ArgumentException("Password must not exceed 72 UTF-8 bytes.");
+
+            if (await _userRepository.GetByUserNameAsync(dto.UserName) is not null)
+                throw new ArgumentException("Username is already in use.");
+
             var hashedPassword = _passwordService.HashPassword(dto.Password);
             var user = new User
             {
-                UserName = dto.UserName,
-                Password = hashedPassword,
-                Role = dto.Role
+                UserName = dto.UserName.Trim(),
+                NormalizedUserName = dto.UserName.Trim().ToUpperInvariant(),
+                PasswordHash = hashedPassword,
+                IsActive = true
             };
             await _userRepository.AddUserAsync(user);
         }

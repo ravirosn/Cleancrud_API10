@@ -1,90 +1,78 @@
-﻿using CleanCrud.Application.DTOs;
+using CleanCrud.Application.DTOs;
 using CleanCrud.Application.Interfaces;
-using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
-namespace CleanCrud.API.Controllers
+namespace CleanCrud.API.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+public sealed class AuthController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
+    private readonly IAuthService _authService;
+    private readonly IUserService _userService;
 
-    public class AuthController : ControllerBase
+    public AuthController(IAuthService authService, IUserService userService)
     {
-        //private readonly IJwtService _jwtService;
+        _authService = authService;
+        _userService = userService;
+    }
 
-        private readonly IUserService _userService;
-        private readonly IJwtService _jwtService;
-        //public AuthController(IJwtService jwtService)
-        //{
-        //    _jwtService = jwtService;
-        //}
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    [HttpPost("login")]
+    public async Task<ActionResult<AuthResponseDto>> Login(
+        LoginDto dto, CancellationToken cancellationToken)
+    {
+        var result = await _authService.LoginAsync(dto, GetClientIp(), cancellationToken);
+        SetNoStoreHeaders();
+        return result is null
+            ? Unauthorized(new { Message = "Invalid username or password." })
+            : Ok(result);
+    }
 
-        public AuthController(IUserService userService,IJwtService jwtService)
+    [AllowAnonymous]
+    [HttpPost("refresh")]
+    public async Task<ActionResult<AuthResponseDto>> Refresh(
+        RefreshTokenRequestDto dto, CancellationToken cancellationToken)
+    {
+        var result = await _authService.RefreshAsync(
+            dto.RefreshToken, GetClientIp(), cancellationToken);
+        SetNoStoreHeaders();
+        return result is null
+            ? Unauthorized(new { Message = "The refresh token is invalid or expired." })
+            : Ok(result);
+    }
+
+    [AllowAnonymous]
+    [HttpPost("revoke")]
+    public async Task<IActionResult> Revoke(
+        RevokeTokenRequestDto dto, CancellationToken cancellationToken)
+    {
+        // Idempotent response avoids revealing whether a refresh token exists.
+        await _authService.RevokeAsync(dto.RefreshToken, GetClientIp(), cancellationToken);
+        return NoContent();
+    }
+
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    [HttpPost("register")]
+    public async Task<IActionResult> Register(RegisterDto dto)
+    {
+        await _userService.AddUserAsync(dto);
+        return StatusCode(StatusCodes.Status201Created, new
         {
-            _userService = userService;
-            _jwtService = jwtService;
-        }
+            Success = true,
+            Message = "User registered successfully."
+        });
+    }
 
-        //[HttpPost("login")]
-        //public IActionResult Login(LoginDto dto)
-        //{
-        //    if (dto.UserName == "admin" &&
-        //        dto.Password == "123")
-        //    {
-        //        var token = _jwtService.GenerateToken(dto.UserName);
+    private string? GetClientIp() => HttpContext.Connection.RemoteIpAddress?.ToString();
 
-        //        return Ok(new
-        //        {
-        //            Success = true,
-        //            Token = token
-        //        });
-        //    }
-
-        //    return Unauthorized(new
-        //    {
-        //        Success = false,
-        //        Message = "Invalid Username or Password"
-        //    });
-        //}
-
-        [HttpPost("login")]
-        public async Task<IActionResult> Login(LoginDto dto)
-        {
-            //var hash = BCrypt.Net.BCrypt.HashPassword("123");
-            var user = await _userService.LoginAsync(dto);
-          
-            if (user == null)
-                return Unauthorized("Invalid Credentials");
-
-            var token = _jwtService.GenerateToken(user);
-
-            return Ok(new
-            {
-                UserName = user.UserName,
-                Role = user.Role,
-                Token = token
-            });
-        }
-        [HttpPost("Register")]
-        public async Task<IActionResult> Register(RegisterDto dto)
-        {
-            await _userService.AddUserAsync(dto);
-            return Ok(new
-            {
-                Success = true,
-                Message = "User Registered Successfully"
-            });
-        }
-
-        [HttpGet("test-log")]  // Only For Testing Data 
-        public IActionResult TestLog()
-        {
-            throw new Exception("Testing Serilog");
-        }
-
-        // Pankaj Kumar Add New Branch
-        // I am Changes IN Master Branceh So naw you can pull the changes in your branch and work on it
-        // I am Changes IN Pankaj Branceh Branceh So naw you can pull the changes in your branch and work on it
-        // I am Changes IN Pankaj Branceh Branceh So naw you can pull the changes in your branch and work on it
+    private void SetNoStoreHeaders()
+    {
+        Response.Headers.CacheControl = "no-store";
+        Response.Headers.Pragma = "no-cache";
     }
 }

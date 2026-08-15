@@ -19,11 +19,23 @@ namespace CleanCrud.Infrastructure.Repositories
 
         public async Task<User?> GetByUserNameAsync(string userName)
         {
-            return await _context.Users.FirstOrDefaultAsync(x => x.UserName == userName);
+            var normalizedUserName = userName.Trim().ToUpperInvariant();
+            return await _context.Users.FirstOrDefaultAsync(x => x.NormalizedUserName == normalizedUserName);
         }
 
         public async Task AddUserAsync(User user)
         {
+            var defaultRole = await _context.Roles.SingleOrDefaultAsync(
+                x => x.NormalizedName == "USER" && x.IsActive);
+            if (defaultRole is null)
+                throw new InvalidOperationException("The active default User role is not configured.");
+
+            user.UserRoles.Add(new UserRole
+            {
+                RoleId = defaultRole.Id,
+                IsActive = true,
+                AssignedAtUtc = DateTime.UtcNow
+            });
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
          

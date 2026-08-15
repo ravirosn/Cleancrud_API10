@@ -1,13 +1,9 @@
-﻿using CleanCrud.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using CleanCrud.Application.DTOs;
+using CleanCrud.Domain.Entities;
 
-namespace CleanCrud.Application.Interfaces
+namespace CleanCrud.Application.Interfaces;
+
+public interface IJwtService
 {
-    public interface IJwtService
-    {
-        //string GenerateToken(string userName);
-        string GenerateToken(User user);
-    }
+    AccessTokenDto GenerateAccessToken(User user, IEnumerable<string> roles);
 }

@@ -1,4 +1,5 @@
 using CleanCrud.API.Middleware;
+using CleanCrud.API.Authorization;
 using CleanCrud.Application.Interfaces;
 using CleanCrud.Application.Mappings;
 using CleanCrud.Application.Validators;
@@ -8,118 +9,180 @@ using CleanCrud.Infrastructure.Services;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.IdentityModel.JsonWebTokens;
+using Microsoft.Identity.Web;
 using Microsoft.OpenApi;
 using Serilog;
+using System.Security.Claims;
 using System.Text;
+using System.Threading.RateLimiting;
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .WriteTo.Console()
-    .WriteTo.File(
-        "Logs/log-.txt",
-        rollingInterval: RollingInterval.Day,
+    .WriteTo.File("Logs/log-.txt", rollingInterval: RollingInterval.Day,
         retainedFileCountLimit: 30)
     .CreateLogger();
+
 var builder = WebApplication.CreateBuilder(args);
 builder.Host.UseSerilog();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 if (string.IsNullOrWhiteSpace(connectionString))
-{
-    throw new InvalidOperationException(
-        "Connection string 'DefaultConnection' is not configured for the current environment.");
-}
+    throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
 
-var jwtKey = builder.Configuration["Jwt:Key"];
-if (string.IsNullOrWhiteSpace(jwtKey))
-{
-    throw new InvalidOperationException(
-        "JWT signing key 'Jwt:Key' is not configured for the current environment.");
-}
+var jwtSection = builder.Configuration.GetSection(JwtOptions.SectionName);
+var jwtKey = jwtSection[nameof(JwtOptions.Key)];
+if (string.IsNullOrWhiteSpace(jwtKey) || Encoding.UTF8.GetByteCount(jwtKey) < 32)
+    throw new InvalidOperationException("Jwt:Key must be configured with at least 32 bytes.");
 
-// Add services to the container.
+builder.Services.AddOptions<JwtOptions>()
+    .Bind(jwtSection)
+    .Validate(x => !string.IsNullOrWhiteSpace(x.Issuer), "Jwt:Issuer is required.")
+    .Validate(x => !string.IsNullOrWhiteSpace(x.Audience), "Jwt:Audience is required.")
+    .Validate(x => x.AccessTokenMinutes is >= 1 and <= 60,
+        "Jwt:AccessTokenMinutes must be between 1 and 60.")
+    .Validate(x => x.RefreshTokenDays >= 1, "Jwt:RefreshTokenDays must be positive.")
+    .Validate(x => x.RefreshTokenAbsoluteDays >= x.RefreshTokenDays,
+        "Jwt:RefreshTokenAbsoluteDays must be at least RefreshTokenDays.")
+    .ValidateOnStart();
 
 builder.Services.AddControllers();
 builder.Services.AddFluentValidationAutoValidation();
-
 builder.Services.AddValidatorsFromAssemblyContaining<StudentDtoValidator>();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(options =>
+{
+    const string bearerScheme = "Bearer";
 
+    options.AddSecurityDefinition(bearerScheme, new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        Description = "Enter an access token. Swagger adds the 'Bearer' prefix automatically. " +
+                      "Both CleanCrud JWTs and Microsoft Entra access tokens are supported."
+    });
 
-
-builder.Services.AddSwaggerGen();
-
-//builder.Services.AddSwaggerGen(options =>
-//{
-//    options.SwaggerDoc("v1", new OpenApiInfo
-//    {
-//        Title = "CleanCrud API",
-//        Version = "v1"
-//    });
-
-//    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-//    {
-//        Name = "Authorization",
-//        Type = SecuritySchemeType.Http,
-//        Scheme = "bearer",
-//        BearerFormat = "JWT",
-//        In = ParameterLocation.Header,
-//        Description = "Enter JWT Token"
-//    });
-//});
-
+    options.AddSecurityRequirement(document => new OpenApiSecurityRequirement
+    {
+        [new OpenApiSecuritySchemeReference(bearerScheme, document)] = []
+    });
+});
 builder.Services.AddAutoMapper(cfg => { }, typeof(StudentProfile).Assembly);
 
-//builder.Services.AddOpenApi();
-
-
-
-builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(connectionString));
+builder.Services.AddDbContextPool<AppDbContext>(options =>
+    options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure(
+        maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10),
+        errorNumbersToAdd: null)), poolSize: 128);
 
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IAccessControlService, AccessControlService>();
+builder.Services.AddScoped<IOrganizationService, OrganizationService>();
+builder.Services.AddScoped<IModuleAccessService, ModuleAccessService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IFileService, FileService>();
+builder.Services.AddScoped<IEntraUserService, EntraUserService>();
+builder.Services.AddScoped<IPowerBiService, PowerBiService>();
+builder.Services.AddHttpClient("PowerBi", client =>
+    client.BaseAddress = new Uri("https://api.powerbi.com/v1.0/myorg/"));
+builder.Services.AddOptions<EntraProvisioningOptions>()
+    .Bind(builder.Configuration.GetSection(EntraProvisioningOptions.SectionName));
+builder.Services.AddOptions<PowerBiOptions>()
+    .Bind(builder.Configuration.GetSection(PowerBiOptions.SectionName))
+    .PostConfigure(options =>
+    {
+        if (string.IsNullOrWhiteSpace(options.TenantId))
+            options.TenantId = builder.Configuration["AzureAd:TenantId"] ?? string.Empty;
+    });
 
-builder.Services.AddAuthentication(options =>
+const string smartBearer = "SmartBearer";
+const string localBearer = "LocalBearer";
+const string entraBearer = "EntraBearer";
+var authentication = builder.Services.AddAuthentication(options =>
 {
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = smartBearer;
+    options.DefaultChallengeScheme = smartBearer;
 })
-.AddJwtBearer(options =>
+.AddPolicyScheme(smartBearer, smartBearer, options =>
 {
+    options.ForwardDefaultSelector = context =>
+    {
+        var authorization = context.Request.Headers.Authorization.ToString();
+        if (!authorization.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            return entraBearer;
+        try
+        {
+            var token = new JsonWebTokenHandler().ReadJsonWebToken(authorization[7..].Trim());
+            return token.Issuer.Contains("login.microsoftonline.com", StringComparison.OrdinalIgnoreCase) ||
+                   token.Issuer.Contains("sts.windows.net", StringComparison.OrdinalIgnoreCase)
+                ? entraBearer
+                : localBearer;
+        }
+        catch
+        {
+            return entraBearer;
+        }
+    };
+})
+.AddJwtBearer(localBearer, options =>
+{
+    options.MapInboundClaims = false;
+    options.SaveToken = false;
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
-        //ValidateAudience = true,
+        ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-
-        IssuerSigningKey = new SymmetricSecurityKey(
-            Encoding.UTF8.GetBytes(jwtKey))
+        ValidIssuer = jwtSection[nameof(JwtOptions.Issuer)],
+        ValidAudience = jwtSection[nameof(JwtOptions.Audience)],
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
+        ClockSkew = TimeSpan.FromSeconds(30),
+        NameClaimType = ClaimTypes.Name,
+        RoleClaimType = ClaimTypes.Role
     };
 });
+authentication.AddMicrosoftIdentityWebApi(
+    builder.Configuration.GetSection("AzureAd"), entraBearer);
 
-builder.Services.AddAuthorization();
+var apiScope = builder.Configuration["AzureAd:Scopes"] ?? "access_as_user";
+builder.Services.AddAuthorization(options =>
+{
+    options.DefaultPolicy = new AuthorizationPolicyBuilder(smartBearer)
+        .RequireAuthenticatedUser()
+        .AddRequirements(new ApiScopeRequirement(apiScope))
+        .Build();
+});
+builder.Services.AddSingleton<IAuthorizationPolicyProvider, ModulePolicyProvider>();
+builder.Services.AddScoped<IAuthorizationHandler, ModuleAuthorizationHandler>();
+builder.Services.AddSingleton<IAuthorizationHandler, ApiScopeAuthorizationHandler>();
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("auth", httpContext => RateLimitPartition.GetSlidingWindowLimiter(
+        httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new SlidingWindowRateLimiterOptions
+        {
+            PermitLimit = 10,
+            Window = TimeSpan.FromMinutes(1),
+            SegmentsPerWindow = 6,
+            QueueLimit = 0
+        }));
+});
 
 var app = builder.Build();
 app.UseMiddleware<ExceptionMiddleware>();
-
-// Configure the HTTP request pipeline.
-//if (app.Environment.IsDevelopment())
-//{
-//    app.MapOpenApi();
-//}
 
 if (app.Environment.IsDevelopment())
 {
@@ -128,11 +191,9 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-
+app.UseRateLimiter();
 app.UseAuthentication();
+app.UseMiddleware<EntraUserMiddleware>();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
