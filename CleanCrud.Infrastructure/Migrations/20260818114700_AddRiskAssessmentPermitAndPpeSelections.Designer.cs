@@ -4,6 +4,7 @@ using CleanCrud.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CleanCrud.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260818114700_AddRiskAssessmentPermitAndPpeSelections")]
+    partial class AddRiskAssessmentPermitAndPpeSelections
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -629,14 +632,19 @@ namespace CleanCrud.Infrastructure.Migrations
                     b.Property<int?>("CreatedByUserId")
                         .HasColumnType("int");
 
+                    b.Property<string>("DescriptionOfWork")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateOnly>("IssueDate")
                         .HasColumnType("date");
 
-                    b.Property<string>("PermitIssuerContactNumber")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                    b.Property<string>("LocationOfWork")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("PermitIssuerName")
+                    b.Property<string>("PermitIssuer")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -646,14 +654,10 @@ namespace CleanCrud.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("PermitReceiverContactNumber")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("PermitReceiverName")
+                    b.Property<string>("PermitReceiver")
                         .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(250)
+                        .HasColumnType("nvarchar(250)");
 
                     b.Property<int>("PermitStatusListItemId")
                         .HasColumnType("int");
@@ -661,9 +665,13 @@ namespace CleanCrud.Infrastructure.Migrations
                     b.Property<int>("PermitTypeListItemId")
                         .HasColumnType("int");
 
-                    b.Property<string>("PreRiskAssessmentNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<DateTime>("PlannedEndDateTime")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<DateTime>("PlannedStartDateTime")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
@@ -684,19 +692,6 @@ namespace CleanCrud.Infrastructure.Migrations
 
                     b.Property<int?>("UpdatedByUserId")
                         .HasColumnType("int");
-
-                    b.Property<string>("WorkDescription")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("WorkHeightBelowSurface")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("WorkLocation")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
 
                     b.HasKey("Id");
 

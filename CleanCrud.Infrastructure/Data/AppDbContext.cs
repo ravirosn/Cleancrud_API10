@@ -1,11 +1,17 @@
 using CleanCrud.Domain.Entities;
+using CleanCrud.Application.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
 namespace CleanCrud.Infrastructure.Data;
 
 public class AppDbContext : DbContext
 {
-    public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+    private readonly IAuditContext _auditContext;
+
+    public AppDbContext(DbContextOptions<AppDbContext> options, IAuditContext auditContext) : base(options)
+    {
+        _auditContext = auditContext;
+    }
 
     public DbSet<Student> Students => Set<Student>();
     public DbSet<User> Users => Set<User>();
@@ -17,6 +23,39 @@ public class AppDbContext : DbContext
     public DbSet<ApplicationModule> ApplicationModules => Set<ApplicationModule>();
     public DbSet<ModuleMenu> ModuleMenus => Set<ModuleMenu>();
     public DbSet<UserModule> UserModules => Set<UserModule>();
+    public DbSet<ListItemCategory> ListItemCategories => Set<ListItemCategory>();
+    public DbSet<ListItem> ListItems => Set<ListItem>();
+    public DbSet<PermitApplication> PermitApplications => Set<PermitApplication>();
+    public DbSet<RiskAssessment> RiskAssessments => Set<RiskAssessment>();
+    public DbSet<RiskAssessmentHazardCategory> RiskAssessmentHazardCategories =>
+        Set<RiskAssessmentHazardCategory>();
+    public DbSet<RiskAssessmentSpecialPermit> RiskAssessmentSpecialPermits =>
+        Set<RiskAssessmentSpecialPermit>();
+    public DbSet<RiskAssessmentPpe> RiskAssessmentPpeItems => Set<RiskAssessmentPpe>();
+    public DbSet<RiskAssessmentAdditionalPpe> RiskAssessmentAdditionalPpeItems =>
+        Set<RiskAssessmentAdditionalPpe>();
+    public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
+
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        AddAuditLogs();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
+
+    public override Task<int> SaveChangesAsync(
+        bool acceptAllChangesOnSuccess,
+        CancellationToken cancellationToken = default)
+    {
+        AddAuditLogs();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void AddAuditLogs()
+    {
+        var auditLogs = AuditLogFactory.Create(ChangeTracker, _auditContext);
+        if (auditLogs.Count > 0)
+            AuditLogs.AddRange(auditLogs);
+    }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -141,7 +180,145 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.ApplicationModuleId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<ListItemCategory>(entity =>
+        {
+            entity.ToTable("ListItemCategory", "dbo");
+            entity.Property(x => x.Id).HasColumnName("ListItemCategoryId");
+            entity.Property(x => x.Code).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Name).HasColumnName("CategoryName").HasMaxLength(100).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(500);
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
+            entity.HasIndex(x => x.Code).IsUnique();
+        });
+
+        modelBuilder.Entity<ListItem>(entity =>
+        {
+            entity.ToTable("ListItem", "dbo");
+            entity.Property(x => x.Id).HasColumnName("ListItemId");
+            entity.Property(x => x.Code).HasColumnName("SystemName").HasMaxLength(50).IsRequired();
+            entity.Property(x => x.Name).HasColumnName("ItemName").HasMaxLength(100).IsRequired();
+            entity.Property(x => x.IsActive).HasColumnName("IsVisible");
+            entity.Property(x => x.Description).HasMaxLength(500);
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
+            entity.HasIndex(x => new { x.ListItemCategoryId, x.Code }).IsUnique();
+            entity.HasIndex(x => new { x.ListItemCategoryId, x.IsActive, x.DisplayOrder });
+            entity.HasOne(x => x.ListItemCategory).WithMany(x => x.ListItems)
+                .HasForeignKey(x => x.ListItemCategoryId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PermitApplication>(entity =>
+        {
+            entity.ToTable("PermitApplication", "dbo");
+            entity.Property(x => x.PermitNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.IssueDate).HasColumnType("date").IsRequired();
+            entity.Property(x => x.PermitIssuerName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PermitIssuerContactNumber).HasMaxLength(30);
+            entity.Property(x => x.PermitReceiverName).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PermitReceiverContactNumber).HasMaxLength(30);
+            entity.Property(x => x.PreRiskAssessmentNumber).HasMaxLength(50);
+            entity.Property(x => x.WorkLocation).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.WorkDescription).IsRequired();
+            entity.Property(x => x.SpecialInstructions);
+            entity.Property(x => x.WorkHeightBelowSurface).HasMaxLength(200);
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.SubmittedAtUtc).HasPrecision(0);
+            entity.Property(x => x.RowVersion).IsRowVersion();
+            entity.HasIndex(x => x.PermitNumber).IsUnique();
+            entity.HasIndex(x => new { x.PermitStatusListItemId, x.CreatedAtUtc });
+            entity.HasOne(x => x.PermitTypeListItem).WithMany(x => x.PermitTypeApplications)
+                .HasForeignKey(x => x.PermitTypeListItemId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.PermitStatusListItem).WithMany(x => x.PermitStatusApplications)
+                .HasForeignKey(x => x.PermitStatusListItemId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RiskAssessment>(entity =>
+        {
+            entity.ToTable("RiskAssessment", "dbo");
+            entity.Property(x => x.PreRiskAssessmentNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.IssueDate).HasColumnType("date").IsRequired();
+            entity.Property(x => x.PermitIssuerName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.PermitIssuerContact).HasMaxLength(30);
+            entity.Property(x => x.PermitReceiverName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.PermitReceiverContact).HasMaxLength(30);
+            entity.Property(x => x.AreaResponsibleName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.AreaResponsibleContact).HasMaxLength(30);
+            entity.Property(x => x.LocationOfWork).HasMaxLength(255).IsRequired();
+            entity.Property(x => x.DescriptionOfWork);
+            entity.Property(x => x.SpecialInstructions);
+            entity.Property(x => x.PlannedStartDateTime).HasPrecision(0);
+            entity.Property(x => x.PlannedEndDateTime).HasPrecision(0);
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0).HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(x => x.UpdatedAtUtc).HasPrecision(0).HasDefaultValueSql("SYSUTCDATETIME()");
+        });
+
+        modelBuilder.Entity<RiskAssessmentHazardCategory>(entity =>
+        {
+            entity.ToTable("RiskAssessmentHazardCategories", "dbo");
+            entity.HasKey(x => new { x.RiskAssessmentId, x.HazardCategoriesListItemId });
+            entity.Property(x => x.IsSelected).HasColumnType("bit");
+            entity.HasOne(x => x.RiskAssessment).WithMany(x => x.HazardCategories)
+                .HasForeignKey(x => x.RiskAssessmentId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.HazardCategoryListItem)
+                .WithMany(x => x.RiskAssessmentHazardCategories)
+                .HasForeignKey(x => x.HazardCategoriesListItemId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RiskAssessmentSpecialPermit>(entity =>
+        {
+            entity.ToTable("RiskAssessmentSpecialPermit", "dbo");
+            entity.HasKey(x => new { x.RiskAssessmentId, x.SpecialPermitListItemId });
+            entity.Property(x => x.IsSelected).HasColumnType("bit");
+            entity.HasOne(x => x.RiskAssessment).WithMany(x => x.SpecialPermits)
+                .HasForeignKey(x => x.RiskAssessmentId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.SpecialPermitListItem)
+                .WithMany(x => x.RiskAssessmentSpecialPermits)
+                .HasForeignKey(x => x.SpecialPermitListItemId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RiskAssessmentPpe>(entity =>
+        {
+            entity.ToTable("RiskAssessmentPPE", "dbo");
+            entity.HasKey(x => new { x.RiskAssessmentId, x.SpecialPermitListItemId });
+            entity.Property(x => x.IsSelected).HasColumnType("bit");
+            entity.HasOne(x => x.RiskAssessment).WithMany(x => x.PersonalProtectiveEquipment)
+                .HasForeignKey(x => x.RiskAssessmentId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.SpecialPermitListItem)
+                .WithMany(x => x.RiskAssessmentPpeItems)
+                .HasForeignKey(x => x.SpecialPermitListItemId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<RiskAssessmentAdditionalPpe>(entity =>
+        {
+            entity.ToTable("RiskAssessmentAdditionalPPE", "dbo");
+            entity.HasKey(x => new { x.RiskAssessmentId, x.AdditionalProtectiveMeasuresListItemId });
+            entity.Property(x => x.IsSelected).HasColumnType("bit");
+            entity.HasOne(x => x.RiskAssessment)
+                .WithMany(x => x.AdditionalPersonalProtectiveEquipment)
+                .HasForeignKey(x => x.RiskAssessmentId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.AdditionalProtectiveMeasureListItem)
+                .WithMany(x => x.RiskAssessmentAdditionalPpeItems)
+                .HasForeignKey(x => x.AdditionalProtectiveMeasuresListItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.ToTable("AuditLog", "dbo");
+            entity.Property(x => x.EntityName).HasMaxLength(128).IsRequired();
+            entity.Property(x => x.Action).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.ChangedBy).HasMaxLength(256);
+            entity.Property(x => x.TraceId).HasMaxLength(100);
+            entity.Property(x => x.IpAddress).HasMaxLength(45);
+            entity.Property(x => x.ChangedAtUtc).HasPrecision(0);
+            entity.HasIndex(x => new { x.EntityName, x.ChangedAtUtc });
+            entity.HasIndex(x => new { x.ChangedByUserId, x.ChangedAtUtc });
+        });
+
         SeedModulesAndMenus(modelBuilder);
+        SeedListItems(modelBuilder);
     }
 
     private static void SeedModulesAndMenus(ModelBuilder modelBuilder)
@@ -164,5 +341,20 @@ public class AppDbContext : DbContext
             new ModuleMenu { Id = 8, ApplicationModuleId = 3, Name = "Asset Register", ControllerName = "AssetRegister", ActionName = "Index", QueryUrl = "/api/asset/register", Icon = "archive", DisplayOrder = 2, IsActive = true, CreatedAtUtc = seededAt },
             new ModuleMenu { Id = 9, ApplicationModuleId = 3, Name = "Asset Assignments", ControllerName = "AssetAssignments", ActionName = "Index", QueryUrl = "/api/asset/assignments", Icon = "user-check", DisplayOrder = 3, IsActive = true, CreatedAtUtc = seededAt },
             new ModuleMenu { Id = 10, ApplicationModuleId = 4, Name = "Power BI Report", ControllerName = "PowerBi", ActionName = "GetEmbedConfig", QueryUrl = "/api/power-bi/embed-config", Icon = "bar-chart-2", DisplayOrder = 1, IsActive = true, CreatedAtUtc = seededAt });
+    }
+
+    private static void SeedListItems(ModelBuilder modelBuilder)
+    {
+        var seededAt = new DateTime(2026, 8, 16, 0, 0, 0, DateTimeKind.Utc);
+        modelBuilder.Entity<ListItemCategory>().HasData(
+            new ListItemCategory { Id = 1, Code = "PERMIT_STATUS", Name = "Permit Status", Description = "Workflow statuses for permit applications.", IsActive = true, CreatedAtUtc = seededAt },
+            new ListItemCategory { Id = 2, Code = "PERMIT_TYPE", Name = "Permit Type", Description = "Available permit application types.", IsActive = true, CreatedAtUtc = seededAt });
+
+        modelBuilder.Entity<ListItem>().HasData(
+            new ListItem { Id = 1, ListItemCategoryId = 1, Code = "DRAFT", Name = "Draft", DisplayOrder = 1, IsActive = true, CreatedAtUtc = seededAt },
+            new ListItem { Id = 2, ListItemCategoryId = 1, Code = "SUBMITTED_FOR_APPROVAL", Name = "Submitted For Approval", DisplayOrder = 2, IsActive = true, CreatedAtUtc = seededAt },
+            new ListItem { Id = 3, ListItemCategoryId = 1, Code = "APPROVED", Name = "Approved", DisplayOrder = 3, IsActive = true, CreatedAtUtc = seededAt },
+            new ListItem { Id = 4, ListItemCategoryId = 1, Code = "REJECTED", Name = "Rejected", DisplayOrder = 4, IsActive = true, CreatedAtUtc = seededAt },
+            new ListItem { Id = 5, ListItemCategoryId = 1, Code = "DELETED", Name = "Deleted", DisplayOrder = 5, IsActive = true, CreatedAtUtc = seededAt });
     }
 }

@@ -1,5 +1,6 @@
 using CleanCrud.API.Middleware;
 using CleanCrud.API.Authorization;
+using CleanCrud.API.Services;
 using CleanCrud.Application.Interfaces;
 using CleanCrud.Application.Mappings;
 using CleanCrud.Application.Validators;
@@ -74,6 +75,8 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 builder.Services.AddAutoMapper(cfg => { }, typeof(StudentProfile).Assembly);
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<IAuditContext, HttpAuditContext>();
 
 builder.Services.AddDbContextPool<AppDbContext>(options =>
     options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure(
