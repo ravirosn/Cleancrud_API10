@@ -10,4 +10,5 @@ public class Department
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public OfficeBranch OfficeBranch { get; set; } = null!;
+    public ICollection<User> Users { get; set; } = new List<User>();
 }

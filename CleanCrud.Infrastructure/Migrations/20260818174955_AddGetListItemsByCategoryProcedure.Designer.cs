@@ -4,6 +4,7 @@ using CleanCrud.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CleanCrud.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260818174955_AddGetListItemsByCategoryProcedure")]
+    partial class AddGetListItemsByCategoryProcedure
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -665,9 +668,6 @@ namespace CleanCrud.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int?>("RiskAssessmentId")
-                        .HasColumnType("int");
-
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -705,8 +705,6 @@ namespace CleanCrud.Infrastructure.Migrations
 
                     b.HasIndex("PermitNumber")
                         .IsUnique();
-
-                    b.HasIndex("RiskAssessmentId");
 
                     b.HasIndex("PermitTypeListItemId");
 
@@ -790,6 +788,10 @@ namespace CleanCrud.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AreaResponsibleContact")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
                     b.Property<string>("AreaResponsibleName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -800,9 +802,6 @@ namespace CleanCrud.Infrastructure.Migrations
                         .HasPrecision(0)
                         .HasColumnType("datetime2(0)")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<int?>("CreatedBy")
-                        .HasColumnType("int");
 
                     b.Property<string>("DescriptionOfWork")
                         .HasColumnType("nvarchar(max)");
@@ -815,21 +814,18 @@ namespace CleanCrud.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<int?>("ModifiedBy")
-                        .HasColumnType("int");
-
-                    b.Property<string>("OtherEquipmentsPPE")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("OtherProtectionMeasures")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                    b.Property<string>("PermitIssuerContact")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("PermitIssuerName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("PermitReceiverContact")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
 
                     b.Property<string>("PermitReceiverName")
                         .IsRequired()
@@ -849,9 +845,6 @@ namespace CleanCrud.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int>("RiskAssessmentStatusListItemId")
-                        .HasColumnType("int");
-
                     b.Property<string>("SpecialInstructions")
                         .HasColumnType("nvarchar(max)");
 
@@ -862,12 +855,6 @@ namespace CleanCrud.Infrastructure.Migrations
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("CreatedBy");
-
-                    b.HasIndex("ModifiedBy");
-
-                    b.HasIndex("RiskAssessmentStatusListItemId", "CreatedAtUtc");
 
                     b.ToTable("RiskAssessment", "dbo");
                 });
@@ -1010,16 +997,9 @@ namespace CleanCrud.Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<string>("ContactNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasPrecision(0)
                         .HasColumnType("datetime2(0)");
-
-                    b.Property<int?>("DepartmentId")
-                        .HasColumnType("int");
 
                     b.Property<string>("DisplayName")
                         .HasMaxLength(200)
@@ -1053,8 +1033,6 @@ namespace CleanCrud.Infrastructure.Migrations
                         .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("DepartmentId");
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique();
@@ -1164,16 +1142,9 @@ namespace CleanCrud.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("CleanCrud.Domain.Entities.RiskAssessment", "RiskAssessment")
-                        .WithMany("PermitApplications")
-                        .HasForeignKey("RiskAssessmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("PermitStatusListItem");
 
                     b.Navigation("PermitTypeListItem");
-
-                    b.Navigation("RiskAssessment");
                 });
 
             modelBuilder.Entity("CleanCrud.Domain.Entities.RefreshToken", b =>
@@ -1185,27 +1156,6 @@ namespace CleanCrud.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("CleanCrud.Domain.Entities.RiskAssessment", b =>
-                {
-                    b.HasOne("CleanCrud.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("CreatedBy")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("CleanCrud.Domain.Entities.User", null)
-                        .WithMany()
-                        .HasForeignKey("ModifiedBy")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.HasOne("CleanCrud.Domain.Entities.ListItem", "RiskAssessmentStatusListItem")
-                        .WithMany("RiskAssessmentStatuses")
-                        .HasForeignKey("RiskAssessmentStatusListItemId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("RiskAssessmentStatusListItem");
                 });
 
             modelBuilder.Entity("CleanCrud.Domain.Entities.RiskAssessmentAdditionalPpe", b =>
@@ -1284,16 +1234,6 @@ namespace CleanCrud.Infrastructure.Migrations
                     b.Navigation("SpecialPermitListItem");
                 });
 
-            modelBuilder.Entity("CleanCrud.Domain.Entities.User", b =>
-                {
-                    b.HasOne("CleanCrud.Domain.Entities.Department", "Department")
-                        .WithMany("Users")
-                        .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("Department");
-                });
-
             modelBuilder.Entity("CleanCrud.Domain.Entities.UserModule", b =>
                 {
                     b.HasOne("CleanCrud.Domain.Entities.ApplicationModule", "ApplicationModule")
@@ -1339,11 +1279,6 @@ namespace CleanCrud.Infrastructure.Migrations
                     b.Navigation("UserModules");
                 });
 
-            modelBuilder.Entity("CleanCrud.Domain.Entities.Department", b =>
-                {
-                    b.Navigation("Users");
-                });
-
             modelBuilder.Entity("CleanCrud.Domain.Entities.ListItem", b =>
                 {
                     b.Navigation("PermitStatusApplications");
@@ -1357,8 +1292,6 @@ namespace CleanCrud.Infrastructure.Migrations
                     b.Navigation("RiskAssessmentPpeItems");
 
                     b.Navigation("RiskAssessmentSpecialPermits");
-
-                    b.Navigation("RiskAssessmentStatuses");
                 });
 
             modelBuilder.Entity("CleanCrud.Domain.Entities.ListItemCategory", b =>
@@ -1383,8 +1316,6 @@ namespace CleanCrud.Infrastructure.Migrations
                     b.Navigation("HazardCategories");
 
                     b.Navigation("PersonalProtectiveEquipment");
-
-                    b.Navigation("PermitApplications");
 
                     b.Navigation("SpecialPermits");
                 });

@@ -3,6 +3,7 @@ namespace CleanCrud.Domain.Entities;
 public class PermitApplication
 {
     public long Id { get; set; }
+    public int? RiskAssessmentId { get; set; }
     public string PermitNumber { get; set; } = string.Empty;
     public DateOnly IssueDate { get; set; }
     public string PermitIssuerName { get; set; } = string.Empty;
@@ -25,4 +26,5 @@ public class PermitApplication
 
     public ListItem PermitTypeListItem { get; set; } = null!;
     public ListItem PermitStatusListItem { get; set; } = null!;
+    public RiskAssessment? RiskAssessment { get; set; }
 }

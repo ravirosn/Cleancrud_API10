@@ -23,4 +23,6 @@ public class ListItem
         new List<RiskAssessmentPpe>();
     public ICollection<RiskAssessmentAdditionalPpe> RiskAssessmentAdditionalPpeItems { get; set; } =
         new List<RiskAssessmentAdditionalPpe>();
+    public ICollection<RiskAssessment> RiskAssessmentStatuses { get; set; } =
+        new List<RiskAssessment>();
 }

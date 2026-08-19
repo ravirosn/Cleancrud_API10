@@ -43,6 +43,37 @@ namespace CleanCrud.Infrastructure.Services
             return user;
         }
 
+        public async Task<CurrentUserDetailsDto?> GetCurrentUserDetailsAsync(
+            int userId, CancellationToken cancellationToken = default)
+        {
+            var user = await _userRepository.GetByIdWithDetailsAsync(userId, cancellationToken);
+            if (user is null)
+                return null;
+
+            var roles = user.UserRoles
+                .Where(x => x.IsActive && x.Role.IsActive)
+                .Select(x => x.Role.Name)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(x => x)
+                .ToArray();
+
+            return new CurrentUserDetailsDto(
+                user.Id,
+                user.UserName,
+                user.DisplayName,
+                user.Email,
+                user.ContactNumber,
+                user.EntraTenantId,
+                user.EntraObjectId,
+                user.IsActive,
+                user.CreatedAtUtc,
+                roles,
+                user.DepartmentId,
+                user.Department?.Name,
+                user.Department?.OfficeBranch.Id,
+                user.Department?.OfficeBranch.Name);
+        }
+
         public async Task AddUserAsync(RegisterDto dto)
         {
             if (Encoding.UTF8.GetByteCount(dto.Password) > 72)

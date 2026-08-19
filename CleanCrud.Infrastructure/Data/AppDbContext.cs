@@ -68,10 +68,14 @@ public class AppDbContext : DbContext
             entity.Property(x => x.PasswordHash).HasMaxLength(255);
             entity.Property(x => x.DisplayName).HasMaxLength(200);
             entity.Property(x => x.Email).HasMaxLength(320);
+            entity.Property(x => x.ContactNumber).HasMaxLength(20);
             entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
             entity.HasIndex(x => x.NormalizedUserName).IsUnique();
+            entity.HasIndex(x => x.DepartmentId);
             entity.HasIndex(x => new { x.EntraTenantId, x.EntraObjectId }).IsUnique()
                 .HasFilter("[EntraTenantId] IS NOT NULL AND [EntraObjectId] IS NOT NULL");
+            entity.HasOne(x => x.Department).WithMany(x => x.Users)
+                .HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Role>(entity =>
@@ -232,6 +236,8 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.PermitTypeListItemId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.PermitStatusListItem).WithMany(x => x.PermitStatusApplications)
                 .HasForeignKey(x => x.PermitStatusListItemId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.RiskAssessment).WithMany(x => x.PermitApplications)
+                .HasForeignKey(x => x.RiskAssessmentId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<RiskAssessment>(entity =>
@@ -240,18 +246,26 @@ public class AppDbContext : DbContext
             entity.Property(x => x.PreRiskAssessmentNumber).HasMaxLength(50).IsRequired();
             entity.Property(x => x.IssueDate).HasColumnType("date").IsRequired();
             entity.Property(x => x.PermitIssuerName).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.PermitIssuerContact).HasMaxLength(30);
             entity.Property(x => x.PermitReceiverName).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.PermitReceiverContact).HasMaxLength(30);
             entity.Property(x => x.AreaResponsibleName).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.AreaResponsibleContact).HasMaxLength(30);
             entity.Property(x => x.LocationOfWork).HasMaxLength(255).IsRequired();
             entity.Property(x => x.DescriptionOfWork);
             entity.Property(x => x.SpecialInstructions);
+            entity.Property(x => x.OtherEquipmentsPPE).HasMaxLength(500);
+            entity.Property(x => x.OtherProtectionMeasures).HasMaxLength(500);
             entity.Property(x => x.PlannedStartDateTime).HasPrecision(0);
             entity.Property(x => x.PlannedEndDateTime).HasPrecision(0);
             entity.Property(x => x.CreatedAtUtc).HasPrecision(0).HasDefaultValueSql("SYSUTCDATETIME()");
             entity.Property(x => x.UpdatedAtUtc).HasPrecision(0).HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.HasIndex(x => new { x.RiskAssessmentStatusListItemId, x.CreatedAtUtc });
+            entity.HasOne(x => x.RiskAssessmentStatusListItem)
+                .WithMany(x => x.RiskAssessmentStatuses)
+                .HasForeignKey(x => x.RiskAssessmentStatusListItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedBy)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<User>().WithMany().HasForeignKey(x => x.ModifiedBy)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<RiskAssessmentHazardCategory>(entity =>

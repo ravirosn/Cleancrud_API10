@@ -23,6 +23,17 @@ namespace CleanCrud.Infrastructure.Repositories
             return await _context.Users.FirstOrDefaultAsync(x => x.NormalizedUserName == normalizedUserName);
         }
 
+        public async Task<User?> GetByIdWithDetailsAsync(
+            int userId, CancellationToken cancellationToken = default)
+        {
+            return await _context.Users.AsNoTracking()
+                .Include(x => x.UserRoles.Where(userRole => userRole.IsActive))
+                    .ThenInclude(userRole => userRole.Role)
+                .Include(x => x.Department)
+                    .ThenInclude(department => department!.OfficeBranch)
+                .SingleOrDefaultAsync(x => x.Id == userId, cancellationToken);
+        }
+
         public async Task AddUserAsync(User user)
         {
             var defaultRole = await _context.Roles.SingleOrDefaultAsync(

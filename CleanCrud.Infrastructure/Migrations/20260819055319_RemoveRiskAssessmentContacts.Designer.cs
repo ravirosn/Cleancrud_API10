@@ -4,6 +4,7 @@ using CleanCrud.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CleanCrud.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260819055319_RemoveRiskAssessmentContacts")]
+    partial class RemoveRiskAssessmentContacts
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -665,9 +668,6 @@ namespace CleanCrud.Infrastructure.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<int?>("RiskAssessmentId")
-                        .HasColumnType("int");
-
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -705,8 +705,6 @@ namespace CleanCrud.Infrastructure.Migrations
 
                     b.HasIndex("PermitNumber")
                         .IsUnique();
-
-                    b.HasIndex("RiskAssessmentId");
 
                     b.HasIndex("PermitTypeListItemId");
 
@@ -1164,16 +1162,9 @@ namespace CleanCrud.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("CleanCrud.Domain.Entities.RiskAssessment", "RiskAssessment")
-                        .WithMany("PermitApplications")
-                        .HasForeignKey("RiskAssessmentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
                     b.Navigation("PermitStatusListItem");
 
                     b.Navigation("PermitTypeListItem");
-
-                    b.Navigation("RiskAssessment");
                 });
 
             modelBuilder.Entity("CleanCrud.Domain.Entities.RefreshToken", b =>
@@ -1383,8 +1374,6 @@ namespace CleanCrud.Infrastructure.Migrations
                     b.Navigation("HazardCategories");
 
                     b.Navigation("PersonalProtectiveEquipment");
-
-                    b.Navigation("PermitApplications");
 
                     b.Navigation("SpecialPermits");
                 });

@@ -22,6 +22,10 @@ namespace CleanCrud.Domain.Entities
 
         public string? Email { get; set; }
 
+        public string? ContactNumber { get; set; }
+
+        public int? DepartmentId { get; set; }
+
         public bool IsActive { get; set; } = true;
 
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
@@ -31,5 +35,7 @@ namespace CleanCrud.Domain.Entities
         public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 
         public ICollection<UserModule> UserModules { get; set; } = new List<UserModule>();
+
+        public Department? Department { get; set; }
     }
 }

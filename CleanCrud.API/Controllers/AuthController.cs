@@ -1,8 +1,11 @@
+using CleanCrud.API.Middleware;
 using CleanCrud.Application.DTOs;
 using CleanCrud.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace CleanCrud.API.Controllers;
 
@@ -66,6 +69,27 @@ public sealed class AuthController : ControllerBase
             Success = true,
             Message = "User registered successfully."
         });
+    }
+
+    [Authorize]
+    [HttpGet("me")]
+    [ProducesResponseType<CurrentUserDetailsDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<CurrentUserDetailsDto>> GetCurrentUser(
+        CancellationToken cancellationToken)
+    {
+        var userIdValue = User.FindFirstValue(EntraUserMiddleware.LocalUserIdClaim)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub)
+            ?? User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (!int.TryParse(userIdValue, out var userId))
+            return Unauthorized(new { Message = "The access token does not identify a local user." });
+
+        var user = await _userService.GetCurrentUserDetailsAsync(userId, cancellationToken);
+        return user is null
+            ? NotFound(new { Message = "The current user no longer exists." })
+            : Ok(user);
     }
 
     private string? GetClientIp() => HttpContext.Connection.RemoteIpAddress?.ToString();
