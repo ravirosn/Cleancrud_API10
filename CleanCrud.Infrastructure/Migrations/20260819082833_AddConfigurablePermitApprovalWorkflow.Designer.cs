@@ -4,6 +4,7 @@ using CleanCrud.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CleanCrud.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260819082833_AddConfigurablePermitApprovalWorkflow")]
+    partial class AddConfigurablePermitApprovalWorkflow
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -209,8 +212,7 @@ namespace CleanCrud.Infrastructure.Migrations
                     b.HasIndex("CreatedByUserId");
 
                     b.HasIndex("PermitTypeListItemId")
-                        .IsUnique()
-                        .HasFilter("[IsActive] = 1");
+                        .IsUnique();
 
                     b.ToTable("ApprovalWorkflow", "dbo");
                 });
@@ -246,7 +248,7 @@ namespace CleanCrud.Infrastructure.Migrations
 
                     b.ToTable("ApprovalWorkflowLevel", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_ApprovalWorkflowLevel_LevelNumber", "[LevelNumber] BETWEEN 1 AND 5");
+                            t.HasCheckConstraint("CK_ApprovalWorkflowLevel_LevelNumber", "[LevelNumber] BETWEEN 1 AND 3");
                         });
                 });
 
@@ -908,7 +910,7 @@ namespace CleanCrud.Infrastructure.Migrations
 
                     b.ToTable("PermitApproval", "dbo", t =>
                         {
-                            t.HasCheckConstraint("CK_PermitApproval_LevelNumber", "[LevelNumber] BETWEEN 1 AND 5");
+                            t.HasCheckConstraint("CK_PermitApproval_LevelNumber", "[LevelNumber] BETWEEN 1 AND 3");
                         });
                 });
 

@@ -27,4 +27,5 @@ public class PermitApplication
     public ListItem PermitTypeListItem { get; set; } = null!;
     public ListItem PermitStatusListItem { get; set; } = null!;
     public RiskAssessment? RiskAssessment { get; set; }
+    public ICollection<PermitApproval> Approvals { get; set; } = new List<PermitApproval>();
 }

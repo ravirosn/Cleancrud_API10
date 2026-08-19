@@ -34,6 +34,10 @@ public class AppDbContext : DbContext
     public DbSet<RiskAssessmentPpe> RiskAssessmentPpeItems => Set<RiskAssessmentPpe>();
     public DbSet<RiskAssessmentAdditionalPpe> RiskAssessmentAdditionalPpeItems =>
         Set<RiskAssessmentAdditionalPpe>();
+    public DbSet<ApprovalWorkflow> ApprovalWorkflows => Set<ApprovalWorkflow>();
+    public DbSet<ApprovalWorkflowLevel> ApprovalWorkflowLevels => Set<ApprovalWorkflowLevel>();
+    public DbSet<PermitApproval> PermitApprovals => Set<PermitApproval>();
+    public DbSet<ApprovalNotification> ApprovalNotifications => Set<ApprovalNotification>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
@@ -316,6 +320,74 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.RiskAssessmentAdditionalPpeItems)
                 .HasForeignKey(x => x.AdditionalProtectiveMeasuresListItemId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ApprovalWorkflow>(entity =>
+        {
+            entity.ToTable("ApprovalWorkflow", "dbo");
+            entity.Property(x => x.Name).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
+            entity.HasIndex(x => x.PermitTypeListItemId)
+                .IsUnique()
+                .HasFilter("[IsActive] = 1");
+            entity.HasOne(x => x.PermitTypeListItem).WithMany()
+                .HasForeignKey(x => x.PermitTypeListItemId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ApprovalWorkflowLevel>(entity =>
+        {
+            entity.ToTable("ApprovalWorkflowLevel", "dbo", table =>
+                table.HasCheckConstraint("CK_ApprovalWorkflowLevel_LevelNumber", "[LevelNumber] BETWEEN 1 AND 5"));
+            entity.HasIndex(x => new { x.ApprovalWorkflowId, x.LevelNumber }).IsUnique();
+            entity.HasOne(x => x.ApprovalWorkflow).WithMany(x => x.Levels)
+                .HasForeignKey(x => x.ApprovalWorkflowId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.PrimaryApproverRole).WithMany()
+                .HasForeignKey(x => x.PrimaryApproverRoleId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.AlternateApproverRole).WithMany()
+                .HasForeignKey(x => x.AlternateApproverRoleId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PermitApproval>(entity =>
+        {
+            entity.ToTable("PermitApproval", "dbo", table =>
+                table.HasCheckConstraint("CK_PermitApproval_LevelNumber", "[LevelNumber] BETWEEN 1 AND 5"));
+            entity.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Comments).HasMaxLength(1000);
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.ActionedAtUtc).HasPrecision(0);
+            entity.HasIndex(x => new { x.PermitApplicationId, x.LevelNumber }).IsUnique();
+            entity.HasIndex(x => new { x.Status, x.PrimaryApproverRoleId });
+            entity.HasIndex(x => new { x.Status, x.AlternateApproverRoleId });
+            entity.HasOne(x => x.PermitApplication).WithMany(x => x.Approvals)
+                .HasForeignKey(x => x.PermitApplicationId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.PrimaryApproverRole).WithMany()
+                .HasForeignKey(x => x.PrimaryApproverRoleId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.AlternateApproverRole).WithMany()
+                .HasForeignKey(x => x.AlternateApproverRoleId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.ActionedByUser).WithMany()
+                .HasForeignKey(x => x.ActionedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ApprovalNotification>(entity =>
+        {
+            entity.ToTable("ApprovalNotification", "dbo");
+            entity.Property(x => x.Title).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Message).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.LastError).HasMaxLength(1000);
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.SentAtUtc).HasPrecision(0);
+            entity.Property(x => x.ReadAtUtc).HasPrecision(0);
+            entity.HasIndex(x => new { x.Status, x.CreatedAtUtc });
+            entity.HasIndex(x => new { x.RecipientUserId, x.ReadAtUtc, x.CreatedAtUtc });
+            entity.HasIndex(x => new { x.PermitApprovalId, x.RecipientUserId }).IsUnique();
+            entity.HasOne(x => x.PermitApproval).WithMany(x => x.Notifications)
+                .HasForeignKey(x => x.PermitApprovalId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.RecipientUser).WithMany()
+                .HasForeignKey(x => x.RecipientUserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<AuditLog>(entity =>

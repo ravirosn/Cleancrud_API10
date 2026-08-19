@@ -10,7 +10,9 @@ namespace CleanCrud.API.Controllers;
 [ApiController]
 [Route("api/risk-assessments")]
 [Authorize]
-public sealed class RiskAssessmentsController(IRiskAssessmentService service) : ControllerBase
+public sealed class RiskAssessmentsController(
+    IRiskAssessmentService service,
+    IApprovalWorkflowService approvalWorkflowService) : ControllerBase
 {
     [HttpPost]
     public async Task<ActionResult<RiskAssessmentWriteResponseDto>> Create(
@@ -46,6 +48,31 @@ public sealed class RiskAssessmentsController(IRiskAssessmentService service) : 
                 message = "Only risk assessments in Draft status can be updated."
             }),
             _ => StatusCode(StatusCodes.Status500InternalServerError)
+        };
+    }
+
+    [HttpPost("{id:int}/submit")]
+    public async Task<IActionResult> Submit(int id, CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+            return Forbid();
+
+        var result = await approvalWorkflowService.SubmitRiskAssessmentAsync(
+            id, userId, cancellationToken);
+        return result.Outcome switch
+        {
+            ApprovalOperationOutcome.Success => Ok(new
+            {
+                message = "Risk assessment and child permits were submitted for approval."
+            }),
+            ApprovalOperationOutcome.NotFound => NotFound(new
+            {
+                message = "Risk assessment was not found."
+            }),
+            ApprovalOperationOutcome.NotDraft => Conflict(new { message = result.Message }),
+            ApprovalOperationOutcome.NoPermitApplications => Conflict(new { message = result.Message }),
+            ApprovalOperationOutcome.MissingWorkflow => Conflict(new { message = result.Message }),
+            _ => BadRequest(new { message = result.Message })
         };
     }
 
