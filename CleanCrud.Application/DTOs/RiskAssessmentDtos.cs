@@ -63,3 +63,73 @@ public enum RiskAssessmentWriteOutcome
 public sealed record RiskAssessmentWriteResult(
     RiskAssessmentWriteOutcome Outcome,
     RiskAssessmentWriteResponseDto? Value = null);
+
+public sealed class RiskAssessmentQueryDto
+{
+    [Range(1, int.MaxValue)]
+    public int PageNumber { get; set; } = 1;
+
+    [Range(1, 100)]
+    public int PageSize { get; set; } = 10;
+
+    [StringLength(200)]
+    public string? Search { get; set; }
+}
+
+public sealed record RiskAssessmentGridItemDto(
+    int Id,
+    string PreRiskAssessmentNumber,
+    DateOnly IssueDate,
+    string PermitIssuerName,
+    string PermitReceiverName,
+    string AreaResponsibleName,
+    DateTime? PlannedStartDateTime,
+    DateTime? PlannedEndDateTime,
+    int RiskAssessmentStatusListItemId,
+    string RiskAssessmentStatus);
+
+public sealed record RiskAssessmentDetailsDto(
+    int Id,
+    string PreRiskAssessmentNumber,
+    DateOnly IssueDate,
+    string PermitIssuerName,
+    string PermitReceiverName,
+    string AreaResponsibleName,
+    string LocationOfWork,
+    string? DescriptionOfWork,
+    string? SpecialInstructions,
+    string? OtherEquipmentsPPE,
+    string? OtherProtectionMeasures,
+    DateTime? PlannedStartDateTime,
+    DateTime? PlannedEndDateTime,
+    int RiskAssessmentStatusListItemId,
+    string RiskAssessmentStatus,
+    int? CreatedBy,
+    int? ModifiedBy,
+    DateTime CreatedAtUtc,
+    DateTime UpdatedAtUtc,
+    IReadOnlyList<RiskAssessmentSelectionDto> AdditionalPpe,
+    IReadOnlyList<RiskAssessmentSelectionDto> HazardCategories,
+    IReadOnlyList<RiskAssessmentSelectionDto> PersonalProtectiveEquipment,
+    IReadOnlyList<RiskAssessmentSelectionDto> SpecialPermits);
+
+public sealed record RiskAssessmentPermitApplicationDto(
+    long Id,
+    string PermitNumber,
+    DateOnly IssueDate,
+    string PermitIssuerName,
+    string PermitReceiverName,
+    int PermitTypeListItemId,
+    string PermitTypeName,
+    int PermitStatusListItemId,
+    string PermitStatusName,
+    int? RiskAssessmentId);
+
+public sealed record RiskAssessmentPagedResponseDto(
+    IReadOnlyList<RiskAssessmentGridItemDto> Data,
+    long TotalRecords,
+    long TotalPages,
+    int PageNumber,
+    int PageSize,
+    bool HasPreviousPage,
+    bool HasNextPage);

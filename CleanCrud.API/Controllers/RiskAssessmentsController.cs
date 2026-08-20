@@ -14,6 +14,37 @@ public sealed class RiskAssessmentsController(
     IRiskAssessmentService service,
     IApprovalWorkflowService approvalWorkflowService) : ControllerBase
 {
+    [HttpGet]
+    public async Task<ActionResult<RiskAssessmentPagedResponseDto>> GetPaged(
+        [FromQuery] RiskAssessmentQueryDto query,
+        CancellationToken cancellationToken)
+    {
+        var result = await service.GetPagedAsync(query, cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<RiskAssessmentDetailsDto>> GetById(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        var result = await service.GetByIdAsync(id, cancellationToken);
+        return result is null
+            ? NotFound(new { message = "Risk assessment was not found." })
+            : Ok(result);
+    }
+
+    [HttpGet("{riskAssessmentId:int}/permit-applications")]
+    public async Task<ActionResult<IReadOnlyList<RiskAssessmentPermitApplicationDto>>>
+        GetPermitApplications(
+            int riskAssessmentId,
+            CancellationToken cancellationToken)
+    {
+        var result = await service.GetPermitApplicationsAsync(
+            riskAssessmentId, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost]
     public async Task<ActionResult<RiskAssessmentWriteResponseDto>> Create(
         RiskAssessmentRequestDto request,
@@ -71,6 +102,10 @@ public sealed class RiskAssessmentsController(
             }),
             ApprovalOperationOutcome.NotDraft => Conflict(new { message = result.Message }),
             ApprovalOperationOutcome.NoPermitApplications => Conflict(new { message = result.Message }),
+            ApprovalOperationOutcome.PermitApplicationsNotFinalized => Conflict(new
+            {
+                message = result.Message
+            }),
             ApprovalOperationOutcome.MissingWorkflow => Conflict(new { message = result.Message }),
             _ => BadRequest(new { message = result.Message })
         };

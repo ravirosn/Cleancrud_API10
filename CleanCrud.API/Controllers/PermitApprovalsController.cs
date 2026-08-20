@@ -13,12 +13,15 @@ namespace CleanCrud.API.Controllers;
 public sealed class PermitApprovalsController(IApprovalWorkflowService service) : ControllerBase
 {
     [HttpGet("pending")]
-    public async Task<ActionResult<IReadOnlyList<PermitApprovalDto>>> Pending(
+    [ProducesResponseType<PermitApprovalPagedResponseDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<PermitApprovalPagedResponseDto>> Pending(
+        [FromQuery] PermitApprovalQueryDto query,
         CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
             return Forbid();
-        return Ok(await service.GetPendingAsync(userId, cancellationToken));
+        return Ok(await service.GetPendingAsync(userId, query, cancellationToken));
     }
 
     [HttpPost("{id:long}/decision")]

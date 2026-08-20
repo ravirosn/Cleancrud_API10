@@ -26,6 +26,12 @@ public class AppDbContext : DbContext
     public DbSet<ListItemCategory> ListItemCategories => Set<ListItemCategory>();
     public DbSet<ListItem> ListItems => Set<ListItem>();
     public DbSet<PermitApplication> PermitApplications => Set<PermitApplication>();
+    public DbSet<PermitApplicationInspectionPriorToComm> PermitApplicationInspectionsPriorToComm =>
+        Set<PermitApplicationInspectionPriorToComm>();
+    public DbSet<PermitApplicationWallWorks> PermitApplicationWallWorks =>
+        Set<PermitApplicationWallWorks>();
+    public DbSet<PermitApplicationConfinedSpace> PermitApplicationConfinedSpaces =>
+        Set<PermitApplicationConfinedSpace>();
     public DbSet<RiskAssessment> RiskAssessments => Set<RiskAssessment>();
     public DbSet<RiskAssessmentHazardCategory> RiskAssessmentHazardCategories =>
         Set<RiskAssessmentHazardCategory>();
@@ -230,6 +236,11 @@ public class AppDbContext : DbContext
             entity.Property(x => x.WorkDescription).IsRequired();
             entity.Property(x => x.SpecialInstructions);
             entity.Property(x => x.WorkHeightBelowSurface).HasMaxLength(200);
+            entity.Property(x => x.CompletionOfWorks).HasMaxLength(500);
+            entity.Property(x => x.CompletionRemarks).HasMaxLength(500);
+            entity.Property(x => x.CancelledRemarks).HasMaxLength(500);
+            entity.Property(x => x.CompletionDate).HasPrecision(0);
+            entity.Property(x => x.CancelledDate).HasPrecision(0);
             entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
             entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
             entity.Property(x => x.SubmittedAtUtc).HasPrecision(0);
@@ -242,6 +253,45 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.PermitStatusListItemId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.RiskAssessment).WithMany(x => x.PermitApplications)
                 .HasForeignKey(x => x.RiskAssessmentId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PermitApplicationInspectionPriorToComm>(entity =>
+        {
+            entity.ToTable("PermitApplicationInspectionPriorToComm", "dbo");
+            entity.HasKey(x => new { x.PermitApplicationId, x.InspectionPriorToCommListItemId });
+            entity.Property(x => x.IsSelected).HasColumnType("bit").HasDefaultValue(true);
+            entity.HasOne(x => x.PermitApplication).WithMany(x => x.InspectionsPriorToComm)
+                .HasForeignKey(x => x.PermitApplicationId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.InspectionPriorToCommListItem)
+                .WithMany(x => x.PermitApplicationInspectionsPriorToComm)
+                .HasForeignKey(x => x.InspectionPriorToCommListItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PermitApplicationWallWorks>(entity =>
+        {
+            entity.ToTable("PermitApplicationWallWorks", "dbo");
+            entity.HasKey(x => new { x.PermitApplicationId, x.WorksonWallListItemId });
+            entity.Property(x => x.IsSelected).HasColumnType("bit").HasDefaultValue(true);
+            entity.HasOne(x => x.PermitApplication).WithMany(x => x.WallWorks)
+                .HasForeignKey(x => x.PermitApplicationId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.WorksonWallListItem)
+                .WithMany(x => x.PermitApplicationWallWorks)
+                .HasForeignKey(x => x.WorksonWallListItemId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PermitApplicationConfinedSpace>(entity =>
+        {
+            entity.ToTable("PermitApplicationConfinedSpace", "dbo");
+            entity.HasKey(x => new { x.PermitApplicationId, x.WorkingInConfinedSpaceListItemId });
+            entity.Property(x => x.IsSelected).HasColumnType("bit").HasDefaultValue(true);
+            entity.HasOne(x => x.PermitApplication).WithMany(x => x.ConfinedSpaces)
+                .HasForeignKey(x => x.PermitApplicationId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.WorkingInConfinedSpaceListItem)
+                .WithMany(x => x.PermitApplicationConfinedSpaces)
+                .HasForeignKey(x => x.WorkingInConfinedSpaceListItemId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<RiskAssessment>(entity =>

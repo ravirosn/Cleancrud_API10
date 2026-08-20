@@ -14,7 +14,9 @@ public sealed class ApprovalWorkflowService(
     private const string PermitStatusCategory = "PERMIT_STATUS";
     private const string RiskStatusCategory = "RISK_ASSESSMENT_STATUS";
     private const string Draft = "DRAFT";
-    private const string Submitted = "SUBMITTED_FOR_APPROVAL";
+    private const string RiskSubmitted = "SUBMITTED_FOR_APPROVAL";
+    private const string PermitFinalized = "FINALIZED_FOR_APPROVAL";
+    private const string PermitSubmitted = "PERMIT_SUBMITTED_FOR_APPROVAL";
     private const string Approved = "APPROVED";
     private const string Rejected = "REJECTED";
 
@@ -137,13 +139,16 @@ public sealed class ApprovalWorkflowService(
                 return;
             }
 
-            var riskSubmittedId = await GetStatusIdAsync(RiskStatusCategory, Submitted, cancellationToken);
-            var permitDraftId = await GetStatusIdAsync(PermitStatusCategory, Draft, cancellationToken);
-            var permitSubmittedId = await GetStatusIdAsync(PermitStatusCategory, Submitted, cancellationToken);
-            if (risk.PermitApplications.Any(x => x.PermitStatusListItemId != permitDraftId))
+            var riskSubmittedId = await GetStatusIdAsync(
+                RiskStatusCategory, RiskSubmitted, cancellationToken);
+            var permitFinalizedId = await GetStatusIdAsync(
+                PermitStatusCategory, PermitFinalized, cancellationToken);
+            var permitSubmittedId = await GetStatusIdAsync(
+                PermitStatusCategory, PermitSubmitted, cancellationToken);
+            if (risk.PermitApplications.Any(x => x.PermitStatusListItemId != permitFinalizedId))
             {
-                result = new(ApprovalOperationOutcome.NotDraft,
-                    "Every child permit application must be in Draft status.");
+                result = new(ApprovalOperationOutcome.PermitApplicationsNotFinalized,
+                    "Every related permit application must be in FINALIZED_FOR_APPROVAL status.");
                 return;
             }
 
@@ -191,24 +196,46 @@ public sealed class ApprovalWorkflowService(
         return result;
     }
 
-    public async Task<IReadOnlyList<PermitApprovalDto>> GetPendingAsync(
+    public async Task<PermitApprovalPagedResponseDto> GetPendingAsync(
         int userId,
+        PermitApprovalQueryDto query,
         CancellationToken cancellationToken = default)
     {
         var roleIds = await context.UserRoles.Where(x => x.UserId == userId && x.IsActive)
             .Select(x => x.RoleId).ToListAsync(cancellationToken);
 
-        return await context.PermitApprovals.AsNoTracking()
+        var pendingQuery = context.PermitApprovals.AsNoTracking()
             .Where(x => x.Status == ApprovalState.Pending &&
                 (roleIds.Contains(x.PrimaryApproverRoleId) ||
-                 (x.AlternateApproverRoleId.HasValue && roleIds.Contains(x.AlternateApproverRoleId.Value))))
+                 (x.AlternateApproverRoleId.HasValue && roleIds.Contains(x.AlternateApproverRoleId.Value))));
+
+        var totalRecords = await pendingQuery.LongCountAsync(cancellationToken);
+        var offset = ((long)query.PageNumber - 1) * query.PageSize;
+        var data = offset >= totalRecords
+            ? []
+            : await pendingQuery
             .OrderBy(x => x.CreatedAtUtc)
+            .ThenBy(x => x.Id)
+            .Skip((int)offset)
+            .Take(query.PageSize)
             .Select(x => new PermitApprovalDto(
                 x.Id, x.PermitApplicationId, x.PermitApplication.PermitNumber,
                 x.PermitApplication.PermitTypeListItem.Name, x.LevelNumber, x.Status,
                 x.PrimaryApproverRole.Name, x.AlternateApproverRole == null ? null : x.AlternateApproverRole.Name,
                 x.CreatedAtUtc))
             .ToListAsync(cancellationToken);
+
+        var totalPages = totalRecords == 0
+            ? 0
+            : (totalRecords + query.PageSize - 1L) / query.PageSize;
+        return new PermitApprovalPagedResponseDto(
+            data,
+            totalRecords,
+            totalPages,
+            query.PageNumber,
+            query.PageSize,
+            query.PageNumber > 1,
+            query.PageNumber < totalPages);
     }
 
     public async Task<ApprovalOperationResult> DecideAsync(

@@ -25,4 +25,10 @@ public class ListItem
         new List<RiskAssessmentAdditionalPpe>();
     public ICollection<RiskAssessment> RiskAssessmentStatuses { get; set; } =
         new List<RiskAssessment>();
+    public ICollection<PermitApplicationInspectionPriorToComm> PermitApplicationInspectionsPriorToComm { get; set; } =
+        new List<PermitApplicationInspectionPriorToComm>();
+    public ICollection<PermitApplicationWallWorks> PermitApplicationWallWorks { get; set; } =
+        new List<PermitApplicationWallWorks>();
+    public ICollection<PermitApplicationConfinedSpace> PermitApplicationConfinedSpaces { get; set; } =
+        new List<PermitApplicationConfinedSpace>();
 }

@@ -19,8 +19,9 @@ public interface IApprovalWorkflowService
         int userId,
         CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<PermitApprovalDto>> GetPendingAsync(
+    Task<PermitApprovalPagedResponseDto> GetPendingAsync(
         int userId,
+        PermitApprovalQueryDto query,
         CancellationToken cancellationToken = default);
 
     Task<ApprovalOperationResult> DecideAsync(

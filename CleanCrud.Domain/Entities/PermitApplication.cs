@@ -22,10 +22,23 @@ public class PermitApplication
     public int? UpdatedByUserId { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAtUtc { get; set; }
+    public string? CompletionOfWorks { get; set; }
+    public int? CompletionApprovedBy { get; set; }
+    public DateTime? CompletionDate { get; set; }
+    public string? CompletionRemarks { get; set; }
+    public int? CancelledBy { get; set; }
+    public DateTime? CancelledDate { get; set; }
+    public string? CancelledRemarks { get; set; }
     public byte[] RowVersion { get; set; } = [];
 
     public ListItem PermitTypeListItem { get; set; } = null!;
     public ListItem PermitStatusListItem { get; set; } = null!;
     public RiskAssessment? RiskAssessment { get; set; }
     public ICollection<PermitApproval> Approvals { get; set; } = new List<PermitApproval>();
+    public ICollection<PermitApplicationInspectionPriorToComm> InspectionsPriorToComm { get; set; } =
+        new List<PermitApplicationInspectionPriorToComm>();
+    public ICollection<PermitApplicationWallWorks> WallWorks { get; set; } =
+        new List<PermitApplicationWallWorks>();
+    public ICollection<PermitApplicationConfinedSpace> ConfinedSpaces { get; set; } =
+        new List<PermitApplicationConfinedSpace>();
 }

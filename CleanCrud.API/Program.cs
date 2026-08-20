@@ -45,8 +45,8 @@ builder.Services.AddOptions<JwtOptions>()
     .Bind(jwtSection)
     .Validate(x => !string.IsNullOrWhiteSpace(x.Issuer), "Jwt:Issuer is required.")
     .Validate(x => !string.IsNullOrWhiteSpace(x.Audience), "Jwt:Audience is required.")
-    .Validate(x => x.AccessTokenMinutes is >= 1 and <= 60,
-        "Jwt:AccessTokenMinutes must be between 1 and 60.")
+    .Validate(x => x.AccessTokenMinutes is >= 1 and <= 360,
+        "Jwt:AccessTokenMinutes must be between 1 and 360.")
     .Validate(x => x.RefreshTokenDays >= 1, "Jwt:RefreshTokenDays must be positive.")
     .Validate(x => x.RefreshTokenAbsoluteDays >= x.RefreshTokenDays,
         "Jwt:RefreshTokenAbsoluteDays must be at least RefreshTokenDays.")
@@ -99,6 +99,8 @@ builder.Services.AddScoped<IAccessControlService, AccessControlService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IModuleAccessService, ModuleAccessService>();
 builder.Services.AddScoped<IListItemService, ListItemService>();
+builder.Services.AddScoped<IPermitApplicationService, PermitApplicationService>();
+builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IRiskAssessmentService, RiskAssessmentService>();
 builder.Services.AddScoped<IApprovalWorkflowService, ApprovalWorkflowService>();
 builder.Services.AddSingleton<IApprovalNotificationQueue, ApprovalNotificationQueue>();

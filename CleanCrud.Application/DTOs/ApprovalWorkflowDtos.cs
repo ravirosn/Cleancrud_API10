@@ -62,6 +62,24 @@ public sealed record PermitApprovalDto(
     string? AlternateRole,
     DateTime CreatedAtUtc);
 
+public sealed class PermitApprovalQueryDto
+{
+    [Range(1, int.MaxValue)]
+    public int PageNumber { get; set; } = 1;
+
+    [Range(1, 100)]
+    public int PageSize { get; set; } = 10;
+}
+
+public sealed record PermitApprovalPagedResponseDto(
+    IReadOnlyList<PermitApprovalDto> Data,
+    long TotalRecords,
+    long TotalPages,
+    int PageNumber,
+    int PageSize,
+    bool HasPreviousPage,
+    bool HasNextPage);
+
 public sealed record ApprovalNotificationDto(
     long Id,
     long PermitApprovalId,
@@ -78,6 +96,7 @@ public enum ApprovalOperationOutcome
     NotFound,
     NotDraft,
     NoPermitApplications,
+    PermitApplicationsNotFinalized,
     MissingWorkflow,
     NotPending,
     NotEligible
