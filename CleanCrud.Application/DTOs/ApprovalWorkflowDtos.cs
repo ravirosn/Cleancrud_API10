@@ -80,6 +80,58 @@ public sealed record PermitApprovalPagedResponseDto(
     bool HasPreviousPage,
     bool HasNextPage);
 
+public sealed record ApprovedPermitDto(
+    string? PreRiskAssessmentNumber,
+    string PermitNumber,
+    DateOnly IssuedDate,
+    string PermitIssuerName,
+    string PermitReceiverName,
+    string PermitType,
+    string PermitStatus,
+    DateTime? ApprovedDate,
+    string? ApprovalRemarks);
+
+public sealed record RejectedPermitDto(
+    string? PreRiskAssessmentNumber,
+    string PermitNumber,
+    DateOnly IssuedDate,
+    string PermitIssuerName,
+    string PermitReceiverName,
+    string PermitType,
+    string PermitStatus,
+    DateTime? RejectedDate,
+    string? RejectedReason);
+
+public sealed class PermitApprovalHistoryQueryDto
+{
+    [Range(1, int.MaxValue)]
+    public int PageNumber { get; set; } = 1;
+
+    [Range(1, 100)]
+    public int PageSize { get; set; } = 10;
+
+    [StringLength(200)]
+    public string? Search { get; set; }
+}
+
+public sealed record ApprovedPermitPagedResponseDto(
+    IReadOnlyList<ApprovedPermitDto> Data,
+    long TotalRecords,
+    long TotalPages,
+    int PageNumber,
+    int PageSize,
+    bool HasPreviousPage,
+    bool HasNextPage);
+
+public sealed record RejectedPermitPagedResponseDto(
+    IReadOnlyList<RejectedPermitDto> Data,
+    long TotalRecords,
+    long TotalPages,
+    int PageNumber,
+    int PageSize,
+    bool HasPreviousPage,
+    bool HasNextPage);
+
 public sealed record ApprovalNotificationDto(
     long Id,
     long PermitApprovalId,
@@ -89,19 +141,3 @@ public sealed record ApprovalNotificationDto(
     DateTime CreatedAtUtc,
     DateTime? SentAtUtc,
     DateTime? ReadAtUtc);
-
-public enum ApprovalOperationOutcome
-{
-    Success,
-    NotFound,
-    NotDraft,
-    NoPermitApplications,
-    PermitApplicationsNotFinalized,
-    MissingWorkflow,
-    NotPending,
-    NotEligible
-}
-
-public sealed record ApprovalOperationResult(
-    ApprovalOperationOutcome Outcome,
-    string? Message = null);

@@ -1,3 +1,4 @@
+using CleanCrud.Application.Common;
 using CleanCrud.Application.DTOs;
 
 namespace CleanCrud.Application.Interfaces;
@@ -14,7 +15,7 @@ public interface IApprovalWorkflowService
         int userId,
         CancellationToken cancellationToken = default);
 
-    Task<ApprovalOperationResult> SubmitRiskAssessmentAsync(
+    Task<ReturnMessageModel> SubmitRiskAssessmentAsync(
         int riskAssessmentId,
         int userId,
         CancellationToken cancellationToken = default);
@@ -24,7 +25,17 @@ public interface IApprovalWorkflowService
         PermitApprovalQueryDto query,
         CancellationToken cancellationToken = default);
 
-    Task<ApprovalOperationResult> DecideAsync(
+    Task<ApprovedPermitPagedResponseDto> GetApprovedAsync(
+        int userId,
+        PermitApprovalHistoryQueryDto query,
+        CancellationToken cancellationToken = default);
+
+    Task<RejectedPermitPagedResponseDto> GetRejectedAsync(
+        int userId,
+        PermitApprovalHistoryQueryDto query,
+        CancellationToken cancellationToken = default);
+
+    Task<ReturnMessageModel> DecideAsync(
         long permitApprovalId,
         ApprovalDecisionRequestDto request,
         int userId,

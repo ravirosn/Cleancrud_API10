@@ -1,7 +1,11 @@
+using System.Data;
+using CleanCrud.Application.Common;
 using CleanCrud.Application.DTOs;
 using CleanCrud.Application.Interfaces;
 using CleanCrud.Domain.Entities;
 using CleanCrud.Infrastructure.Data;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace CleanCrud.Infrastructure.Services;
@@ -13,12 +17,13 @@ public sealed class ApprovalWorkflowService(
     private const string PermitTypeCategory = "PERMIT_TYPE";
     private const string PermitStatusCategory = "PERMIT_STATUS";
     private const string RiskStatusCategory = "RISK_ASSESSMENT_STATUS";
-    private const string Draft = "DRAFT";
+    private const string RiskAssessmentApproved = "APPROVED";
+    private const string RiskAssessmentDraft = "DRAFT";
     private const string RiskSubmitted = "SUBMITTED_FOR_APPROVAL";
     private const string PermitFinalized = "FINALIZED_FOR_APPROVAL";
     private const string PermitSubmitted = "PERMIT_SUBMITTED_FOR_APPROVAL";
-    private const string Approved = "APPROVED";
-    private const string Rejected = "REJECTED";
+    private const string PermitApproved = "PERMIT_APPROVED";
+    private const string PermitRejected = "PERMIT_REJECTED";
 
     public async Task<IReadOnlyList<ApprovalWorkflowDto>> GetAsync(
         int? permitTypeListItemId = null,
@@ -96,12 +101,14 @@ public sealed class ApprovalWorkflowService(
         return (await GetAsync(permitTypeListItemId, cancellationToken)).Single();
     }
 
-    public async Task<ApprovalOperationResult> SubmitRiskAssessmentAsync(
+    public async Task<ReturnMessageModel> SubmitRiskAssessmentAsync(
         int riskAssessmentId,
         int userId,
         CancellationToken cancellationToken = default)
     {
-        ApprovalOperationResult result = new(ApprovalOperationOutcome.NotFound);
+        var result = Failure(
+            "Risk assessment was not found.",
+            StatusCodes.Status404NotFound);
         var strategy = context.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
@@ -112,16 +119,18 @@ public sealed class ApprovalWorkflowService(
                 .SingleOrDefaultAsync(x => x.Id == riskAssessmentId, cancellationToken);
             if (risk is null)
                 return;
-            if (!IsStatus(risk.RiskAssessmentStatusListItem, RiskStatusCategory, Draft))
+            if (!IsStatus(risk.RiskAssessmentStatusListItem, RiskStatusCategory, RiskAssessmentDraft))
             {
-                result = new(ApprovalOperationOutcome.NotDraft,
-                    "Only a Draft risk assessment can be submitted.");
+                result = Failure(
+                    "Only a Draft risk assessment can be submitted.",
+                    StatusCodes.Status409Conflict);
                 return;
             }
             if (risk.PermitApplications.Count == 0)
             {
-                result = new(ApprovalOperationOutcome.NoPermitApplications,
-                    "The risk assessment has no child permit applications.");
+                result = Failure(
+                    "The risk assessment has no child permit applications.",
+                    StatusCodes.Status409Conflict);
                 return;
             }
 
@@ -134,8 +143,9 @@ public sealed class ApprovalWorkflowService(
             var missingTypeIds = permitTypeIds.Where(x => !workflows.ContainsKey(x)).ToArray();
             if (missingTypeIds.Length > 0)
             {
-                result = new(ApprovalOperationOutcome.MissingWorkflow,
-                    $"Active approval workflow is missing for permit type id(s): {string.Join(", ", missingTypeIds)}.");
+                result = Failure(
+                    $"Active approval workflow is missing for permit type id(s): {string.Join(", ", missingTypeIds)}.",
+                    StatusCodes.Status409Conflict);
                 return;
             }
 
@@ -147,8 +157,9 @@ public sealed class ApprovalWorkflowService(
                 PermitStatusCategory, PermitSubmitted, cancellationToken);
             if (risk.PermitApplications.Any(x => x.PermitStatusListItemId != permitFinalizedId))
             {
-                result = new(ApprovalOperationOutcome.PermitApplicationsNotFinalized,
-                    "Every related permit application must be in FINALIZED_FOR_APPROVAL status.");
+                result = Failure(
+                    "Every related permit application must be in FINALIZED_FOR_APPROVAL status.",
+                    StatusCodes.Status409Conflict);
                 return;
             }
 
@@ -188,10 +199,11 @@ public sealed class ApprovalWorkflowService(
                 await AddNotificationsAsync(approval, cancellationToken);
             await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            result = new(ApprovalOperationOutcome.Success);
+            result = Success(
+                "Risk assessment and child permits were submitted for approval.");
         });
 
-        if (result.Outcome == ApprovalOperationOutcome.Success)
+        if (result.IsSuccess)
             notificationQueue.Signal();
         return result;
     }
@@ -238,26 +250,85 @@ public sealed class ApprovalWorkflowService(
             query.PageNumber < totalPages);
     }
 
-    public async Task<ApprovalOperationResult> DecideAsync(
+    public async Task<ApprovedPermitPagedResponseDto> GetApprovedAsync(
+        int userId,
+        PermitApprovalHistoryQueryDto query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var result = await GetDecisionHistoryAsync(
+            userId, ApprovalState.Approved, query, cancellationToken);
+        var data = result.Items.Select(x => new ApprovedPermitDto(
+            x.PreRiskAssessmentNumber,
+            x.PermitNumber,
+            x.IssuedDate,
+            x.PermitIssuerName,
+            x.PermitReceiverName,
+            x.PermitType,
+            x.PermitStatus,
+            x.DecisionDate,
+            x.Remarks)).ToList();
+        var totalPages = GetTotalPages(result.TotalRecords, query.PageSize);
+        return new ApprovedPermitPagedResponseDto(
+            data,
+            result.TotalRecords,
+            totalPages,
+            query.PageNumber,
+            query.PageSize,
+            result.TotalRecords > 0 && query.PageNumber > 1,
+            query.PageNumber < totalPages);
+    }
+
+    public async Task<RejectedPermitPagedResponseDto> GetRejectedAsync(
+        int userId,
+        PermitApprovalHistoryQueryDto query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var result = await GetDecisionHistoryAsync(
+            userId, ApprovalState.Rejected, query, cancellationToken);
+        var data = result.Items.Select(x => new RejectedPermitDto(
+            x.PreRiskAssessmentNumber,
+            x.PermitNumber,
+            x.IssuedDate,
+            x.PermitIssuerName,
+            x.PermitReceiverName,
+            x.PermitType,
+            x.PermitStatus,
+            x.DecisionDate,
+            x.Remarks)).ToList();
+        var totalPages = GetTotalPages(result.TotalRecords, query.PageSize);
+        return new RejectedPermitPagedResponseDto(
+            data,
+            result.TotalRecords,
+            totalPages,
+            query.PageNumber,
+            query.PageSize,
+            result.TotalRecords > 0 && query.PageNumber > 1,
+            query.PageNumber < totalPages);
+    }
+
+    public async Task<ReturnMessageModel> DecideAsync(
         long permitApprovalId,
         ApprovalDecisionRequestDto request,
         int userId,
         CancellationToken cancellationToken = default)
     {
-        ApprovalOperationResult result = new(ApprovalOperationOutcome.NotFound);
+        var result = Failure("Approval was not found.", StatusCodes.Status404NotFound);
         var strategy = context.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
             await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
             var approval = await context.PermitApprovals
                 .Include(x => x.PermitApplication).ThenInclude(x => x.RiskAssessment)
-                .SingleOrDefaultAsync(x => x.Id == permitApprovalId, cancellationToken);
+                .SingleOrDefaultAsync(x => x.PermitApplicationId == permitApprovalId, cancellationToken);
             if (approval is null)
                 return;
             if (approval.Status != ApprovalState.Pending)
             {
-                result = new(ApprovalOperationOutcome.NotPending,
-                    "This approval is no longer pending.");
+                result = Failure(
+                    "This approval is no longer pending.",
+                    StatusCodes.Status409Conflict);
                 return;
             }
 
@@ -267,8 +338,9 @@ public sealed class ApprovalWorkflowService(
                  x.RoleId == approval.AlternateApproverRoleId), cancellationToken);
             if (!eligible)
             {
-                result = new(ApprovalOperationOutcome.NotEligible,
-                    "The user is not assigned to a primary or alternate approver role for this level.");
+                result = Failure(
+                    "The user is not assigned to a primary or alternate approver role for this level.",
+                    StatusCodes.Status403Forbidden);
                 return;
             }
 
@@ -281,8 +353,8 @@ public sealed class ApprovalWorkflowService(
 
             if (decision == ApprovalState.Rejected)
             {
-                var rejectedPermitId = await GetStatusIdAsync(PermitStatusCategory, Rejected, cancellationToken);
-                var rejectedRiskId = await GetStatusIdAsync(RiskStatusCategory, Rejected, cancellationToken);
+                var rejectedPermitId = await GetStatusIdAsync(PermitStatusCategory, PermitRejected, cancellationToken);
+                var rejectedRiskId = await GetStatusIdAsync(RiskStatusCategory, PermitRejected, cancellationToken);
                 approval.PermitApplication.PermitStatusListItemId = rejectedPermitId;
                 approval.PermitApplication.UpdatedAtUtc = now;
                 approval.PermitApplication.UpdatedByUserId = userId;
@@ -313,7 +385,7 @@ public sealed class ApprovalWorkflowService(
                 }
                 else
                 {
-                    var approvedPermitId = await GetStatusIdAsync(PermitStatusCategory, Approved, cancellationToken);
+                    var approvedPermitId = await GetStatusIdAsync(PermitStatusCategory, PermitApproved, cancellationToken);
                     approval.PermitApplication.PermitStatusListItemId = approvedPermitId;
                     approval.PermitApplication.UpdatedAtUtc = now;
                     approval.PermitApplication.UpdatedByUserId = userId;
@@ -326,7 +398,7 @@ public sealed class ApprovalWorkflowService(
                             .AllAsync(x => x.PermitStatusListItemId == approvedPermitId, cancellationToken);
                         if (allOtherApproved)
                         {
-                            var approvedRiskId = await GetStatusIdAsync(RiskStatusCategory, Approved, cancellationToken);
+                            var approvedRiskId = await GetStatusIdAsync(RiskStatusCategory, RiskAssessmentApproved, cancellationToken);
                             approval.PermitApplication.RiskAssessment.RiskAssessmentStatusListItemId = approvedRiskId;
                             approval.PermitApplication.RiskAssessment.ModifiedBy = userId;
                             approval.PermitApplication.RiskAssessment.UpdatedAtUtc = now;
@@ -337,10 +409,10 @@ public sealed class ApprovalWorkflowService(
 
             await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            result = new(ApprovalOperationOutcome.Success);
+            result = Success("Approval decision recorded.");
         });
 
-        if (result.Outcome == ApprovalOperationOutcome.Success)
+        if (result.IsSuccess)
             notificationQueue.Signal();
         return result;
     }
@@ -369,6 +441,76 @@ public sealed class ApprovalWorkflowService(
         notification.ReadAtUtc ??= DateTime.UtcNow;
         await context.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    private async Task<PermitDecisionHistoryResult> GetDecisionHistoryAsync(
+        int userId,
+        string approvalStatus,
+        PermitApprovalHistoryQueryDto query,
+        CancellationToken cancellationToken)
+    {
+        var connection = (SqlConnection)context.Database.GetDbConnection();
+        var shouldCloseConnection = connection.State == ConnectionState.Closed;
+        if (shouldCloseConnection)
+            await context.Database.OpenConnectionAsync(cancellationToken);
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "dbo.SpPermitApprovalHistoryGet";
+            command.CommandType = CommandType.StoredProcedure;
+            Add(command, "@ActionedByUserId", SqlDbType.Int, userId);
+            Add(command, "@ApprovalStatus", SqlDbType.VarChar, approvalStatus, 20);
+            Add(command, "@PageNumber", SqlDbType.Int, query.PageNumber);
+            Add(command, "@PageSize", SqlDbType.Int, query.PageSize);
+            Add(command, "@SearchTerm", SqlDbType.NVarChar, Normalize(query.Search), 200);
+
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            if (!await reader.ReadAsync(cancellationToken))
+                throw new InvalidOperationException(
+                    "dbo.SpPermitApprovalHistoryGet did not return the total record count.");
+
+            var totalRecords = reader.GetInt64(reader.GetOrdinal("TotalRecords"));
+            if (!await reader.NextResultAsync(cancellationToken))
+                throw new InvalidOperationException(
+                    "dbo.SpPermitApprovalHistoryGet did not return the paged records.");
+
+            var items = new List<PermitDecisionHistoryItem>();
+            var preRiskNumberOrdinal = reader.GetOrdinal("PreRiskAssessmentNumber");
+            var permitNumberOrdinal = reader.GetOrdinal("PermitNumber");
+            var issuedDateOrdinal = reader.GetOrdinal("IssuedDate");
+            var issuerOrdinal = reader.GetOrdinal("PermitIssuerName");
+            var receiverOrdinal = reader.GetOrdinal("PermitReceiverName");
+            var permitTypeOrdinal = reader.GetOrdinal("PermitType");
+            var permitStatusOrdinal = reader.GetOrdinal("PermitStatus");
+            var decisionDateOrdinal = reader.GetOrdinal("DecisionDate");
+            var remarksOrdinal = reader.GetOrdinal("Remarks");
+
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                items.Add(new PermitDecisionHistoryItem(
+                    reader.IsDBNull(preRiskNumberOrdinal)
+                        ? null
+                        : reader.GetString(preRiskNumberOrdinal),
+                    reader.GetString(permitNumberOrdinal),
+                    DateOnly.FromDateTime(reader.GetDateTime(issuedDateOrdinal)),
+                    reader.GetString(issuerOrdinal),
+                    reader.GetString(receiverOrdinal),
+                    reader.GetString(permitTypeOrdinal),
+                    reader.GetString(permitStatusOrdinal),
+                    reader.IsDBNull(decisionDateOrdinal)
+                        ? null
+                        : reader.GetDateTime(decisionDateOrdinal),
+                    reader.IsDBNull(remarksOrdinal) ? null : reader.GetString(remarksOrdinal)));
+            }
+
+            return new PermitDecisionHistoryResult(items, totalRecords);
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+                await context.Database.CloseConnectionAsync();
+        }
     }
 
     private async Task AddNotificationsAsync(
@@ -408,6 +550,39 @@ public sealed class ApprovalWorkflowService(
     private static bool IsStatus(ListItem item, string categoryCode, string systemName) =>
         item.Code == systemName && item.ListItemCategory.Code == categoryCode;
 
+    private static long GetTotalPages(long totalRecords, int pageSize) =>
+        totalRecords == 0 ? 0 : (totalRecords + pageSize - 1L) / pageSize;
+
+    private static void Add(
+        SqlCommand command,
+        string name,
+        SqlDbType type,
+        object? value,
+        int? size = null)
+    {
+        var parameter = new SqlParameter(name, type) { Value = value ?? DBNull.Value };
+        if (size.HasValue)
+            parameter.Size = size.Value;
+        command.Parameters.Add(parameter);
+    }
+
+    private static string? Normalize(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static ReturnMessageModel Success(string message) => new()
+    {
+        IsSuccess = true,
+        ReturnMessage = message,
+        HttpStatusCode = StatusCodes.Status200OK
+    };
+
+    private static ReturnMessageModel Failure(string message, int statusCode) => new()
+    {
+        IsSuccess = false,
+        ReturnMessage = message,
+        HttpStatusCode = statusCode
+    };
+
     private static void ValidateLevels(IReadOnlyCollection<ApprovalWorkflowLevelRequestDto> levels)
     {
         var ordered = levels.OrderBy(x => x.LevelNumber).ToArray();
@@ -431,4 +606,19 @@ public sealed class ApprovalWorkflowService(
             new ApprovalWorkflowLevelDto(
                 x.Id, x.LevelNumber, x.PrimaryApproverRoleId, x.PrimaryApproverRole.Name,
                 x.AlternateApproverRoleId, x.AlternateApproverRole?.Name)).ToList());
+
+    private sealed record PermitDecisionHistoryResult(
+        IReadOnlyList<PermitDecisionHistoryItem> Items,
+        long TotalRecords);
+
+    private sealed record PermitDecisionHistoryItem(
+        string? PreRiskAssessmentNumber,
+        string PermitNumber,
+        DateOnly IssuedDate,
+        string PermitIssuerName,
+        string PermitReceiverName,
+        string PermitType,
+        string PermitStatus,
+        DateTime? DecisionDate,
+        string? Remarks);
 }

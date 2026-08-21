@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using CleanCrud.API.Middleware;
+using CleanCrud.Application.Common;
 using CleanCrud.Application.DTOs;
 using CleanCrud.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -83,32 +84,16 @@ public sealed class RiskAssessmentsController(
     }
 
     [HttpPost("{id:int}/submit")]
-    public async Task<IActionResult> Submit(int id, CancellationToken cancellationToken)
+    public async Task<ActionResult<ReturnMessageModel>> Submit(
+        int id,
+        CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
             return Forbid();
 
         var result = await approvalWorkflowService.SubmitRiskAssessmentAsync(
             id, userId, cancellationToken);
-        return result.Outcome switch
-        {
-            ApprovalOperationOutcome.Success => Ok(new
-            {
-                message = "Risk assessment and child permits were submitted for approval."
-            }),
-            ApprovalOperationOutcome.NotFound => NotFound(new
-            {
-                message = "Risk assessment was not found."
-            }),
-            ApprovalOperationOutcome.NotDraft => Conflict(new { message = result.Message }),
-            ApprovalOperationOutcome.NoPermitApplications => Conflict(new { message = result.Message }),
-            ApprovalOperationOutcome.PermitApplicationsNotFinalized => Conflict(new
-            {
-                message = result.Message
-            }),
-            ApprovalOperationOutcome.MissingWorkflow => Conflict(new { message = result.Message }),
-            _ => BadRequest(new { message = result.Message })
-        };
+        return StatusCode(result.HttpStatusCode, result);
     }
 
     private bool TryGetUserId(out int userId)
