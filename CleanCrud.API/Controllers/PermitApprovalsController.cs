@@ -3,6 +3,7 @@ using CleanCrud.API.Middleware;
 using CleanCrud.Application.Common;
 using CleanCrud.Application.DTOs;
 using CleanCrud.Application.Interfaces;
+using CleanCrud.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,6 +14,16 @@ namespace CleanCrud.API.Controllers;
 [Authorize]
 public sealed class PermitApprovalsController(IApprovalWorkflowService service) : ControllerBase
 {
+    [HttpGet("admin/pending-assignments")]
+    [Authorize(Roles = nameof(ApplicationRole.SuperAdmin) + "," + nameof(ApplicationRole.Admin))]
+    [ProducesResponseType<AdminPendingApprovalPagedResponseDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<AdminPendingApprovalPagedResponseDto>>
+        AdminPendingAssignments(
+            [FromQuery] AdminPendingApprovalQueryDto query,
+            CancellationToken cancellationToken) =>
+        Ok(await service.GetAdminPendingAssignmentsAsync(query, cancellationToken));
+
     [HttpGet("pending")]
     [ProducesResponseType<PermitApprovalPagedResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -59,6 +70,27 @@ public sealed class PermitApprovalsController(IApprovalWorkflowService service) 
             return Forbid();
         var result = await service.DecideAsync(id, request, userId, cancellationToken);
         return StatusCode(result.HttpStatusCode, result);
+    }
+
+    [HttpPut("alternate-users")]
+    [Authorize(Roles = nameof(ApplicationRole.SuperAdmin) + "," + nameof(ApplicationRole.Admin))]
+    [ProducesResponseType<IReadOnlyList<AlternateApproverAssignmentDto>>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<ActionResult<IReadOnlyList<AlternateApproverAssignmentDto>>>
+        AssignAlternateUsers(
+            AlternateApproverAssignmentRequestDto request,
+            CancellationToken cancellationToken)
+    {
+        if (!TryGetUserId(out var userId))
+            return Forbid();
+
+        var result = await service.AssignAlternateUsersAsync(
+            request, userId, cancellationToken);
+        return result.Error is null
+            ? Ok(result.Data)
+            : StatusCode(result.StatusCode, new { message = result.Error });
     }
 
     private bool TryGetUserId(out int userId)

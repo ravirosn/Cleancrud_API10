@@ -219,7 +219,8 @@ public sealed class ApprovalWorkflowService(
         var pendingQuery = context.PermitApprovals.AsNoTracking()
             .Where(x => x.Status == ApprovalState.Pending &&
                 (roleIds.Contains(x.PrimaryApproverRoleId) ||
-                 (x.AlternateApproverRoleId.HasValue && roleIds.Contains(x.AlternateApproverRoleId.Value))));
+                 (x.AlternateApproverRoleId.HasValue && roleIds.Contains(x.AlternateApproverRoleId.Value)) ||
+                 x.AssignedUsers.Any(a => a.UserId == userId && a.IsActive)));
 
         var totalRecords = await pendingQuery.LongCountAsync(cancellationToken);
         var offset = ((long)query.PageNumber - 1) * query.PageSize;
@@ -232,9 +233,12 @@ public sealed class ApprovalWorkflowService(
             .Take(query.PageSize)
             .Select(x => new PermitApprovalDto(
                 x.Id, x.PermitApplicationId, x.PermitApplication.PermitNumber,
-                x.PermitApplication.PermitTypeListItem.Name, x.LevelNumber, x.Status,
-                x.PrimaryApproverRole.Name, x.AlternateApproverRole == null ? null : x.AlternateApproverRole.Name,
-                x.CreatedAtUtc))
+                 x.PermitApplication.PermitTypeListItem.Name, x.LevelNumber, x.Status,
+                 x.PrimaryApproverRole.Name, x.AlternateApproverRole == null ? null : x.AlternateApproverRole.Name,
+                 x.AssignedUsers.Where(a => a.IsActive).OrderBy(a => a.User.DisplayName ?? a.User.UserName)
+                     .Select(a => new AssignedApproverUserDto(
+                         a.UserId, a.User.UserName, a.User.DisplayName, a.User.Email)).ToList(),
+                 x.CreatedAtUtc))
             .ToListAsync(cancellationToken);
 
         var totalPages = totalRecords == 0
@@ -247,6 +251,100 @@ public sealed class ApprovalWorkflowService(
             query.PageNumber,
             query.PageSize,
             query.PageNumber > 1,
+            query.PageNumber < totalPages);
+    }
+
+    public async Task<AdminPendingApprovalPagedResponseDto> GetAdminPendingAssignmentsAsync(
+        AdminPendingApprovalQueryDto query,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(query);
+        var search = Normalize(query.Search);
+        var hasLevelSearch = byte.TryParse(search, out var searchedLevel) &&
+            searchedLevel is >= 1 and <= 5;
+
+        var pendingQuery = context.PermitApprovals.AsNoTracking()
+            .Where(x => x.Status == ApprovalState.Pending);
+        if (search is not null)
+        {
+            pendingQuery = pendingQuery.Where(x =>
+                x.PermitApplication.PermitNumber.Contains(search) ||
+                (x.PermitApplication.PreRiskAssessmentNumber != null &&
+                    x.PermitApplication.PreRiskAssessmentNumber.Contains(search)) ||
+                (x.PermitApplication.RiskAssessment != null &&
+                    x.PermitApplication.RiskAssessment.PreRiskAssessmentNumber.Contains(search)) ||
+                x.PermitApplication.PermitIssuerName.Contains(search) ||
+                x.PermitApplication.PermitReceiverName.Contains(search) ||
+                x.PermitApplication.PermitTypeListItem.Name.Contains(search) ||
+                x.PermitApplication.PermitStatusListItem.Name.Contains(search) ||
+                x.PrimaryApproverRole.Name.Contains(search) ||
+                (x.AlternateApproverRole != null &&
+                    x.AlternateApproverRole.Name.Contains(search)) ||
+                x.AssignedUsers.Any(a => a.IsActive &&
+                    (a.User.UserName.Contains(search) ||
+                     (a.User.DisplayName != null && a.User.DisplayName.Contains(search)) ||
+                     (a.User.Email != null && a.User.Email.Contains(search)))) ||
+                (hasLevelSearch && x.LevelNumber == searchedLevel));
+        }
+
+        var totalRecords = await pendingQuery.LongCountAsync(cancellationToken);
+        var offset = ((long)query.PageNumber - 1) * query.PageSize;
+        var data = offset >= totalRecords
+            ? []
+            : await pendingQuery
+                .OrderByDescending(x =>
+                    x.AssignedUsers.Where(a => a.IsActive)
+                        .Select(a => (DateTime?)a.AssignedAtUtc).Max() ??
+                    x.Notifications.Select(n => (DateTime?)n.CreatedAtUtc).Max() ??
+                    x.CreatedAtUtc)
+                .ThenByDescending(x => x.Id)
+                .Skip((int)offset)
+                .Take(query.PageSize)
+                .Select(x => new AdminPendingApprovalDto(
+                    x.Id,
+                    x.PermitApplication.RiskAssessmentId,
+                    x.PermitApplication.RiskAssessment == null
+                        ? x.PermitApplication.PreRiskAssessmentNumber
+                        : x.PermitApplication.RiskAssessment.PreRiskAssessmentNumber,
+                    x.PermitApplication.RiskAssessment == null
+                        ? null
+                        : x.PermitApplication.RiskAssessment.RiskAssessmentStatusListItem.Name,
+                    x.PermitApplicationId,
+                    x.PermitApplication.PermitNumber,
+                    x.PermitApplication.PermitTypeListItem.Name,
+                    x.PermitApplication.PermitStatusListItem.Name,
+                    x.LevelNumber,
+                    x.Status,
+                    x.PrimaryApproverRoleId,
+                    x.PrimaryApproverRole.Name,
+                    x.AlternateApproverRoleId,
+                    x.AlternateApproverRole == null ? null : x.AlternateApproverRole.Name,
+                    x.AssignedUsers.Where(a => a.IsActive)
+                        .OrderByDescending(a => a.AssignedAtUtc)
+                        .ThenBy(a => a.User.DisplayName ?? a.User.UserName)
+                        .Select(a => new AdminAssignedApproverUserDto(
+                            a.UserId,
+                            a.User.UserName,
+                            a.User.DisplayName,
+                            a.User.Email,
+                            a.AssignedAtUtc,
+                            a.AssignedByUserId,
+                            a.AssignedByUser.UserName))
+                        .ToList(),
+                    x.AssignedUsers.Where(a => a.IsActive)
+                        .Select(a => (DateTime?)a.AssignedAtUtc).Max() ??
+                    x.Notifications.Select(n => (DateTime?)n.CreatedAtUtc).Max() ??
+                    x.CreatedAtUtc))
+                .ToListAsync(cancellationToken);
+
+        var totalPages = GetTotalPages(totalRecords, query.PageSize);
+        return new AdminPendingApprovalPagedResponseDto(
+            data,
+            totalRecords,
+            totalPages,
+            query.PageNumber,
+            query.PageSize,
+            totalRecords > 0 && query.PageNumber > 1,
             query.PageNumber < totalPages);
     }
 
@@ -316,103 +414,238 @@ public sealed class ApprovalWorkflowService(
     {
         var result = Failure("Approval was not found.", StatusCodes.Status404NotFound);
         var strategy = context.Database.CreateExecutionStrategy();
+        try
+        {
+            await strategy.ExecuteAsync(async () =>
+            {
+                await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+                var approval = await context.PermitApprovals
+                    .Include(x => x.PermitApplication).ThenInclude(x => x.RiskAssessment)
+                    .SingleOrDefaultAsync(x => x.Id == permitApprovalId, cancellationToken);
+                if (approval is null)
+                    return;
+                if (approval.Status != ApprovalState.Pending)
+                {
+                    result = Failure(
+                        "This approval is no longer pending.",
+                        StatusCodes.Status409Conflict);
+                    return;
+                }
+
+                var eligibleByRole = await context.UserRoles.AnyAsync(x =>
+                    x.UserId == userId && x.IsActive &&
+                    (x.RoleId == approval.PrimaryApproverRoleId ||
+                     x.RoleId == approval.AlternateApproverRoleId), cancellationToken);
+                var eligibleByAssignment = !eligibleByRole &&
+                    await context.PermitApprovalAssignees.AnyAsync(x =>
+                        x.PermitApprovalId == approval.Id && x.UserId == userId && x.IsActive,
+                        cancellationToken);
+                if (!eligibleByRole && !eligibleByAssignment)
+                {
+                    result = Failure(
+                        "The user is not assigned to an approver role or directly assigned to this level.",
+                        StatusCodes.Status403Forbidden);
+                    return;
+                }
+
+                var now = DateTime.UtcNow;
+                var decision = request.Decision.Trim().ToUpperInvariant();
+                approval.Status = decision;
+                approval.ActionedByUserId = userId;
+                approval.Comments = string.IsNullOrWhiteSpace(request.Comments) ? null : request.Comments.Trim();
+                approval.ActionedAtUtc = now;
+
+                if (decision == ApprovalState.Rejected)
+                {
+                    var rejectedPermitId = await GetStatusIdAsync(
+                        PermitStatusCategory, PermitRejected, cancellationToken);
+                    var rejectedRiskId = await GetStatusIdAsync(
+                        RiskStatusCategory, PermitRejected, cancellationToken);
+                    approval.PermitApplication.PermitStatusListItemId = rejectedPermitId;
+                    approval.PermitApplication.UpdatedAtUtc = now;
+                    approval.PermitApplication.UpdatedByUserId = userId;
+                    if (approval.PermitApplication.RiskAssessment is not null)
+                    {
+                        approval.PermitApplication.RiskAssessment.RiskAssessmentStatusListItemId = rejectedRiskId;
+                        approval.PermitApplication.RiskAssessment.ModifiedBy = userId;
+                        approval.PermitApplication.RiskAssessment.UpdatedAtUtc = now;
+                        var riskId = approval.PermitApplication.RiskAssessment.Id;
+                        var openApprovals = await context.PermitApprovals
+                            .Where(x => x.PermitApplication.RiskAssessmentId == riskId &&
+                                (x.Status == ApprovalState.Pending || x.Status == ApprovalState.Waiting))
+                            .ToListAsync(cancellationToken);
+                        foreach (var open in openApprovals.Where(x => x.Id != approval.Id))
+                            open.Status = ApprovalState.Cancelled;
+                    }
+                }
+                else
+                {
+                    var next = await context.PermitApprovals
+                        .Where(x => x.PermitApplicationId == approval.PermitApplicationId &&
+                            x.LevelNumber > approval.LevelNumber && x.Status == ApprovalState.Waiting)
+                        .OrderBy(x => x.LevelNumber).FirstOrDefaultAsync(cancellationToken);
+                    if (next is not null)
+                    {
+                        next.Status = ApprovalState.Pending;
+                        await AddNotificationsAsync(next, cancellationToken);
+                    }
+                    else
+                    {
+                        var approvedPermitId = await GetStatusIdAsync(
+                            PermitStatusCategory, PermitApproved, cancellationToken);
+                        approval.PermitApplication.PermitStatusListItemId = approvedPermitId;
+                        approval.PermitApplication.UpdatedAtUtc = now;
+                        approval.PermitApplication.UpdatedByUserId = userId;
+
+                        if (approval.PermitApplication.RiskAssessment is not null)
+                        {
+                            var riskId = approval.PermitApplication.RiskAssessment.Id;
+                            var allOtherApproved = await context.PermitApplications
+                                .Where(x => x.RiskAssessmentId == riskId &&
+                                    x.Id != approval.PermitApplicationId)
+                                .AllAsync(x => x.PermitStatusListItemId == approvedPermitId,
+                                    cancellationToken);
+                            if (allOtherApproved)
+                            {
+                                var approvedRiskId = await GetStatusIdAsync(
+                                    RiskStatusCategory, RiskAssessmentApproved, cancellationToken);
+                                approval.PermitApplication.RiskAssessment.RiskAssessmentStatusListItemId = approvedRiskId;
+                                approval.PermitApplication.RiskAssessment.ModifiedBy = userId;
+                                approval.PermitApplication.RiskAssessment.UpdatedAtUtc = now;
+                            }
+                        }
+                    }
+                }
+
+                await context.SaveChangesAsync(cancellationToken);
+                await transaction.CommitAsync(cancellationToken);
+                result = Success("Approval decision recorded.");
+            });
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            result = Failure(
+                "This approval was already actioned by another approver.",
+                StatusCodes.Status409Conflict);
+        }
+
+        if (result.IsSuccess)
+            notificationQueue.Signal();
+        return result;
+    }
+
+    public async Task<(int StatusCode, string? Error, IReadOnlyList<AlternateApproverAssignmentDto> Data)>
+        AssignAlternateUsersAsync(
+            AlternateApproverAssignmentRequestDto request,
+            int assignedByUserId,
+            CancellationToken cancellationToken = default)
+    {
+        var hasRisk = request.RiskAssessmentId.HasValue;
+        var hasPermit = request.PermitApplicationId.HasValue;
+        if (hasRisk == hasPermit)
+            return (StatusCodes.Status400BadRequest,
+                "Specify exactly one of riskAssessmentId or permitApplicationId.", []);
+
+        var userIds = request.UserIds.Where(x => x > 0).Distinct().ToList();
+        if (userIds.Count == 0 || userIds.Count != request.UserIds.Distinct().Count())
+            return (StatusCodes.Status400BadRequest,
+                "userIds must contain unique positive user IDs.", []);
+
+        var isSuperAdmin = await context.UserRoles.AnyAsync(x =>
+            x.UserId == assignedByUserId && x.IsActive && x.Role.IsActive &&
+            (x.Role.NormalizedName == "SUPERADMIN" || x.Role.NormalizedName == "ADMIN"),
+            cancellationToken);
+        if (!isSuperAdmin)
+            return (StatusCodes.Status403Forbidden,
+                "Only a SuperAdmin can assign alternate approver users.", []);
+
+        (int StatusCode, string? Error, IReadOnlyList<AlternateApproverAssignmentDto> Data) result =
+            (StatusCodes.Status500InternalServerError, "Alternate approvers could not be assigned.", []);
+        var strategy = context.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
-            await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
-            var approval = await context.PermitApprovals
-                .Include(x => x.PermitApplication).ThenInclude(x => x.RiskAssessment)
-                .SingleOrDefaultAsync(x => x.PermitApplicationId == permitApprovalId, cancellationToken);
-            if (approval is null)
-                return;
-            if (approval.Status != ApprovalState.Pending)
+            await using var transaction = await context.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable, cancellationToken);
+            var users = await context.Users.Where(x => userIds.Contains(x.Id) && x.IsActive)
+                .OrderBy(x => x.DisplayName ?? x.UserName)
+                .ToListAsync(cancellationToken);
+            if (users.Count != userIds.Count)
             {
-                result = Failure(
-                    "This approval is no longer pending.",
-                    StatusCodes.Status409Conflict);
+                result = (StatusCodes.Status400BadRequest,
+                    "Every assigned approver must be an active user.", []);
                 return;
             }
 
-            var eligible = await context.UserRoles.AnyAsync(x =>
-                x.UserId == userId && x.IsActive &&
-                (x.RoleId == approval.PrimaryApproverRoleId ||
-                 x.RoleId == approval.AlternateApproverRoleId), cancellationToken);
-            if (!eligible)
+            var approvalsQuery = context.PermitApprovals
+                .Include(x => x.PermitApplication)
+                .Include(x => x.AssignedUsers)
+                .Where(x => x.Status == ApprovalState.Pending &&
+                    x.LevelNumber == request.LevelNumber);
+            approvalsQuery = hasRisk
+                ? approvalsQuery.Where(x =>
+                    x.PermitApplication.RiskAssessmentId == request.RiskAssessmentId)
+                : approvalsQuery.Where(x =>
+                    x.PermitApplicationId == request.PermitApplicationId);
+
+            var approvals = await approvalsQuery.OrderBy(x => x.PermitApplicationId)
+                .ToListAsync(cancellationToken);
+            if (approvals.Count == 0)
             {
-                result = Failure(
-                    "The user is not assigned to a primary or alternate approver role for this level.",
-                    StatusCodes.Status403Forbidden);
+                result = (StatusCodes.Status409Conflict,
+                    "No pending approval exists for the selected item and level.", []);
                 return;
             }
 
             var now = DateTime.UtcNow;
-            var decision = request.Decision.Trim().ToUpperInvariant();
-            approval.Status = decision;
-            approval.ActionedByUserId = userId;
-            approval.Comments = string.IsNullOrWhiteSpace(request.Comments) ? null : request.Comments.Trim();
-            approval.ActionedAtUtc = now;
-
-            if (decision == ApprovalState.Rejected)
+            foreach (var approval in approvals)
             {
-                var rejectedPermitId = await GetStatusIdAsync(PermitStatusCategory, PermitRejected, cancellationToken);
-                var rejectedRiskId = await GetStatusIdAsync(RiskStatusCategory, PermitRejected, cancellationToken);
-                approval.PermitApplication.PermitStatusListItemId = rejectedPermitId;
-                approval.PermitApplication.UpdatedAtUtc = now;
-                approval.PermitApplication.UpdatedByUserId = userId;
-                if (approval.PermitApplication.RiskAssessment is not null)
+                foreach (var existing in approval.AssignedUsers.Where(x =>
+                             x.IsActive && !userIds.Contains(x.UserId)))
                 {
-                    approval.PermitApplication.RiskAssessment.RiskAssessmentStatusListItemId = rejectedRiskId;
-                    approval.PermitApplication.RiskAssessment.ModifiedBy = userId;
-                    approval.PermitApplication.RiskAssessment.UpdatedAtUtc = now;
-                    var riskId = approval.PermitApplication.RiskAssessment.Id;
-                    var openApprovals = await context.PermitApprovals
-                        .Where(x => x.PermitApplication.RiskAssessmentId == riskId &&
-                            (x.Status == ApprovalState.Pending || x.Status == ApprovalState.Waiting))
-                        .ToListAsync(cancellationToken);
-                    foreach (var open in openApprovals.Where(x => x.Id != approval.Id))
-                        open.Status = ApprovalState.Cancelled;
+                    existing.IsActive = false;
+                    existing.RevokedByUserId = assignedByUserId;
+                    existing.RevokedAtUtc = now;
                 }
-            }
-            else
-            {
-                var next = await context.PermitApprovals
-                    .Where(x => x.PermitApplicationId == approval.PermitApplicationId &&
-                        x.LevelNumber > approval.LevelNumber && x.Status == ApprovalState.Waiting)
-                    .OrderBy(x => x.LevelNumber).FirstOrDefaultAsync(cancellationToken);
-                if (next is not null)
-                {
-                    next.Status = ApprovalState.Pending;
-                    await AddNotificationsAsync(next, cancellationToken);
-                }
-                else
-                {
-                    var approvedPermitId = await GetStatusIdAsync(PermitStatusCategory, PermitApproved, cancellationToken);
-                    approval.PermitApplication.PermitStatusListItemId = approvedPermitId;
-                    approval.PermitApplication.UpdatedAtUtc = now;
-                    approval.PermitApplication.UpdatedByUserId = userId;
 
-                    if (approval.PermitApplication.RiskAssessment is not null)
+                foreach (var user in users)
+                {
+                    var assignment = approval.AssignedUsers.SingleOrDefault(x => x.UserId == user.Id);
+                    var newlyAssigned = assignment is null || !assignment.IsActive;
+                    if (assignment is null)
                     {
-                        var riskId = approval.PermitApplication.RiskAssessment.Id;
-                        var allOtherApproved = await context.PermitApplications
-                            .Where(x => x.RiskAssessmentId == riskId && x.Id != approval.PermitApplicationId)
-                            .AllAsync(x => x.PermitStatusListItemId == approvedPermitId, cancellationToken);
-                        if (allOtherApproved)
+                        assignment = new PermitApprovalAssignee
                         {
-                            var approvedRiskId = await GetStatusIdAsync(RiskStatusCategory, RiskAssessmentApproved, cancellationToken);
-                            approval.PermitApplication.RiskAssessment.RiskAssessmentStatusListItemId = approvedRiskId;
-                            approval.PermitApplication.RiskAssessment.ModifiedBy = userId;
-                            approval.PermitApplication.RiskAssessment.UpdatedAtUtc = now;
-                        }
+                            UserId = user.Id,
+                            AssignedByUserId = assignedByUserId,
+                            AssignedAtUtc = now
+                        };
+                        approval.AssignedUsers.Add(assignment);
                     }
+                    else if (!assignment.IsActive)
+                    {
+                        assignment.IsActive = true;
+                        assignment.AssignedByUserId = assignedByUserId;
+                        assignment.AssignedAtUtc = now;
+                        assignment.RevokedByUserId = null;
+                        assignment.RevokedAtUtc = null;
+                    }
+
+                    if (newlyAssigned)
+                        await AddNotificationForUserAsync(approval, user.Id, cancellationToken);
                 }
             }
 
             await context.SaveChangesAsync(cancellationToken);
             await transaction.CommitAsync(cancellationToken);
-            result = Success("Approval decision recorded.");
+
+            var assignedDtos = users.Select(ToAssignedUserDto).ToList();
+            var data = approvals.Select(x => new AlternateApproverAssignmentDto(
+                x.Id, x.PermitApplicationId, x.PermitApplication.PermitNumber,
+                x.PermitApplication.RiskAssessmentId, x.LevelNumber, assignedDtos)).ToList();
+            result = (StatusCodes.Status200OK, null, data);
         });
 
-        if (result.IsSuccess)
+        if (result.StatusCode == StatusCodes.Status200OK)
             notificationQueue.Signal();
         return result;
     }
@@ -521,7 +754,11 @@ public sealed class ApprovalWorkflowService(
             .Where(x => x.HasValue).Select(x => x!.Value).Distinct().ToList();
         var recipients = await context.UserRoles
             .Where(x => x.IsActive && x.User.IsActive && roleIds.Contains(x.RoleId))
-            .Select(x => x.UserId).Distinct().ToListAsync(cancellationToken);
+            .Select(x => x.UserId)
+            .Concat(context.PermitApprovalAssignees
+                .Where(x => x.PermitApprovalId == approval.Id && x.IsActive && x.User.IsActive)
+                .Select(x => x.UserId))
+            .Distinct().ToListAsync(cancellationToken);
         var permitNumber = await context.PermitApplications
             .Where(x => x.Id == approval.PermitApplicationId)
             .Select(x => x.PermitNumber).SingleAsync(cancellationToken);
@@ -538,6 +775,41 @@ public sealed class ApprovalWorkflowService(
             });
         }
     }
+
+    private async Task AddNotificationForUserAsync(
+        PermitApproval approval,
+        int userId,
+        CancellationToken cancellationToken)
+    {
+        var existing = await context.ApprovalNotifications.SingleOrDefaultAsync(x =>
+            x.PermitApprovalId == approval.Id && x.RecipientUserId == userId,
+            cancellationToken);
+        if (existing is not null)
+        {
+            existing.Status = NotificationState.Pending;
+            existing.AttemptCount = 0;
+            existing.LastError = null;
+            existing.CreatedAtUtc = DateTime.UtcNow;
+            existing.SentAtUtc = null;
+            existing.ReadAtUtc = null;
+            return;
+        }
+
+        var permitNumber = approval.PermitApplication?.PermitNumber ??
+            await context.PermitApplications.Where(x => x.Id == approval.PermitApplicationId)
+                .Select(x => x.PermitNumber).SingleAsync(cancellationToken);
+        context.ApprovalNotifications.Add(new ApprovalNotification
+        {
+            PermitApproval = approval,
+            RecipientUserId = userId,
+            Title = $"Permit {permitNumber} requires approval",
+            Message = $"Permit {permitNumber} is waiting for level {approval.LevelNumber} approval.",
+            CreatedAtUtc = DateTime.UtcNow
+        });
+    }
+
+    private static AssignedApproverUserDto ToAssignedUserDto(User user) =>
+        new(user.Id, user.UserName, user.DisplayName, user.Email);
 
     private async Task<int> GetStatusIdAsync(
         string categoryCode,

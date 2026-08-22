@@ -25,6 +25,10 @@ public interface IApprovalWorkflowService
         PermitApprovalQueryDto query,
         CancellationToken cancellationToken = default);
 
+    Task<AdminPendingApprovalPagedResponseDto> GetAdminPendingAssignmentsAsync(
+        AdminPendingApprovalQueryDto query,
+        CancellationToken cancellationToken = default);
+
     Task<ApprovedPermitPagedResponseDto> GetApprovedAsync(
         int userId,
         PermitApprovalHistoryQueryDto query,
@@ -40,6 +44,12 @@ public interface IApprovalWorkflowService
         ApprovalDecisionRequestDto request,
         int userId,
         CancellationToken cancellationToken = default);
+
+    Task<(int StatusCode, string? Error, IReadOnlyList<AlternateApproverAssignmentDto> Data)>
+        AssignAlternateUsersAsync(
+            AlternateApproverAssignmentRequestDto request,
+            int assignedByUserId,
+            CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<ApprovalNotificationDto>> GetNotificationsAsync(
         int userId,

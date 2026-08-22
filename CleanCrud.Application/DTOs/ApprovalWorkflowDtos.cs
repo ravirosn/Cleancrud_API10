@@ -51,6 +51,35 @@ public sealed class ApprovalDecisionRequestDto
     public string? Comments { get; set; }
 }
 
+public sealed class AlternateApproverAssignmentRequestDto
+{
+    [Range(1, int.MaxValue)]
+    public int? RiskAssessmentId { get; set; }
+
+    [Range(1, long.MaxValue)]
+    public long? PermitApplicationId { get; set; }
+
+    [Range(1, 5)]
+    public byte LevelNumber { get; set; }
+
+    [Required, MinLength(1), MaxLength(100)]
+    public List<int> UserIds { get; set; } = [];
+}
+
+public sealed record AlternateApproverAssignmentDto(
+    long PermitApprovalId,
+    long PermitApplicationId,
+    string PermitNumber,
+    int? RiskAssessmentId,
+    byte LevelNumber,
+    IReadOnlyList<AssignedApproverUserDto> AssignedUsers);
+
+public sealed record AssignedApproverUserDto(
+    int UserId,
+    string UserName,
+    string? DisplayName,
+    string? Email);
+
 public sealed record PermitApprovalDto(
     long Id,
     long PermitApplicationId,
@@ -60,6 +89,7 @@ public sealed record PermitApprovalDto(
     string Status,
     string PrimaryRole,
     string? AlternateRole,
+    IReadOnlyList<AssignedApproverUserDto> AssignedUsers,
     DateTime CreatedAtUtc);
 
 public sealed class PermitApprovalQueryDto
@@ -73,6 +103,54 @@ public sealed class PermitApprovalQueryDto
 
 public sealed record PermitApprovalPagedResponseDto(
     IReadOnlyList<PermitApprovalDto> Data,
+    long TotalRecords,
+    long TotalPages,
+    int PageNumber,
+    int PageSize,
+    bool HasPreviousPage,
+    bool HasNextPage);
+
+public sealed class AdminPendingApprovalQueryDto
+{
+    [Range(1, int.MaxValue)]
+    public int PageNumber { get; set; } = 1;
+
+    [Range(1, 100)]
+    public int PageSize { get; set; } = 10;
+
+    [StringLength(200)]
+    public string? Search { get; set; }
+}
+
+public sealed record AdminAssignedApproverUserDto(
+    int UserId,
+    string UserName,
+    string? DisplayName,
+    string? Email,
+    DateTime AssignedAtUtc,
+    int AssignedByUserId,
+    string AssignedByUserName);
+
+public sealed record AdminPendingApprovalDto(
+    long PermitApprovalId,
+    int? RiskAssessmentId,
+    string? PreRiskAssessmentNumber,
+    string? RiskAssessmentStatus,
+    long PermitApplicationId,
+    string PermitNumber,
+    string PermitType,
+    string PermitApplicationStatus,
+    byte PendingLevel,
+    string ApprovalStatus,
+    int PrimaryApproverRoleId,
+    string PrimaryApproverRoleName,
+    int? AlternateApproverRoleId,
+    string? AlternateApproverRoleName,
+    IReadOnlyList<AdminAssignedApproverUserDto> AssignedUsers,
+    DateTime AssignedAtUtc);
+
+public sealed record AdminPendingApprovalPagedResponseDto(
+    IReadOnlyList<AdminPendingApprovalDto> Data,
     long TotalRecords,
     long TotalPages,
     int PageNumber,

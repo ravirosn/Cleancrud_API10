@@ -12,6 +12,7 @@ public class PermitApproval
     public string? Comments { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public DateTime? ActionedAtUtc { get; set; }
+    public byte[] RowVersion { get; set; } = [];
 
     public PermitApplication PermitApplication { get; set; } = null!;
     public Role PrimaryApproverRole { get; set; } = null!;
@@ -19,6 +20,8 @@ public class PermitApproval
     public User? ActionedByUser { get; set; }
     public ICollection<ApprovalNotification> Notifications { get; set; } =
         new List<ApprovalNotification>();
+    public ICollection<PermitApprovalAssignee> AssignedUsers { get; set; } =
+        new List<PermitApprovalAssignee>();
 }
 
 public static class ApprovalState

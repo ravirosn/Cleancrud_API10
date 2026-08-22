@@ -43,6 +43,7 @@ public class AppDbContext : DbContext
     public DbSet<ApprovalWorkflow> ApprovalWorkflows => Set<ApprovalWorkflow>();
     public DbSet<ApprovalWorkflowLevel> ApprovalWorkflowLevels => Set<ApprovalWorkflowLevel>();
     public DbSet<PermitApproval> PermitApprovals => Set<PermitApproval>();
+    public DbSet<PermitApprovalAssignee> PermitApprovalAssignees => Set<PermitApprovalAssignee>();
     public DbSet<ApprovalNotification> ApprovalNotifications => Set<ApprovalNotification>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
 
@@ -408,6 +409,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Comments).HasMaxLength(1000);
             entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
             entity.Property(x => x.ActionedAtUtc).HasPrecision(0);
+            entity.Property(x => x.RowVersion).IsRowVersion();
             entity.HasIndex(x => new { x.PermitApplicationId, x.LevelNumber }).IsUnique();
             entity.HasIndex(x => new { x.Status, x.PrimaryApproverRoleId });
             entity.HasIndex(x => new { x.Status, x.AlternateApproverRoleId });
@@ -419,6 +421,23 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.AlternateApproverRoleId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.ActionedByUser).WithMany()
                 .HasForeignKey(x => x.ActionedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PermitApprovalAssignee>(entity =>
+        {
+            entity.ToTable("PermitApprovalAssignee", "dbo");
+            entity.HasKey(x => new { x.PermitApprovalId, x.UserId });
+            entity.Property(x => x.AssignedAtUtc).HasPrecision(0);
+            entity.Property(x => x.RevokedAtUtc).HasPrecision(0);
+            entity.HasIndex(x => new { x.UserId, x.IsActive, x.PermitApprovalId });
+            entity.HasOne(x => x.PermitApproval).WithMany(x => x.AssignedUsers)
+                .HasForeignKey(x => x.PermitApprovalId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.User).WithMany()
+                .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.AssignedByUser).WithMany()
+                .HasForeignKey(x => x.AssignedByUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.RevokedByUser).WithMany()
+                .HasForeignKey(x => x.RevokedByUserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<ApprovalNotification>(entity =>
