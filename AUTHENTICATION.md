@@ -7,8 +7,8 @@ Set secrets outside committed JSON files in production. ASP.NET Core maps these 
 ```text
 ConnectionStrings__DefaultConnection=<SQL Server connection string>
 Jwt__Key=<at least 32 cryptographically random bytes>
-Jwt__Issuer=CleanCrudAPI
-Jwt__Audience=CleanCrudClient
+Jwt__Issuer=ApcloudpmsAPI
+Jwt__Audience=ApcloudpmsClient
 Jwt__AccessTokenMinutes=15
 Jwt__RefreshTokenDays=7
 Jwt__RefreshTokenAbsoluteDays=30
@@ -40,7 +40,7 @@ The script renames `Users.Password` to `PasswordHash`, adds user security fields
 The equivalent EF command is:
 
 ```powershell
-dotnet ef database update --project CleanCrud.Infrastructure --startup-project CleanCrud.API
+dotnet ef database update --project Apcloudpms.Infrastructure --startup-project Apcloudpms.API
 ```
 
 ## Roles and organization structure

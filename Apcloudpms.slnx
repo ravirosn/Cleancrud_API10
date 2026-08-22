@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".dockerignore" />
+    <File Path="Dockerfile.txt" />
+  </Folder>
+  <Project Path="Apcloudpms.API/Apcloudpms.API.csproj" />
+  <Project Path="Apcloudpms.Application/Apcloudpms.Application.csproj" />
+  <Project Path="Apcloudpms.Domain/Apcloudpms.Domain.csproj" />
+  <Project Path="Apcloudpms.Infrastructure/Apcloudpms.Infrastructure.csproj" />
+</Solution>

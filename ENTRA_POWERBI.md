@@ -2,7 +2,7 @@
 
 ## 1. Register the API
 
-Create a single-tenant Microsoft Entra app registration for `CleanCrud.API`.
+Create a single-tenant Microsoft Entra app registration for `Apcloudpms.API`.
 
 1. Under **Expose an API**, set an Application ID URI (normally `api://<api-client-id>`).
 2. Add the delegated scope `access_as_user`.
@@ -65,7 +65,7 @@ An authorized user assigned to the `POWERBI` module calls:
 
 ```http
 GET /api/power-bi/embed-config
-Authorization: Bearer <token-for-CleanCrud.API>
+Authorization: Bearer <token-for-Apcloudpms.API>
 ```
 
 The frontend passes the returned `embedUrl`, `reportId`, and `embedToken` to the Power BI JavaScript
@@ -73,7 +73,7 @@ client. It does not send the Power BI service token to the browser.
 
 ## Token boundaries
 
-- The API accepts and validates only an access token issued for `CleanCrud.API`.
+- The API accepts and validates only an access token issued for `Apcloudpms.API`.
 - The backend Power BI service token is accepted only by the Power BI REST API.
 - The embed token is accepted only by the Power BI embedded client/service for the configured item.
-- A Power BI or Microsoft Graph token must never be accepted as authorization for `CleanCrud.API`.
+- A Power BI or Microsoft Graph token must never be accepted as authorization for `Apcloudpms.API`.

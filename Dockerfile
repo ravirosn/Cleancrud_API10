@@ -3,8 +3,8 @@ WORKDIR /src
 
 COPY . .
 
-RUN dotnet restore CleanCrud.API/CleanCrud.API.csproj
-RUN dotnet publish CleanCrud.API/CleanCrud.API.csproj -c Release -o /app/publish
+RUN dotnet restore Apcloudpms.API/Apcloudpms.API.csproj
+RUN dotnet publish Apcloudpms.API/Apcloudpms.API.csproj -c Release -o /app/publish
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0
 WORKDIR /app
@@ -13,4 +13,4 @@ COPY --from=build /app/publish .
 
 EXPOSE 8080
 
-ENTRYPOINT ["dotnet", "CleanCrud.API.dll"]
+ENTRYPOINT ["dotnet", "Apcloudpms.API.dll"]
