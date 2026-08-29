@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Apcloud.Contracts\Apcloud.Contracts.csproj" />
     <ProjectReference Include="..\Apcloudpms.Application\Apcloudpms.Application.csproj" />
     <ProjectReference Include="..\Apcloudpms.Infrastructure\Apcloudpms.Infrastructure.csproj" />
   </ItemGroup>

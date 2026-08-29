@@ -14,9 +14,22 @@ public sealed class OrganizationController : ControllerBase
     public OrganizationController(IOrganizationService service) => _service = service;
 
     [HttpGet("branches")]
-    public async Task<ActionResult<IReadOnlyList<OfficeBranchDto>>> GetBranches(
-        bool includeInactive = false, CancellationToken cancellationToken = default) =>
-        Ok(await _service.GetBranchesAsync(includeInactive, cancellationToken));
+    public async Task<ActionResult<OrganizationPagedResponseDto<OfficeBranchDto>>> GetBranches(
+        [FromQuery] OrganizationQueryDto query, CancellationToken cancellationToken = default) =>
+        Ok(await _service.GetBranchesAsync(query, cancellationToken));
+
+    [HttpGet("branches/ddl")]
+    public async Task<ActionResult<IReadOnlyList<DropdownItemDto>>> GetBranchDropdown(
+        CancellationToken cancellationToken = default) =>
+        Ok(await _service.GetBranchDropdownAsync(cancellationToken));
+
+    [HttpGet("branches/{id:int}")]
+    public async Task<ActionResult<OfficeBranchDto>> GetBranchById(
+        int id, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.GetBranchByIdAsync(id, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
+    }
 
     [HttpPost("branches")]
     public async Task<ActionResult<OfficeBranchDto>> CreateBranch(
@@ -34,11 +47,27 @@ public sealed class OrganizationController : ControllerBase
         return result is null ? NotFound() : Ok(result);
     }
 
+    [HttpDelete("branches/{id:int}")]
+    public async Task<IActionResult> DeleteBranch(int id, CancellationToken cancellationToken) =>
+        await _service.DeleteBranchAsync(id, cancellationToken) ? NoContent() : NotFound();
+
     [HttpGet("departments")]
-    public async Task<ActionResult<IReadOnlyList<DepartmentDto>>> GetDepartments(
-        int? branchId = null, bool includeInactive = false,
-        CancellationToken cancellationToken = default) =>
-        Ok(await _service.GetDepartmentsAsync(branchId, includeInactive, cancellationToken));
+    public async Task<ActionResult<OrganizationPagedResponseDto<DepartmentDto>>> GetDepartments(
+        [FromQuery] DepartmentQueryDto query, CancellationToken cancellationToken = default) =>
+        Ok(await _service.GetDepartmentsAsync(query, cancellationToken));
+
+    [HttpGet("departments/ddl")]
+    public async Task<ActionResult<IReadOnlyList<DropdownItemDto>>> GetDepartmentDropdown(
+        int? officeBranchId = null, CancellationToken cancellationToken = default) =>
+        Ok(await _service.GetDepartmentDropdownAsync(officeBranchId, cancellationToken));
+
+    [HttpGet("departments/{id:int}")]
+    public async Task<ActionResult<DepartmentDto>> GetDepartmentById(
+        int id, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.GetDepartmentByIdAsync(id, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
+    }
 
     [HttpPost("departments")]
     public async Task<ActionResult<DepartmentDto>> CreateDepartment(
@@ -55,4 +84,8 @@ public sealed class OrganizationController : ControllerBase
         var result = await _service.UpdateDepartmentAsync(id, dto, cancellationToken);
         return result is null ? NotFound() : Ok(result);
     }
+
+    [HttpDelete("departments/{id:int}")]
+    public async Task<IActionResult> DeleteDepartment(int id, CancellationToken cancellationToken) =>
+        await _service.DeleteDepartmentAsync(id, cancellationToken) ? NoContent() : NotFound();
 }

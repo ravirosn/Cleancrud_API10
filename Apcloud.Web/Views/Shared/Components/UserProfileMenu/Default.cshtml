@@ -1,0 +1,204 @@
+@model Apcloud.Web.ViewComponents.UserTopMenuViewModel
+
+<div class="nav-item dropdown ms-2">
+    <a href="#" class="nav-link d-flex lh-1 p-0" data-bs-toggle="dropdown" aria-label="Open user menu">
+        <span class="avatar avatar-sm avatar-initials" data-profile-avatar>
+            @if (!string.IsNullOrWhiteSpace(Model.ProfilePictureUrl))
+            {
+                <img src="@Model.ProfilePictureUrl" alt="" data-profile-image />
+            }
+            else
+            {
+                <span data-profile-initials>@Model.Initials</span>
+            }
+        </span>
+        <div class="d-none d-xl-block ps-2">
+            <div class="fw-semibold" data-profile-display-name>@Model.DisplayName</div>
+            <div class="mt-1 small text-secondary">@Model.PrimaryRole</div>
+        </div>
+        <svg class="icon ms-2 d-none d-xl-block"><use href="#icon-chevron-down" /></svg>
+    </a>
+    <div class="dropdown-menu dropdown-menu-end dropdown-menu-arrow profile-menu">
+        <div class="px-3 py-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="avatar avatar-md avatar-initials" data-profile-avatar>
+                    @if (!string.IsNullOrWhiteSpace(Model.ProfilePictureUrl))
+                    {
+                        <img src="@Model.ProfilePictureUrl" alt="" data-profile-image />
+                    }
+                    else
+                    {
+                        <span data-profile-initials>@Model.Initials</span>
+                    }
+                </span>
+                <div class="profile-menu-heading">
+                    <strong data-profile-display-name>@Model.DisplayName</strong>
+                    <span>@Model.Email</span>
+                </div>
+            </div>
+            <dl class="profile-details mb-0 mt-3">
+                @if (!string.IsNullOrWhiteSpace(Model.UserName))
+                {
+                    <div><dt>Username</dt><dd>@Model.UserName</dd></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.DepartmentName))
+                {
+                    <div><dt>Department</dt><dd>@Model.DepartmentName</dd></div>
+                }
+                @if (!string.IsNullOrWhiteSpace(Model.BranchName))
+                {
+                    <div><dt>Branch</dt><dd>@Model.BranchName</dd></div>
+                }
+                <div class="@(string.IsNullOrWhiteSpace(Model.ContactNumber) ? "d-none" : null)" data-profile-contact-row>
+                    <dt>Contact</dt><dd data-profile-contact-number>@Model.ContactNumber</dd>
+                </div>
+                @if (Model.Roles.Count > 0)
+                {
+                    <div><dt>Roles</dt><dd>@string.Join(", ", Model.Roles)</dd></div>
+                }
+            </dl>
+        </div>
+        <div class="dropdown-divider my-0"></div>
+        <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#profileModal">Profile</button>
+        <button type="button" class="dropdown-item" data-bs-toggle="offcanvas" data-bs-target="#themeSettings">Settings</button>
+        <div class="dropdown-divider"></div>
+        <form asp-area="Authentication" asp-controller="Account" asp-action="Logout" method="post">
+            <button type="submit" class="dropdown-item text-danger">Sign out</button>
+        </form>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="profileModal" tabindex="-1" aria-labelledby="profileModalLabel" aria-hidden="true" data-profile-modal>
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable profile-modal-dialog">
+        <div class="modal-content">
+            <form class="profile-modal-form" data-profile-form>
+                <div class="modal-header">
+                    <div>
+                        <h2 class="modal-title" id="profileModalLabel">Edit profile</h2>
+                        <div class="text-secondary small mt-1">Update your personal details, picture, or password.</div>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger d-none" role="alert" data-profile-error></div>
+                    <div class="alert alert-success d-none" role="status" data-profile-success>Profile updated successfully.</div>
+
+                    <section class="profile-readonly-section mb-4" aria-labelledby="profileAccountDetailsHeading">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                                <h3 class="mb-1" id="profileAccountDetailsHeading">Account details</h3>
+                                <p class="text-secondary small mb-0">These details are managed by your organization and cannot be edited here.</p>
+                            </div>
+                            <span class="badge @(Model.IsActive == false ? "bg-red-lt text-red" : Model.IsActive == true ? "bg-green-lt text-green" : "bg-secondary-lt text-secondary")">
+                                @(Model.IsActive == false ? "Inactive" : Model.IsActive == true ? "Active" : "Status unavailable")
+                            </span>
+                        </div>
+                        <dl class="profile-account-grid mb-0">
+                            <div><dt>Email</dt><dd>@Model.Email</dd></div>
+                            <div><dt>Username</dt><dd>@(Model.UserName ?? "Not available")</dd></div>
+                            <div><dt>Department</dt><dd>@(Model.DepartmentName ?? "Not assigned")</dd></div>
+                            <div><dt>Branch</dt><dd>@(Model.BranchName ?? "Not assigned")</dd></div>
+                            <div class="profile-account-roles">
+                                <dt>Roles</dt>
+                                <dd>
+                                    @if (Model.Roles.Count > 0)
+                                    {
+                                        @foreach (var role in Model.Roles)
+                                        {
+                                            <span class="badge bg-blue-lt text-blue">@role</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span>No roles assigned</span>
+                                    }
+                                </dd>
+                            </div>
+                            <div><dt>Account type</dt><dd>@Model.AccountType</dd></div>
+                            <div><dt>User ID</dt><dd>@(Model.UserId?.ToString() ?? "Not available")</dd></div>
+                            <div><dt>Member since</dt><dd>@(Model.CreatedAtUtc?.ToLocalTime().ToString("d MMM yyyy") ?? "Not available")</dd></div>
+                        </dl>
+                    </section>
+
+                    <section class="profile-edit-section mb-4" aria-labelledby="profileInformationHeading">
+                        <div class="mb-3">
+                            <h3 class="mb-1" id="profileInformationHeading">Profile information</h3>
+                            <p class="text-secondary small mb-0">Update the details shown to other users.</p>
+                        </div>
+                        <div class="profile-photo-editor mb-3">
+                            <span class="avatar avatar-xl avatar-initials" data-profile-avatar>
+                                @if (!string.IsNullOrWhiteSpace(Model.ProfilePictureUrl))
+                                {
+                                    <img src="@Model.ProfilePictureUrl" alt="Current profile picture" data-profile-image />
+                                }
+                                else
+                                {
+                                    <span data-profile-initials>@Model.Initials</span>
+                                }
+                            </span>
+                            <div class="flex-fill">
+                                <label for="profilePicture" class="form-label">Profile picture</label>
+                                <input id="profilePicture" name="picture" type="file" class="form-control" accept="image/jpeg,image/png,image/webp" data-profile-picture />
+                                <div class="form-hint">JPEG, PNG, or WebP. Optimized to a maximum of 2 MB.</div>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label for="profileDisplayName" class="form-label">Display name</label>
+                                <input id="profileDisplayName" name="displayName" class="form-control" value="@Model.DisplayName" minlength="2" maxlength="200" required />
+                            </div>
+                            <div class="col-md-6">
+                                <label for="profileContactNumber" class="form-label">Phone number</label>
+                                <input id="profileContactNumber" name="contactNumber" type="tel" class="form-control" value="@Model.ContactNumber" maxlength="20" />
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="profile-edit-section" aria-labelledby="profileSecurityHeading">
+                        <div class="mb-3">
+                            <h3 class="mb-1" id="profileSecurityHeading">Security</h3>
+                            <p class="text-secondary small mb-0">Leave all password fields empty to keep your current password.</p>
+                        </div>
+                        <div class="row g-3">
+                        <div class="col-12">
+                            <label for="profileCurrentPassword" class="form-label">Current password</label>
+                            <div class="profile-password-wrap">
+                                <input id="profileCurrentPassword" name="currentPassword" type="password" class="form-control pe-5" autocomplete="current-password" />
+                                <button class="password-toggle" type="button" data-password-toggle aria-label="Show current password">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="profileNewPassword" class="form-label">New password</label>
+                            <div class="profile-password-wrap">
+                                <input id="profileNewPassword" name="newPassword" type="password" class="form-control pe-5" minlength="8" maxlength="100" autocomplete="new-password" data-new-password />
+                                <button class="password-toggle" type="button" data-password-toggle aria-label="Show new password">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="profileConfirmPassword" class="form-label">Confirm password</label>
+                            <div class="profile-password-wrap">
+                                <input id="profileConfirmPassword" name="confirmPassword" type="password" class="form-control profile-confirm-password" minlength="8" maxlength="100" autocomplete="new-password" data-confirm-password />
+                                <span class="profile-password-match d-none" data-password-match-icon title="Passwords match" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg>
+                                </span>
+                                <button class="password-toggle" type="button" data-password-toggle aria-label="Show confirmation password">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                                </button>
+                            </div>
+                            <span class="visually-hidden" data-password-match-status aria-live="polite"></span>
+                        </div>
+                        </div>
+                    </section>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-profile-save>Save changes</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

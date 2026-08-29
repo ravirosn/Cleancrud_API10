@@ -1,0 +1,5 @@
+@{
+    Layout = Context.Session.GetString(Apcloud.Web.Infrastructure.ModuleSessionContext.ActiveModuleIdKey) is not null
+        ? "_ModuleLayout"
+        : "_Layout";
+}

@@ -1,0 +1,40 @@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var csrfToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0f6cbd" />
+    <meta name="csrf-token" content="@csrfToken" />
+    <title>@ViewData["Title"] · Operations Hub</title>
+    <partial name="_ThemeBootstrap" />
+    <link rel="stylesheet" href="~/lib/tabler/css/tabler.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="portal-page">
+    <script>
+        document.body.dataset.bsTheme = document.documentElement.getAttribute('data-bs-theme');
+    </script>
+    <header class="navbar navbar-expand-md d-print-none topbar portal-topbar">
+        <div class="container-xl d-flex align-items-center h-100">
+            <a asp-area="Portal" asp-controller="Portal" asp-action="Index" class="portal-brand">
+                <span class="auth-brand-mark">O</span>
+                <span><strong>Operations Hub</strong><small>Business systems</small></span>
+            </a>
+            <div class="ms-auto">
+                @await Component.InvokeAsync("UserTopMenu")
+            </div>
+        </div>
+    </header>
+    <main>@RenderBody()</main>
+    <partial name="_ThemeSettings" />
+    <partial name="_DashboardIconSprite" />
+    <script src="~/lib/tabler/js/tabler.min.js"></script>
+    <script src="~/js/apcloud-api.js" asp-append-version="true"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

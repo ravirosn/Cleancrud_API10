@@ -23,6 +23,7 @@ public class AppDbContext : DbContext
     public DbSet<ApplicationModule> ApplicationModules => Set<ApplicationModule>();
     public DbSet<ModuleMenu> ModuleMenus => Set<ModuleMenu>();
     public DbSet<UserModule> UserModules => Set<UserModule>();
+    public DbSet<UserThemeSetting> UserThemeSettings => Set<UserThemeSetting>();
     public DbSet<ListItemCategory> ListItemCategories => Set<ListItemCategory>();
     public DbSet<ListItem> ListItems => Set<ListItem>();
     public DbSet<PermitApplication> PermitApplications => Set<PermitApplication>();
@@ -80,6 +81,8 @@ public class AppDbContext : DbContext
             entity.Property(x => x.DisplayName).HasMaxLength(200);
             entity.Property(x => x.Email).HasMaxLength(320);
             entity.Property(x => x.ContactNumber).HasMaxLength(20);
+            entity.Property(x => x.ProfilePicturePath).HasMaxLength(500);
+            entity.Property(x => x.ProfilePictureUpdatedAtUtc).HasPrecision(0);
             entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
             entity.HasIndex(x => x.NormalizedUserName).IsUnique();
             entity.HasIndex(x => x.DepartmentId);
@@ -170,12 +173,13 @@ public class AppDbContext : DbContext
         {
             entity.ToTable("ModuleMenu", "dbo");
             entity.Property(x => x.Name).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.ControllerName).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.ActionName).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.QueryUrl).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.ControllerName).HasMaxLength(100);
+            entity.Property(x => x.ActionName).HasMaxLength(100);
+            entity.Property(x => x.QueryUrl).HasMaxLength(500);
             entity.Property(x => x.Icon).HasMaxLength(100);
             entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
-            entity.HasIndex(x => new { x.ApplicationModuleId, x.QueryUrl }).IsUnique();
+            entity.HasIndex(x => new { x.ApplicationModuleId, x.QueryUrl }).IsUnique()
+                .HasFilter("[QueryUrl] IS NOT NULL");
             entity.HasIndex(x => new { x.ApplicationModuleId, x.IsActive, x.DisplayOrder });
             entity.HasOne(x => x.ApplicationModule).WithMany(x => x.Menus)
                 .HasForeignKey(x => x.ApplicationModuleId).OnDelete(DeleteBehavior.Cascade);
@@ -193,6 +197,30 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.ApplicationModule).WithMany(x => x.UserModules)
                 .HasForeignKey(x => x.ApplicationModuleId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<UserThemeSetting>(entity =>
+        {
+            entity.ToTable("UserThemeSetting", "dbo", table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_UserThemeSetting_Mode",
+                    "[Mode] IN (N'light', N'dark', N'system')");
+                table.HasCheckConstraint(
+                    "CK_UserThemeSetting_Color",
+                    "[Color] IN (N'blue', N'azure', N'indigo', N'purple', N'pink', N'red', N'orange', N'green')");
+                table.HasCheckConstraint(
+                    "CK_UserThemeSetting_Radius",
+                    "[Radius] IN (0, 6, 12)");
+            });
+            entity.HasKey(x => x.UserId);
+            entity.Property(x => x.Mode).HasMaxLength(10).IsRequired();
+            entity.Property(x => x.Color).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
+            entity.HasOne(x => x.User).WithOne(x => x.ThemeSetting)
+                .HasForeignKey<UserThemeSetting>(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ListItemCategory>(entity =>

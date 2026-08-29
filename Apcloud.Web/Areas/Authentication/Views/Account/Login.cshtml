@@ -1,0 +1,111 @@
+@model LoginViewModel
+@inject Microsoft.Extensions.Options.IOptions<Apcloud.Web.Infrastructure.MicrosoftEntraOptions> EntraOptions
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Sign in";
+}
+
+<main class="auth-shell">
+    <section class="auth-brand-panel" aria-label="Operations Hub introduction">
+        <div class="auth-brand-content">
+            <a class="auth-brand" href="/" aria-label="Operations Hub home">
+                <span class="auth-brand-mark">O</span>
+                <span>Operations Hub</span>
+            </a>
+            <div class="auth-message">
+                <span class="auth-eyebrow">One secure workspace</span>
+                <h1>Manage every operation from one place.</h1>
+                <p>Access permit workflows, service tickets, reporting, and your team’s day-to-day tools with a single account.</p>
+                <div class="auth-feature-list">
+                    <div><span>✓</span> Centralized access to business systems</div>
+                    <div><span>✓</span> Secure single sign-on with Microsoft</div>
+                    <div><span>✓</span> A consistent experience on every device</div>
+                </div>
+            </div>
+            <p class="auth-brand-footer">Protected workspace · Authorized users only</p>
+        </div>
+        <div class="auth-orb auth-orb-one"></div>
+        <div class="auth-orb auth-orb-two"></div>
+    </section>
+
+    <section class="auth-form-panel">
+        <div class="auth-mobile-brand">
+            <span class="auth-brand-mark">O</span>
+            <span>Operations Hub</span>
+        </div>
+        <div class="login-card">
+            <div class="mb-4">
+                <span class="login-kicker">Welcome back</span>
+                <h2>Sign in to your account</h2>
+                <p>Use your organization credentials to continue.</p>
+            </div>
+
+            <form asp-area="Authentication" asp-controller="Account" asp-action="Login" method="post" novalidate data-login-form>
+                <input asp-for="ReturnUrl" type="hidden" />
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger auth-validation-summary py-2" role="alert" aria-live="assertive"></div>
+                <div class="mb-3">
+                    <label asp-for="Username" class="form-label"></label>
+                    <div class="auth-input-wrap">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                        <input asp-for="Username" class="form-control form-control-lg" autocomplete="username" placeholder="name@company.com" autofocus />
+                    </div>
+                    <span asp-validation-for="Username" class="text-danger small"></span>
+                </div>
+                <div class="mb-2">
+                    <div class="d-flex align-items-center">
+                        <label asp-for="Password" class="form-label"></label>
+                        <a href="#" class="ms-auto small auth-muted-link" aria-disabled="true">Forgot password?</a>
+                    </div>
+                    <div class="auth-input-wrap">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+                        <input asp-for="Password" class="form-control form-control-lg pe-5" autocomplete="current-password" placeholder="Enter your password" />
+                        <button class="password-toggle" type="button" data-password-toggle aria-label="Show password">
+                            <svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                        </button>
+                    </div>
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+                </div>
+                <label class="form-check mb-4">
+                    <input asp-for="RememberMe" class="form-check-input" />
+                    <span class="form-check-label">Keep me signed in</span>
+                </label>
+                <button type="submit" class="btn btn-primary btn-lg w-100 auth-submit" data-login-submit>
+                    <span data-login-label>Sign in</span>
+                    <span class="d-none" data-login-progress>
+                        <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                        Signing in&hellip;
+                    </span>
+                </button>
+                <span class="visually-hidden" data-login-status aria-live="polite"></span>
+            </form>
+
+            <div class="auth-divider"><span>or continue with</span></div>
+
+            <form asp-area="Authentication" asp-controller="Account" asp-action="EntraLogin" method="post" data-login-form>
+                <input asp-for="ReturnUrl" type="hidden" />
+                <button type="submit" class="btn btn-lg w-100 entra-button" data-login-submit disabled="@(!EntraOptions.Value.IsConfigured)">
+                    <span data-login-label>
+                        <span class="microsoft-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+                        Sign in with Microsoft Entra ID
+                    </span>
+                    <span class="d-none" data-login-progress>
+                        <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                        Connecting to Microsoft&hellip;
+                    </span>
+                </button>
+                <span class="visually-hidden" data-login-status aria-live="polite"></span>
+            </form>
+
+            @if (!EntraOptions.Value.IsConfigured)
+            {
+                <p class="small text-secondary text-center mt-2 mb-0">Microsoft SSO is awaiting tenant configuration.</p>
+            }
+
+        </div>
+        <footer class="auth-form-footer">© 2026 Operations Hub <span>·</span> Privacy <span>·</span> Help</footer>
+    </section>
+</main>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

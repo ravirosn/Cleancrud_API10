@@ -1,0 +1,75 @@
+@model Apcloud.Web.Areas.Portal.Models.ModuleDashboardViewModel
+@{
+    Layout = "_PortalLayout";
+    ViewData["Title"] = "My modules";
+    var firstName = (User.Identity?.Name ?? "there").Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? "there";
+}
+
+<section class="portal-hero portal-hero-modules">
+    <div class="container-xl">
+        <span class="portal-eyebrow">Your workspace</span>
+        <h1>Welcome back, @firstName.</h1>
+        <p>Open one of the active modules assigned to your account.</p>
+    </div>
+</section>
+
+<section class="portal-apps container-xl" aria-labelledby="module-heading">
+    <div class="portal-section-heading">
+        <div>
+            <h2 id="module-heading">Your modules</h2>
+            <p>Assigned applications, ordered for quick access</p>
+        </div>
+        @if (string.IsNullOrWhiteSpace(Model.ErrorMessage))
+        {
+            <span>@Model.Modules.Count @(Model.Modules.Count == 1 ? "module" : "modules")</span>
+        }
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="portal-state portal-state-error" role="alert">
+            <span class="portal-state-icon">!</span>
+            <div><h3>Modules unavailable</h3><p>@Model.ErrorMessage</p></div>
+            <a asp-action="Index" class="btn btn-primary">Try again</a>
+        </div>
+    }
+    else if (Model.Modules.Count == 0)
+    {
+        <div class="portal-state">
+            <span class="portal-state-icon">0</span>
+            <div><h3>No modules assigned</h3><p>Your account does not currently have access to an active module.</p></div>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4 module-card-grid">
+            @for (var index = 0; index < Model.Modules.Count; index++)
+            {
+                var module = Model.Modules[index];
+                var shortName = !string.IsNullOrWhiteSpace(module.Code)
+                    ? module.Code[..Math.Min(module.Code.Length, 3)].ToUpperInvariant()
+                    : string.Concat(module.Name.Split(' ', StringSplitOptions.RemoveEmptyEntries).Take(2).Select(word => char.ToUpperInvariant(word[0])));
+                <div class="col-sm-6 col-lg-4 col-xl-3">
+                    <a asp-area="Portal" asp-controller="Portal" asp-action="Module" asp-route-moduleId="@module.Id"
+                       class="module-card module-accent-@((index % 6) + 1)">
+                        <span class="module-card-order">@(index + 1).ToString("00")</span>
+                        <div class="module-card-icon" aria-hidden="true">@shortName</div>
+                        <span class="system-status"><i></i> Active</span>
+                        <h3>@module.Name</h3>
+                        <p>@(string.IsNullOrWhiteSpace(module.Description) ? "Open this module to view the navigation available to you." : module.Description)</p>
+                        <span class="module-card-action">
+                            View module
+                            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                        </span>
+                    </a>
+                </div>
+            }
+        </div>
+    }
+
+    <div class="portal-help">
+        <span class="portal-help-icon">?</span>
+        <div><strong>Missing a module?</strong><p>Contact your administrator if an application you need is not listed.</p></div>
+        <a href="mailto:support@example.com">Contact support</a>
+    </div>
+</section>

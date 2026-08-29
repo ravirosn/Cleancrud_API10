@@ -16,16 +16,19 @@ public sealed class ApplicationModuleRequestDto
 }
 
 public sealed record ModuleMenuDto(int Id, int ApplicationModuleId, int? ParentMenuId,
-    string Name, string ControllerName, string ActionName, string QueryUrl,
-    string? Icon, int DisplayOrder, bool IsActive);
+    string Name, string? ControllerName, string? ActionName, string? QueryUrl,
+    string? Icon, int DisplayOrder, bool IsActive)
+{
+    public IReadOnlyList<ModuleMenuDto> Children { get; init; } = [];
+}
 
 public sealed class ModuleMenuRequestDto
 {
     public int? ParentMenuId { get; set; }
     [Required, StringLength(100, MinimumLength = 2)] public string Name { get; set; } = string.Empty;
-    [Required, StringLength(100)] public string ControllerName { get; set; } = string.Empty;
-    [Required, StringLength(100)] public string ActionName { get; set; } = string.Empty;
-    [Required, StringLength(500)] public string QueryUrl { get; set; } = string.Empty;
+    [StringLength(100)] public string? ControllerName { get; set; }
+    [StringLength(100)] public string? ActionName { get; set; }
+    [StringLength(500)] public string? QueryUrl { get; set; }
     [StringLength(100)] public string? Icon { get; set; }
     [Range(0, int.MaxValue)] public int DisplayOrder { get; set; }
     public bool IsActive { get; set; } = true;
@@ -47,9 +50,9 @@ public sealed class NavigationMenuDto
 {
     public int Id { get; init; }
     public string Name { get; init; } = string.Empty;
-    public string ControllerName { get; init; } = string.Empty;
-    public string ActionName { get; init; } = string.Empty;
-    public string QueryUrl { get; init; } = string.Empty;
+    public string? ControllerName { get; init; }
+    public string? ActionName { get; init; }
+    public string? QueryUrl { get; init; }
     public string? Icon { get; init; }
     public int DisplayOrder { get; init; }
     public List<NavigationMenuDto> Children { get; init; } = [];

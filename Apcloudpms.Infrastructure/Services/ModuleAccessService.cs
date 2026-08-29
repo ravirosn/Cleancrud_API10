@@ -65,14 +65,18 @@ public sealed class ModuleAccessService : IModuleAccessService
     }
 
     public async Task<IReadOnlyList<ModuleMenuDto>> GetMenusAsync(
-        int moduleId, bool includeInactive, CancellationToken cancellationToken) =>
-        await _context.ModuleMenus.AsNoTracking()
+        int moduleId, bool includeInactive, CancellationToken cancellationToken)
+    {
+        var menus = await _context.ModuleMenus.AsNoTracking()
             .Where(x => x.ApplicationModuleId == moduleId && (includeInactive || x.IsActive))
             .OrderBy(x => x.DisplayOrder).ThenBy(x => x.Name)
             .Select(x => new ModuleMenuDto(x.Id, x.ApplicationModuleId, x.ParentMenuId,
                 x.Name, x.ControllerName, x.ActionName, x.QueryUrl, x.Icon,
                 x.DisplayOrder, x.IsActive))
             .ToListAsync(cancellationToken);
+
+        return BuildMenuHierarchy(menus);
+    }
 
     public async Task<ModuleMenuDto?> CreateMenuAsync(
         int moduleId, ModuleMenuRequestDto dto, CancellationToken cancellationToken)
@@ -86,8 +90,8 @@ public sealed class ModuleAccessService : IModuleAccessService
             ApplicationModuleId = moduleId,
             ParentMenuId = dto.ParentMenuId,
             Name = dto.Name.Trim(),
-            ControllerName = dto.ControllerName.Trim(),
-            ActionName = dto.ActionName.Trim(),
+            ControllerName = NormalizeOptional(dto.ControllerName),
+            ActionName = NormalizeOptional(dto.ActionName),
             QueryUrl = NormalizeQueryUrl(dto.QueryUrl),
             Icon = NormalizeOptional(dto.Icon),
             DisplayOrder = dto.DisplayOrder,
@@ -109,8 +113,8 @@ public sealed class ModuleAccessService : IModuleAccessService
         await ValidateMenuAsync(moduleId, menuId, dto, cancellationToken);
         menu.ParentMenuId = dto.ParentMenuId;
         menu.Name = dto.Name.Trim();
-        menu.ControllerName = dto.ControllerName.Trim();
-        menu.ActionName = dto.ActionName.Trim();
+        menu.ControllerName = NormalizeOptional(dto.ControllerName);
+        menu.ActionName = NormalizeOptional(dto.ActionName);
         menu.QueryUrl = NormalizeQueryUrl(dto.QueryUrl);
         menu.Icon = NormalizeOptional(dto.Icon);
         menu.DisplayOrder = dto.DisplayOrder;
@@ -212,11 +216,16 @@ public sealed class ModuleAccessService : IModuleAccessService
         ModuleMenuRequestDto dto, CancellationToken cancellationToken)
     {
         var queryUrl = NormalizeQueryUrl(dto.QueryUrl);
-        if (await _context.ModuleMenus.AnyAsync(x => x.ApplicationModuleId == moduleId &&
+        if (queryUrl is not null && await _context.ModuleMenus.AnyAsync(x => x.ApplicationModuleId == moduleId &&
                 x.Id != menuId && x.QueryUrl == queryUrl, cancellationToken))
             throw new ArgumentException("This query URL already exists in the module.");
 
         if (!dto.ParentMenuId.HasValue) return;
+        if (string.IsNullOrWhiteSpace(dto.ControllerName) ||
+            string.IsNullOrWhiteSpace(dto.ActionName) ||
+            string.IsNullOrWhiteSpace(dto.QueryUrl))
+            throw new ArgumentException(
+                "Controller name, action name, and query URL are required for a child menu.");
         if (dto.ParentMenuId == menuId)
             throw new ArgumentException("A menu cannot be its own parent.");
 
@@ -237,9 +246,10 @@ public sealed class ModuleAccessService : IModuleAccessService
     }
 
     private static string NormalizeCode(string value) => value.Trim().ToUpperInvariant();
-    private static string NormalizeQueryUrl(string value)
+    private static string? NormalizeQueryUrl(string? value)
     {
-        var result = value.Trim();
+        var result = NormalizeOptional(value);
+        if (result is null) return null;
         return result.StartsWith('/') ? result : $"/{result}";
     }
     private static string? NormalizeOptional(string? value) =>
@@ -250,6 +260,28 @@ public sealed class ModuleAccessService : IModuleAccessService
         new(x.Id, x.ApplicationModuleId, x.ParentMenuId, x.Name, x.ControllerName,
             x.ActionName, x.QueryUrl, x.Icon, x.DisplayOrder, x.IsActive);
 
+    private static IReadOnlyList<ModuleMenuDto> BuildMenuHierarchy(
+        IReadOnlyList<ModuleMenuDto> menus)
+    {
+        var menuIds = menus.Select(x => x.Id).ToHashSet();
+        var children = menus
+            .Where(x => x.ParentMenuId.HasValue && menuIds.Contains(x.ParentMenuId.Value))
+            .GroupBy(x => x.ParentMenuId!.Value)
+            .ToDictionary(x => x.Key, x => x.ToList());
+
+        ModuleMenuDto Build(ModuleMenuDto menu) => menu with
+        {
+            Children = children.TryGetValue(menu.Id, out var childMenus)
+                ? childMenus.Select(Build).ToList()
+                : []
+        };
+
+        return menus
+            .Where(x => !x.ParentMenuId.HasValue || !menuIds.Contains(x.ParentMenuId.Value))
+            .Select(Build)
+            .ToList();
+    }
+
     private sealed record MenuProjection(int Id, int? ParentMenuId, string Name,
-        string ControllerName, string ActionName, string QueryUrl, string? Icon, int DisplayOrder);
+        string? ControllerName, string? ActionName, string? QueryUrl, string? Icon, int DisplayOrder);
 }

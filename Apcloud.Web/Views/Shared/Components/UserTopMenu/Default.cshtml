@@ -1,0 +1,65 @@
+<div class="navbar-nav flex-row order-md-last align-items-center gap-1">
+    <div class="nav-item dropdown d-flex">
+        <a href="#" class="nav-link px-2 apps-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-label="Open My apps menu" aria-expanded="false">
+            <svg class="icon"><use href="#icon-apps" /></svg>
+            <span class="d-none d-xl-inline ms-1">My apps</span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end apps-menu">
+            <div class="d-flex align-items-center px-3 py-2">
+                <div>
+                    <div class="fw-semibold">My apps</div>
+                    <div class="small text-secondary">Quick access to your workspace</div>
+                </div>
+                <a asp-area="Portal" asp-controller="Portal" asp-action="Index" class="btn btn-sm btn-ghost-primary ms-auto">Manage</a>
+            </div>
+            <div class="dropdown-divider my-1"></div>
+            <div class="apps-grid">
+                <a asp-area="Portal" asp-controller="Portal" asp-action="Index" class="app-tile">
+                    <span class="app-icon bg-blue-lt"><svg class="icon"><use href="#icon-apps" /></svg></span>
+                    <span>All systems</span><small>App launcher</small>
+                </a>
+                <a href="#" class="app-tile">
+                    <span class="app-icon bg-purple-lt"><svg class="icon"><use href="#icon-calendar" /></svg></span>
+                    <span>Calendar</span><small>3 events</small>
+                </a>
+                <a href="#" class="app-tile">
+                    <span class="app-icon bg-cyan-lt"><svg class="icon"><use href="#icon-files" /></svg></span>
+                    <span>Drive</span><small>Files</small>
+                </a>
+                <a href="#" class="app-tile">
+                    <span class="app-icon bg-green-lt"><svg class="icon"><use href="#icon-checklist" /></svg></span>
+                    <span>Tasks</span><small>8 open</small>
+                </a>
+                <a href="#analytics" class="app-tile">
+                    <span class="app-icon bg-orange-lt"><svg class="icon"><use href="#icon-chart" /></svg></span>
+                    <span>Analytics</span><small>Reports</small>
+                </a>
+                <a href="#" class="app-tile app-tile-add">
+                    <span class="app-icon"><svg class="icon"><use href="#icon-plus" /></svg></span>
+                    <span>Add app</span><small>Connect</small>
+                </a>
+            </div>
+        </div>
+    </div>
+    <button type="button" class="nav-link px-2 d-flex border-0 bg-transparent" data-bs-toggle="offcanvas" data-bs-target="#themeSettings" aria-controls="themeSettings" aria-label="Open theme settings">
+        <svg class="icon"><use href="#icon-palette" /></svg>
+    </button>
+    <div class="nav-item dropdown">
+        <a href="#" class="nav-link px-2" data-bs-toggle="dropdown" aria-label="Open notifications">
+            <svg class="icon"><use href="#icon-bell" /></svg>
+            <span class="badge bg-red notification-badge"></span>
+        </a>
+        <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end notification-menu">
+            <div class="dropdown-header">Notifications</div>
+            <a href="#" class="dropdown-item py-3">
+                <span class="avatar avatar-sm bg-blue-lt me-3"><svg class="icon"><use href="#icon-orders" /></svg></span>
+                <span><strong>New order received</strong><small class="d-block text-secondary">Order #PM-1048 · 3 min ago</small></span>
+            </a>
+            <a href="#" class="dropdown-item py-3">
+                <span class="avatar avatar-sm bg-green-lt me-3"><svg class="icon"><use href="#icon-users" /></svg></span>
+                <span><strong>New customer joined</strong><small class="d-block text-secondary">Maya registered · 18 min ago</small></span>
+            </a>
+        </div>
+    </div>
+    @await Component.InvokeAsync("UserProfileMenu")
+</div>

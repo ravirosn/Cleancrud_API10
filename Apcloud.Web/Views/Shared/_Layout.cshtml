@@ -1,0 +1,311 @@
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@{
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var csrfToken = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+    var activeModuleId = ViewData["ActiveModuleId"]?.ToString();
+}
+<!doctype html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#206bc4" />
+    <meta name="csrf-token" content="@csrfToken" />
+    <title>@ViewData["Title"] · Operations Hub</title>
+    <partial name="_ThemeBootstrap" />
+    <link rel="stylesheet" href="~/lib/tabler/css/tabler.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+    <script>
+        document.body.dataset.bsTheme = document.documentElement.getAttribute('data-bs-theme');
+    </script>
+    <div class="page">
+        @if (!string.IsNullOrWhiteSpace(activeModuleId))
+        {
+            @await Component.InvokeAsync("ModuleNavigation", new { moduleId = activeModuleId })
+        }
+        else
+        {
+        <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
+            <div class="container-fluid">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu" aria-controls="sidebar-menu" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                <a class="navbar-brand navbar-brand-autodark" asp-area="PermitManagement" asp-controller="Home" asp-action="Index" aria-label="Permit Management home">
+                    <span class="brand-mark">P</span>
+                    <span class="brand-copy">Permit Management <small>ADMIN CONSOLE</small></span>
+                </a>
+                <div class="navbar-nav flex-row d-lg-none">
+                    <a class="nav-link px-0 theme-toggle" href="#" aria-label="Switch theme">
+                        <svg class="icon icon-sun" aria-hidden="true"><use href="#icon-sun" /></svg>
+                        <svg class="icon icon-moon" aria-hidden="true"><use href="#icon-moon" /></svg>
+                    </a>
+                </div>
+                <div class="collapse navbar-collapse" id="sidebar-menu">
+                    <ul class="navbar-nav pt-lg-4">
+                        <li class="nav-section">Workspace</li>
+                        <li class="nav-item">
+                            <a class="nav-link @(currentAction == "Index" ? "active" : null)" asp-area="PermitManagement" asp-controller="Home" asp-action="Index">
+                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-dashboard" /></svg></span>
+                                <span class="nav-link-title">Overview</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#orders">
+                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-orders" /></svg></span>
+                                <span class="nav-link-title">Orders</span>
+                                <span class="badge bg-blue-lt ms-auto">12</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#customers">
+                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-users" /></svg></span>
+                                <span class="nav-link-title">Customers</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#products">
+                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-box" /></svg></span>
+                                <span class="nav-link-title">Products</span>
+                            </a>
+                        </li>
+                        <li class="nav-section mt-4">Management</li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#analytics">
+                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-chart" /></svg></span>
+                                <span class="nav-link-title">Analytics</span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#messages">
+                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-message" /></svg></span>
+                                <span class="nav-link-title">Messages</span>
+                                <span class="status-dot status-dot-animated bg-green ms-auto"></span>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link @(currentAction == "Privacy" ? "active" : null)" asp-area="PermitManagement" asp-controller="Home" asp-action="Privacy">
+                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-settings" /></svg></span>
+                                <span class="nav-link-title">Settings</span>
+                            </a>
+                        </li>
+                    </ul>
+                    <div class="sidebar-upgrade mt-auto">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <span class="upgrade-icon"><svg class="icon"><use href="#icon-sparkles" /></svg></span>
+                            <strong>Unlock insights</strong>
+                        </div>
+                        <p>Get advanced reports and forecasting tools.</p>
+                        <a href="#" class="btn btn-sm btn-light w-100">View plans</a>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        }
+
+        <div class="page-wrapper">
+            <header class="navbar navbar-expand-md d-print-none topbar">
+                <div class="container-xl">
+                    <div class="navbar-nav flex-row order-md-last align-items-center gap-1">
+                        <div class="nav-item dropdown d-flex">
+                            <a href="#" class="nav-link px-2 apps-trigger" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-label="Open My apps menu" aria-expanded="false">
+                                <svg class="icon"><use href="#icon-apps" /></svg>
+                                <span class="d-none d-xl-inline ms-1">My apps</span>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end apps-menu">
+                                <div class="d-flex align-items-center px-3 py-2">
+                                    <div>
+                                        <div class="fw-semibold">My apps</div>
+                                        <div class="small text-secondary">Quick access to your workspace</div>
+                                    </div>
+                                    <a href="#" class="btn btn-sm btn-ghost-primary ms-auto">Manage</a>
+                                </div>
+                                <div class="dropdown-divider my-1"></div>
+                                <div class="apps-grid">
+                                    <a asp-area="Portal" asp-controller="Portal" asp-action="Index" class="app-tile">
+                                        <span class="app-icon bg-blue-lt"><svg class="icon"><use href="#icon-apps" /></svg></span>
+                                        <span>All systems</span><small>App launcher</small>
+                                    </a>
+                                    <a href="#" class="app-tile">
+                                        <span class="app-icon bg-purple-lt"><svg class="icon"><use href="#icon-calendar" /></svg></span>
+                                        <span>Calendar</span><small>3 events</small>
+                                    </a>
+                                    <a href="#" class="app-tile">
+                                        <span class="app-icon bg-cyan-lt"><svg class="icon"><use href="#icon-files" /></svg></span>
+                                        <span>Drive</span><small>Files</small>
+                                    </a>
+                                    <a href="#" class="app-tile">
+                                        <span class="app-icon bg-green-lt"><svg class="icon"><use href="#icon-checklist" /></svg></span>
+                                        <span>Tasks</span><small>8 open</small>
+                                    </a>
+                                    <a href="#analytics" class="app-tile">
+                                        <span class="app-icon bg-orange-lt"><svg class="icon"><use href="#icon-chart" /></svg></span>
+                                        <span>Analytics</span><small>Reports</small>
+                                    </a>
+                                    <a href="#" class="app-tile app-tile-add">
+                                        <span class="app-icon"><svg class="icon"><use href="#icon-plus" /></svg></span>
+                                        <span>Add app</span><small>Connect</small>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <button type="button" class="nav-link px-2 d-flex border-0 bg-transparent" data-bs-toggle="offcanvas" data-bs-target="#themeSettings" aria-controls="themeSettings" aria-label="Open theme settings">
+                            <svg class="icon"><use href="#icon-palette" /></svg>
+                        </button>
+                        <div class="nav-item dropdown">
+                            <a href="#" class="nav-link px-2" data-bs-toggle="dropdown" aria-label="Open notifications">
+                                <svg class="icon"><use href="#icon-bell" /></svg>
+                                <span class="badge bg-red notification-badge"></span>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-arrow dropdown-menu-end notification-menu">
+                                <div class="dropdown-header">Notifications</div>
+                                <a href="#" class="dropdown-item py-3">
+                                    <span class="avatar avatar-sm bg-blue-lt me-3"><svg class="icon"><use href="#icon-orders" /></svg></span>
+                                    <span><strong>New order received</strong><small class="d-block text-secondary">Order #PM-1048 · 3 min ago</small></span>
+                                </a>
+                                <a href="#" class="dropdown-item py-3">
+                                    <span class="avatar avatar-sm bg-green-lt me-3"><svg class="icon"><use href="#icon-users" /></svg></span>
+                                    <span><strong>New customer joined</strong><small class="d-block text-secondary">Maya registered · 18 min ago</small></span>
+                                </a>
+                            </div>
+                        </div>
+                        @await Component.InvokeAsync("UserProfileMenu")
+                    </div>
+                    <div class="topbar-search d-none d-md-flex">
+                        <svg class="icon text-secondary"><use href="#icon-search" /></svg>
+                        <input type="search" class="form-control" placeholder="Search anything…" aria-label="Search" />
+                        <kbd>⌘ K</kbd>
+                    </div>
+                </div>
+            </header>
+
+           @*  <main class="page-body">
+                <div class="container-xl">
+                    @RenderBody()
+                </div>
+            </main> *@
+
+            <main>
+                <div style="padding-right:10px;">
+                    @RenderBody()
+                </div>
+            </main>
+
+            <footer class="footer footer-transparent d-print-none">
+                <div class="container-xl">
+                    <div class="row align-items-center text-center text-lg-start">
+                        <div class="col-lg-auto ms-lg-auto order-lg-last">
+                            <ul class="list-inline list-inline-dots mb-0">
+                                <li class="list-inline-item"><a href="#" class="link-secondary">Help center</a></li>
+                                <li class="list-inline-item"><a asp-area="PermitManagement" asp-controller="Home" asp-action="Privacy" class="link-secondary">Privacy</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-12 col-lg-auto mt-3 mt-lg-0">© 2026 Operations Hub. Built with Tabler.</div>
+                    </div>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <div class="offcanvas offcanvas-end theme-settings" tabindex="-1" id="themeSettings" aria-labelledby="themeSettingsLabel">
+        <div class="offcanvas-header border-bottom">
+            <div>
+                <h2 class="offcanvas-title" id="themeSettingsLabel">Theme settings</h2>
+                <div class="text-secondary small mt-1">Customize your dashboard appearance.</div>
+            </div>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <fieldset class="theme-fieldset">
+                <legend>Color mode</legend>
+                <div class="theme-choice-grid theme-mode-grid">
+                    <label class="theme-choice">
+                        <input type="radio" name="theme-mode" value="light" />
+                        <span class="mode-preview mode-preview-light"><svg class="icon"><use href="#icon-sun" /></svg></span>
+                        <span>Light</span>
+                    </label>
+                    <label class="theme-choice">
+                        <input type="radio" name="theme-mode" value="dark" />
+                        <span class="mode-preview mode-preview-dark"><svg class="icon"><use href="#icon-moon" /></svg></span>
+                        <span>Dark</span>
+                    </label>
+                    <label class="theme-choice">
+                        <input type="radio" name="theme-mode" value="system" />
+                        <span class="mode-preview mode-preview-system"><svg class="icon"><use href="#icon-device" /></svg></span>
+                        <span>System</span>
+                    </label>
+                </div>
+            </fieldset>
+
+            <fieldset class="theme-fieldset">
+                <legend>Accent color</legend>
+                <div class="color-choice-grid">
+                    <label class="color-choice" title="Blue"><input type="radio" name="theme-color" value="blue" /><span style="--swatch:#206bc4"></span></label>
+                    <label class="color-choice" title="Azure"><input type="radio" name="theme-color" value="azure" /><span style="--swatch:#4299e1"></span></label>
+                    <label class="color-choice" title="Indigo"><input type="radio" name="theme-color" value="indigo" /><span style="--swatch:#4263eb"></span></label>
+                    <label class="color-choice" title="Purple"><input type="radio" name="theme-color" value="purple" /><span style="--swatch:#ae3ec9"></span></label>
+                    <label class="color-choice" title="Pink"><input type="radio" name="theme-color" value="pink" /><span style="--swatch:#d6336c"></span></label>
+                    <label class="color-choice" title="Red"><input type="radio" name="theme-color" value="red" /><span style="--swatch:#d63939"></span></label>
+                    <label class="color-choice" title="Orange"><input type="radio" name="theme-color" value="orange" /><span style="--swatch:#f76707"></span></label>
+                    <label class="color-choice" title="Green"><input type="radio" name="theme-color" value="green" /><span style="--swatch:#2fb344"></span></label>
+                </div>
+            </fieldset>
+
+            <fieldset class="theme-fieldset">
+                <legend>Corner radius</legend>
+                <div class="theme-choice-grid radius-choice-grid">
+                    <label class="theme-choice radius-choice"><input type="radio" name="theme-radius" value="0" /><span class="radius-preview radius-0"></span><span>Square</span></label>
+                    <label class="theme-choice radius-choice"><input type="radio" name="theme-radius" value="6" /><span class="radius-preview radius-6"></span><span>Default</span></label>
+                    <label class="theme-choice radius-choice"><input type="radio" name="theme-radius" value="12" /><span class="radius-preview radius-12"></span><span>Rounded</span></label>
+                </div>
+            </fieldset>
+
+            <div class="theme-note">
+                <svg class="icon"><use href="#icon-sparkles" /></svg>
+                <div><strong>Saved automatically</strong><span>Your preferences stay on this device.</span></div>
+            </div>
+        </div>
+        <div class="offcanvas-footer border-top p-3">
+            <button type="button" class="btn btn-outline-secondary w-100" id="resetThemeSettings">Reset to defaults</button>
+        </div>
+    </div>
+
+    <svg class="svg-sprite" aria-hidden="true">
+        <symbol id="icon-dashboard" viewBox="0 0 24 24"><path d="M4 4h6v8H4zM14 4h6v5h-6zM14 13h6v7h-6zM4 16h6v4H4z" /></symbol>
+        <symbol id="icon-orders" viewBox="0 0 24 24"><path d="M5 7h14l-1 13H6L5 7zM9 7V5a3 3 0 0 1 6 0v2" /></symbol>
+        <symbol id="icon-users" viewBox="0 0 24 24"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM3 21v-2a6 6 0 0 1 12 0v2M16 4.1a4 4 0 0 1 0 7.8M19 21v-2a6 6 0 0 0-4-5.65" /></symbol>
+        <symbol id="icon-box" viewBox="0 0 24 24"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3zM4 7.5l8 4.5 8-4.5M12 12v9" /></symbol>
+        <symbol id="icon-chart" viewBox="0 0 24 24"><path d="M4 19V9M9 19V5M14 19v-7M19 19V3" /></symbol>
+        <symbol id="icon-message" viewBox="0 0 24 24"><path d="M5 19l-1 4 4-2h9a4 4 0 0 0 4-4V7a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v8a4 4 0 0 0 2 4z" /></symbol>
+        <symbol id="icon-settings" viewBox="0 0 24 24"><path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7zM19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06-2.83 2.83-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .6 1.7 1.7 0 0 0-.4 1.1V21h-4v-.1a1.7 1.7 0 0 0-1.1-1.55 1.7 1.7 0 0 0-1.88.34l-.06.06-2.83-2.83.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.6-1 1.7 1.7 0 0 0-1.1-.4H3v-4h.1A1.7 1.7 0 0 0 4.65 8.5a1.7 1.7 0 0 0-.34-1.88l-.06-.06 2.83-2.83.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.6 1.7 1.7 0 0 0 .4-1.1V3h4v.1A1.7 1.7 0 0 0 15.5 4.65a1.7 1.7 0 0 0 1.88-.34l.06-.06 2.83 2.83-.06.06A1.7 1.7 0 0 0 19.4 9c.13.38.34.72.6 1 .3.27.69.4 1.1.4h.1v4h-.1a1.7 1.7 0 0 0-1.7.6z" /></symbol>
+        <symbol id="icon-sparkles" viewBox="0 0 24 24"><path d="m12 3-1.2 3.8L7 8l3.8 1.2L12 13l1.2-3.8L17 8l-3.8-1.2L12 3zM5 14l-.7 2.3L2 17l2.3.7L5 20l.7-2.3L8 17l-2.3-.7L5 14zM18 13l-.9 2.1L15 16l2.1.9L18 19l.9-2.1L21 16l-2.1-.9L18 13z" /></symbol>
+        <symbol id="icon-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41" /></symbol>
+        <symbol id="icon-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z" /></symbol>
+        <symbol id="icon-bell" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4" /></symbol>
+        <symbol id="icon-search" viewBox="0 0 24 24"><circle cx="10" cy="10" r="7" /><path d="m15 15 6 6" /></symbol>
+        <symbol id="icon-chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+        <symbol id="icon-arrow-up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6" /></symbol>
+        <symbol id="icon-arrow-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6" /></symbol>
+        <symbol id="icon-download" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14" /></symbol>
+        <symbol id="icon-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></symbol>
+        <symbol id="icon-dots" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" /><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /></symbol>
+        <symbol id="icon-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6" /></symbol>
+        <symbol id="icon-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" /><path d="M12 7v5l3 2" /></symbol>
+        <symbol id="icon-alert" viewBox="0 0 24 24"><path d="M12 9v4M12 17h.01M10.3 3.6 2.4 18a2 2 0 0 0 1.8 3h15.6a2 2 0 0 0 1.8-3L13.7 3.6a2 2 0 0 0-3.4 0z" /></symbol>
+        <symbol id="icon-apps" viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6" rx="1" /><rect x="14" y="4" width="6" height="6" rx="1" /><rect x="4" y="14" width="6" height="6" rx="1" /><rect x="14" y="14" width="6" height="6" rx="1" /></symbol>
+        <symbol id="icon-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18h1.5a1.5 1.5 0 0 0 0-3H12a1.5 1.5 0 0 1 0-3h3a6 6 0 0 0 0-12h-3z" /><circle cx="7.5" cy="10.5" r=".5" /><circle cx="9.5" cy="6.5" r=".5" /><circle cx="14.5" cy="6.5" r=".5" /><circle cx="16.5" cy="10.5" r=".5" /></symbol>
+        <symbol id="icon-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></symbol>
+        <symbol id="icon-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 17h.01M12 17h.01" /></symbol>
+        <symbol id="icon-files" viewBox="0 0 24 24"><path d="M5 4h5l2 2h7a2 2 0 0 1 2 2v9a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6a2 2 0 0 1 2-2z" /></symbol>
+        <symbol id="icon-checklist" viewBox="0 0 24 24"><path d="m4 6 2 2 3-3M11 7h9M4 12l2 2 3-3M11 13h9M4 18l2 2 3-3M11 19h9" /></symbol>
+        <symbol id="icon-device" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8M12 17v4" /></symbol>
+    </svg>
+
+    <script src="~/lib/tabler/js/tabler.min.js"></script>
+    <script src="~/js/apcloud-api.js" asp-append-version="true"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/server-data-grid.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

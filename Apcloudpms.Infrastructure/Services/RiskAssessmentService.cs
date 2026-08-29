@@ -104,6 +104,8 @@ public sealed class RiskAssessmentService(AppDbContext context) : IRiskAssessmen
             Add(command, "@PageNumber", SqlDbType.Int, query.PageNumber);
             Add(command, "@PageSize", SqlDbType.Int, query.PageSize);
             Add(command, "@SearchTerm", SqlDbType.NVarChar, Normalize(query.Search), 200);
+            Add(command, "@SortBy", SqlDbType.NVarChar, query.SortBy, 40);
+            Add(command, "@SortDirection", SqlDbType.VarChar, query.SortDirection, 4);
 
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
             if (!await reader.ReadAsync(cancellationToken))

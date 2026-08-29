@@ -8,6 +8,8 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Cryptography;
 using System.Text;
 
+using Apcloud.Contracts.Authentication;
+
 namespace Apcloudpms.Infrastructure.Services;
 
 public sealed class AuthService : IAuthService

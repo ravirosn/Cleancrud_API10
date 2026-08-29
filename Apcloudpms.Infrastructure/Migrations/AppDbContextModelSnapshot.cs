@@ -523,7 +523,6 @@ namespace Apcloudpms.Infrastructure.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
                     b.Property<string>("ActionName")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -531,7 +530,6 @@ namespace Apcloudpms.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("ControllerName")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -558,7 +556,6 @@ namespace Apcloudpms.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("QueryUrl")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -567,7 +564,8 @@ namespace Apcloudpms.Infrastructure.Migrations
                     b.HasIndex("ParentMenuId");
 
                     b.HasIndex("ApplicationModuleId", "QueryUrl")
-                        .IsUnique();
+                        .IsUnique()
+                        .HasFilter("[QueryUrl] IS NOT NULL");
 
                     b.HasIndex("ApplicationModuleId", "IsActive", "DisplayOrder");
 
@@ -1372,6 +1370,14 @@ namespace Apcloudpms.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("ProfilePicturePath")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime?>("ProfilePictureUpdatedAtUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
                     b.Property<string>("UserName")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1433,6 +1439,42 @@ namespace Apcloudpms.Infrastructure.Migrations
                     b.HasIndex("RoleId", "IsActive");
 
                     b.ToTable("UserRole", "dbo");
+                });
+
+            modelBuilder.Entity("Apcloudpms.Domain.Entities.UserThemeSetting", b =>
+                {
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("Mode")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<int>("Radius")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.HasKey("UserId");
+
+                    b.ToTable("UserThemeSetting", "dbo", t =>
+                        {
+                            t.HasCheckConstraint("CK_UserThemeSetting_Color", "[Color] IN (N'blue', N'azure', N'indigo', N'purple', N'pink', N'red', N'orange', N'green')");
+                            t.HasCheckConstraint("CK_UserThemeSetting_Mode", "[Mode] IN (N'light', N'dark', N'system')");
+                            t.HasCheckConstraint("CK_UserThemeSetting_Radius", "[Radius] IN (0, 6, 12)");
+                        });
                 });
 
             modelBuilder.Entity("Apcloudpms.Domain.Entities.ApprovalNotification", b =>
@@ -1842,6 +1884,17 @@ namespace Apcloudpms.Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Apcloudpms.Domain.Entities.UserThemeSetting", b =>
+                {
+                    b.HasOne("Apcloudpms.Domain.Entities.User", "User")
+                        .WithOne("ThemeSetting")
+                        .HasForeignKey("Apcloudpms.Domain.Entities.UserThemeSetting", "UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Apcloudpms.Domain.Entities.ApplicationModule", b =>
                 {
                     b.Navigation("Menus");
@@ -1936,6 +1989,8 @@ namespace Apcloudpms.Infrastructure.Migrations
             modelBuilder.Entity("Apcloudpms.Domain.Entities.User", b =>
                 {
                     b.Navigation("RefreshTokens");
+
+                    b.Navigation("ThemeSetting");
 
                     b.Navigation("UserModules");
 

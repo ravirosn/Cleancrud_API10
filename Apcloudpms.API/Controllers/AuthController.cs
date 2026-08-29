@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
+using Apcloud.Contracts.Authentication;
+
 namespace Apcloudpms.API.Controllers;
 
 [Route("api/[controller]")]

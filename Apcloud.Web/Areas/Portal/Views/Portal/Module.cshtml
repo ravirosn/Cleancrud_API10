@@ -1,0 +1,46 @@
+@model Apcloud.Web.Areas.Portal.Models.ModuleMenusViewModel
+@{
+    Layout = "_ModuleLayout";
+    ViewData["Title"] = Model.ModuleName;
+}
+
+<div class="page-header d-print-none dashboard-header module-welcome-header">
+    <div class="row g-3 align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Module workspace</div>
+            <h1 class="page-title">@Model.ModuleName</h1>
+            <p class="text-secondary mt-2 mb-0">Choose an item from the navigation menu to begin.</p>
+        </div>
+        <div class="col-auto ms-auto d-print-none">
+            <a asp-area="Portal" asp-controller="Portal" asp-action="Index" class="btn btn-outline-secondary">
+                <svg class="icon"><use href="#icon-apps" /></svg>
+                All modules
+            </a>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+{
+    <div class="alert alert-danger" role="alert">
+        <h4 class="alert-title">Unable to open this module</h4>
+        <div class="text-secondary">@Model.ErrorMessage</div>
+    </div>
+}
+else
+{
+    <div class="row row-cards">
+        <div class="col-12">
+            <div class="card module-welcome-card">
+                <div class="card-body">
+                    <span class="module-welcome-icon" aria-hidden="true">
+                        <svg class="icon"><use href="#icon-apps" /></svg>
+                    </span>
+                    <h2>Welcome to @Model.ModuleName</h2>
+                    <p>The menus available to your account are displayed in the sidebar. Select one to load its page in this workspace.</p>
+                    <span class="badge bg-green-lt"><span class="status-dot bg-green me-1"></span>@Model.Menus.Count active top-level @(Model.Menus.Count == 1 ? "menu" : "menus")</span>
+                </div>
+            </div>
+        </div>
+    </div>
+}

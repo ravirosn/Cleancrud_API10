@@ -1,0 +1,62 @@
+<div class="offcanvas offcanvas-end theme-settings" tabindex="-1" id="themeSettings" aria-labelledby="themeSettingsLabel">
+    <div class="offcanvas-header border-bottom">
+        <div>
+            <h2 class="offcanvas-title" id="themeSettingsLabel">Theme settings</h2>
+            <div class="text-secondary small mt-1">Customize your dashboard appearance.</div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <fieldset class="theme-fieldset">
+            <legend>Color mode</legend>
+            <div class="theme-choice-grid theme-mode-grid">
+                <label class="theme-choice">
+                    <input type="radio" name="theme-mode" value="light" />
+                    <span class="mode-preview mode-preview-light"><svg class="icon"><use href="#icon-sun" /></svg></span>
+                    <span>Light</span>
+                </label>
+                <label class="theme-choice">
+                    <input type="radio" name="theme-mode" value="dark" />
+                    <span class="mode-preview mode-preview-dark"><svg class="icon"><use href="#icon-moon" /></svg></span>
+                    <span>Dark</span>
+                </label>
+                <label class="theme-choice">
+                    <input type="radio" name="theme-mode" value="system" />
+                    <span class="mode-preview mode-preview-system"><svg class="icon"><use href="#icon-device" /></svg></span>
+                    <span>System</span>
+                </label>
+            </div>
+        </fieldset>
+
+        <fieldset class="theme-fieldset">
+            <legend>Accent color</legend>
+            <div class="color-choice-grid">
+                <label class="color-choice" title="Blue"><input type="radio" name="theme-color" value="blue" /><span style="--swatch:#206bc4"></span></label>
+                <label class="color-choice" title="Azure"><input type="radio" name="theme-color" value="azure" /><span style="--swatch:#4299e1"></span></label>
+                <label class="color-choice" title="Indigo"><input type="radio" name="theme-color" value="indigo" /><span style="--swatch:#4263eb"></span></label>
+                <label class="color-choice" title="Purple"><input type="radio" name="theme-color" value="purple" /><span style="--swatch:#ae3ec9"></span></label>
+                <label class="color-choice" title="Pink"><input type="radio" name="theme-color" value="pink" /><span style="--swatch:#d6336c"></span></label>
+                <label class="color-choice" title="Red"><input type="radio" name="theme-color" value="red" /><span style="--swatch:#d63939"></span></label>
+                <label class="color-choice" title="Orange"><input type="radio" name="theme-color" value="orange" /><span style="--swatch:#f76707"></span></label>
+                <label class="color-choice" title="Green"><input type="radio" name="theme-color" value="green" /><span style="--swatch:#2fb344"></span></label>
+            </div>
+        </fieldset>
+
+        <fieldset class="theme-fieldset">
+            <legend>Corner radius</legend>
+            <div class="theme-choice-grid radius-choice-grid">
+                <label class="theme-choice radius-choice"><input type="radio" name="theme-radius" value="0" /><span class="radius-preview radius-0"></span><span>Square</span></label>
+                <label class="theme-choice radius-choice"><input type="radio" name="theme-radius" value="6" /><span class="radius-preview radius-6"></span><span>Default</span></label>
+                <label class="theme-choice radius-choice"><input type="radio" name="theme-radius" value="12" /><span class="radius-preview radius-12"></span><span>Rounded</span></label>
+            </div>
+        </fieldset>
+
+        <div class="theme-note">
+            <svg class="icon"><use href="#icon-sparkles" /></svg>
+            <div><strong>Saved automatically</strong><span>Your preferences stay on this device.</span></div>
+        </div>
+    </div>
+    <div class="offcanvas-footer border-top p-3">
+        <button type="button" class="btn btn-outline-secondary w-100" id="resetThemeSettings">Reset to defaults</button>
+    </div>
+</div>

@@ -12,6 +12,14 @@ public sealed class PermitApplicationQueryDto
 
     [StringLength(200)]
     public string? Search { get; set; }
+
+    [RegularExpression(
+        "^(preRiskAssessmentNumber|permitNumber|permitIssuerName|permitReceiverName|permitTypeName|permitStatusName|submittedAtUtc|issueDate)$",
+        ErrorMessage = "SortBy is not a supported permit application column.")]
+    public string SortBy { get; set; } = "issueDate";
+
+    [RegularExpression("^(asc|desc)$", ErrorMessage = "SortDirection must be asc or desc.")]
+    public string SortDirection { get; set; } = "desc";
 }
 
 public sealed record UserPermitApplicationDto(

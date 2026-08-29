@@ -74,6 +74,14 @@ public sealed class RiskAssessmentQueryDto
 
     [StringLength(200)]
     public string? Search { get; set; }
+
+    [RegularExpression(
+        "^(preRiskAssessmentNumber|issueDate|permitIssuerName|permitReceiverName|areaResponsibleName|plannedStartDateTime|plannedEndDateTime|riskAssessmentStatus)$",
+        ErrorMessage = "SortBy is not a supported risk assessment column.")]
+    public string SortBy { get; set; } = "issueDate";
+
+    [RegularExpression("^(asc|desc)$", ErrorMessage = "SortDirection must be asc or desc.")]
+    public string SortDirection { get; set; } = "desc";
 }
 
 public sealed record RiskAssessmentGridItemDto(

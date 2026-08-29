@@ -1,0 +1,92 @@
+@{
+    ViewData["Title"] = "Permit Applications";
+}
+
+<div class="page-header d-print-none dashboard-header">
+    <div class="row g-3 align-items-center">
+        <div class="col">
+            <h1 class="page-title">Permit Applications</h1>
+            <p class="text-secondary mt-2 mb-0">Search and manage permit applications without leaving this page.</p>
+        </div>
+        <div class="col-auto ms-auto d-print-none">
+            <a asp-action="Create" class="btn btn-primary">
+                <svg class="icon"><use href="#icon-plus" /></svg>
+                Add permit application
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card server-data-grid permit-applications-grid"
+     data-server-grid
+     data-server-sort="true"
+     data-default-sort="submittedAtUtc"
+     data-default-sort-direction="desc"
+     data-url="permit/applications"
+     data-page-size="10"
+     data-search-param="searchTerm"
+     data-search-alias="search"
+     data-row-actions="view,work-completed,close,print">
+    <div class="card-header server-grid-toolbar">
+        <div class="server-grid-search" role="search">
+            <div class="input-icon">
+                <span class="input-icon-addon"><svg class="icon"><use href="#icon-search" /></svg></span>
+                <input type="search" class="form-control" data-grid-search placeholder="Search applications…" aria-label="Search permit applications" autocomplete="off" />
+            </div>
+            <button type="button" class="btn btn-primary" data-grid-search-button>Search</button>
+            <button type="button" class="btn btn-outline-secondary" data-grid-clear>Clear</button>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <label for="permitApplicationPageSize" class="text-secondary small text-nowrap">Rows per page</label>
+            <select id="permitApplicationPageSize" class="form-select form-select-sm" data-grid-page-size>
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="server-grid-state" data-grid-loading role="status">
+        <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span>
+        <span>Loading permit applications…</span>
+    </div>
+
+    <div class="server-grid-state d-none" data-grid-error role="alert">
+        <span class="server-grid-state-icon text-danger"><svg class="icon"><use href="#icon-alert" /></svg></span>
+        <div><strong>Unable to load permit applications</strong><p data-grid-error-message>The data could not be loaded.</p></div>
+        <button type="button" class="btn btn-outline-danger ms-auto" data-grid-retry>Try again</button>
+    </div>
+
+    <div class="empty py-6 d-none" data-grid-empty>
+        <div class="empty-icon"><svg class="icon"><use href="#icon-search" /></svg></div>
+        <p class="empty-title">No permit applications found</p>
+        <p class="empty-subtitle text-secondary">Try changing the search term or add a new permit application.</p>
+        <div class="empty-action"><a asp-action="Create" class="btn btn-primary"><svg class="icon"><use href="#icon-plus" /></svg>Add permit application</a></div>
+    </div>
+
+    <div class="d-none" data-grid-content>
+        <div class="table-responsive server-grid-scroll">
+            <table class="table table-vcenter card-table server-grid-table">
+                <thead>
+                    <tr data-grid-head>
+                        @* The data-grid-column value must match the property name returned by the API.
+                           Edit the text inside <th> to rename a heading. Remove or reorder a <th>
+                           to hide or reorder that column. Nested properties use dot notation. *@
+                        <th data-grid-column="preRiskAssessmentNumber">Risk Assessment No.</th>
+                        <th data-grid-column="permitNumber">Permit No.</th>
+                        <th data-grid-column="permitIssuerName">Issuer</th>
+                        <th data-grid-column="permitReceiverName">Receiver</th>
+                        <th data-grid-column="permitTypeName">Permit type</th>
+                        <th data-grid-column="permitStatusName">Application status</th>
+                        <th data-grid-column="submittedAtUtc">Submitted on</th>
+                    </tr>
+                </thead>
+                <tbody data-grid-body></tbody>
+            </table>
+        </div>
+        <div class="card-footer server-grid-footer">
+            <p class="m-0 text-secondary" data-grid-summary></p>
+            <ul class="pagination m-0 ms-auto" data-grid-pagination></ul>
+        </div>
+    </div>
+</div>

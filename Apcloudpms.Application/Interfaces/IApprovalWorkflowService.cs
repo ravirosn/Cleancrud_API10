@@ -1,6 +1,8 @@
 using Apcloudpms.Application.Common;
 using Apcloudpms.Application.DTOs;
 
+using Apcloud.Contracts.Common;
+
 namespace Apcloudpms.Application.Interfaces;
 
 public interface IApprovalWorkflowService

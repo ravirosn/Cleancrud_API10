@@ -5,6 +5,8 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 
+using Apcloud.Contracts.Authentication;
+
 namespace Apcloudpms.Infrastructure.Services
 {
     public class UserService : IUserService
@@ -71,7 +73,10 @@ namespace Apcloudpms.Infrastructure.Services
                 user.DepartmentId,
                 user.Department?.Name,
                 user.Department?.OfficeBranch.Id,
-                user.Department?.OfficeBranch.Name);
+                user.Department?.OfficeBranch.Name,
+                user.ProfilePicturePath is null
+                    ? null
+                    : $"/api/user-profile/photo?v={user.ProfilePictureUpdatedAtUtc?.Ticks ?? 0}");
         }
 
         public async Task AddUserAsync(RegisterDto dto)

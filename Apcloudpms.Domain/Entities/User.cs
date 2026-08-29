@@ -24,6 +24,10 @@ namespace Apcloudpms.Domain.Entities
 
         public string? ContactNumber { get; set; }
 
+        public string? ProfilePicturePath { get; set; }
+
+        public DateTime? ProfilePictureUpdatedAtUtc { get; set; }
+
         public int? DepartmentId { get; set; }
 
         public bool IsActive { get; set; } = true;
@@ -35,6 +39,8 @@ namespace Apcloudpms.Domain.Entities
         public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 
         public ICollection<UserModule> UserModules { get; set; } = new List<UserModule>();
+
+        public UserThemeSetting? ThemeSetting { get; set; }
 
         public Department? Department { get; set; }
     }

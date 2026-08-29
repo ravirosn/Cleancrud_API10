@@ -3,6 +3,8 @@
     <File Path=".dockerignore" />
     <File Path="Dockerfile.txt" />
   </Folder>
+  <Project Path="Apcloud.Contracts/Apcloud.Contracts.csproj" />
+  <Project Path="Apcloud.Web/Apcloud.Web.csproj" />
   <Project Path="Apcloudpms.API/Apcloudpms.API.csproj" />
   <Project Path="Apcloudpms.Application/Apcloudpms.Application.csproj" />
   <Project Path="Apcloudpms.Domain/Apcloudpms.Domain.csproj" />

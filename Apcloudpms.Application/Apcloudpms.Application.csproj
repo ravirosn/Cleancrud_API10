@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\Apcloud.Contracts\Apcloud.Contracts.csproj" />
     <ProjectReference Include="..\Apcloudpms.Domain\Apcloudpms.Domain.csproj" />
   </ItemGroup>
 

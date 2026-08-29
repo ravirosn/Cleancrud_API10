@@ -1,0 +1,7 @@
+@{
+    Layout = "_Layout";
+    ViewData["ActiveModuleId"] = ViewContext.RouteData.Values["moduleId"]?.ToString()
+        ?? Context.Session.GetString(Apcloud.Web.Infrastructure.ModuleSessionContext.ActiveModuleIdKey);
+}
+
+@RenderBody()

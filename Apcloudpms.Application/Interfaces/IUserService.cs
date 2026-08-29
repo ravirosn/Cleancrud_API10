@@ -1,16 +1,16 @@
-﻿using Apcloudpms.Application.DTOs;
+using Apcloud.Contracts.Authentication;
+using Apcloudpms.Application.DTOs;
 using Apcloudpms.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace Apcloudpms.Application.Interfaces
+namespace Apcloudpms.Application.Interfaces;
+
+public interface IUserService
 {
-    public interface IUserService
-    {
-        Task<User?> LoginAsync(LoginDto dto);
-        Task<CurrentUserDetailsDto?> GetCurrentUserDetailsAsync(
-            int userId, CancellationToken cancellationToken = default);
-        Task AddUserAsync(RegisterDto user);
-    }
+    Task<User?> LoginAsync(LoginDto dto);
+
+    Task<CurrentUserDetailsDto?> GetCurrentUserDetailsAsync(
+        int userId,
+        CancellationToken cancellationToken = default);
+
+    Task AddUserAsync(RegisterDto user);
 }

@@ -1,0 +1,54 @@
+@using System.Text.Json
+@using Apcloud.Contracts.Themes
+@using Apcloud.Web.Services
+@using Apcloud.Web.Services.Authentication
+@inject ApcloudApiClient ApiClient
+@inject ILoggerFactory LoggerFactory
+@{
+    UserThemeSettingsDto? databaseSettings = null;
+    try
+    {
+        databaseSettings = await ApiClient.GetThemeSettingsAsync(Context.RequestAborted);
+    }
+    catch (Exception exception) when (
+        !Context.RequestAborted.IsCancellationRequested &&
+        exception is HttpRequestException or AuthApiException or TaskCanceledException)
+    {
+        LoggerFactory.CreateLogger("ThemeBootstrap")
+            .LogWarning(exception, "Could not load theme settings for the current user.");
+    }
+
+    var databaseSettingsJson = databaseSettings is null
+        ? "null"
+        : JsonSerializer.Serialize(databaseSettings, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+}
+<script>
+    (() => {
+        const defaults = { mode: 'system', color: 'blue', radius: '6' };
+        const databaseSettings = @Html.Raw(databaseSettingsJson);
+        let settings;
+
+        if (databaseSettings) {
+            settings = {
+                mode: databaseSettings.mode,
+                color: databaseSettings.color,
+                radius: String(databaseSettings.radius)
+            };
+            localStorage.setItem('permit-management-settings', JSON.stringify(settings));
+        } else {
+            try {
+                settings = { ...defaults, ...JSON.parse(localStorage.getItem('permit-management-settings') || '{}') };
+            } catch {
+                settings = { ...defaults };
+            }
+        }
+
+        const theme = settings.mode === 'system'
+            ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+            : settings.mode;
+        document.documentElement.setAttribute('data-bs-theme', theme);
+        document.documentElement.dataset.themeMode = settings.mode;
+        document.documentElement.dataset.themeColor = settings.color;
+        document.documentElement.dataset.themeRadius = settings.radius;
+    })();
+</script>

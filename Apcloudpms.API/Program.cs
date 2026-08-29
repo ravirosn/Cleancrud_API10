@@ -7,6 +7,7 @@ using Apcloudpms.Application.Validators;
 using Apcloudpms.Infrastructure.Data;
 using Apcloudpms.Infrastructure.Repositories;
 using Apcloudpms.Infrastructure.Services;
+using Apcloudpms.Infrastructure.Options;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -98,6 +99,9 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAccessControlService, AccessControlService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IModuleAccessService, ModuleAccessService>();
+builder.Services.AddScoped<IUserThemeSettingService, UserThemeSettingService>();
+builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddScoped<IProfileImageStorage, ProfileImageStorage>();
 builder.Services.AddScoped<IListItemService, ListItemService>();
 builder.Services.AddScoped<IPermitApplicationService, PermitApplicationService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
@@ -111,6 +115,19 @@ builder.Services.AddScoped<IPasswordService, PasswordService>();
 builder.Services.AddScoped<IFileService, FileService>();
 builder.Services.AddScoped<IEntraUserService, EntraUserService>();
 builder.Services.AddScoped<IPowerBiService, PowerBiService>();
+builder.Services.AddOptions<ProfileImageStorageOptions>()
+    .Bind(builder.Configuration.GetSection(ProfileImageStorageOptions.SectionName))
+    .Validate(options => !string.IsNullOrWhiteSpace(options.LocalFolder) &&
+                         options.MaximumUploadBytes >= options.MaximumSavedBytes &&
+                         options.MaximumDimension is >= 320 and <= 4096 &&
+                         options.MaximumSavedBytes > 0 &&
+                         options.MaximumSavedBytes <= 2 * 1024 * 1024,
+        "LocalFolder, upload limits, saved limits, or image dimensions are invalid.")
+    .Validate(options => !options.UseAzure ||
+                         (!string.IsNullOrWhiteSpace(options.Azure.ConnectionString) &&
+                          !string.IsNullOrWhiteSpace(options.Azure.ContainerName)),
+        "Azure connection settings are required when profile image Azure storage is enabled.")
+    .ValidateOnStart();
 builder.Services.AddHttpClient("PowerBi", client =>
     client.BaseAddress = new Uri("https://api.powerbi.com/v1.0/myorg/"));
 builder.Services.AddOptions<EntraProvisioningOptions>()

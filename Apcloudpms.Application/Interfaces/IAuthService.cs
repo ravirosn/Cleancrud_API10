@@ -1,5 +1,7 @@
 using Apcloudpms.Application.DTOs;
 
+using Apcloud.Contracts.Authentication;
+
 namespace Apcloudpms.Application.Interfaces;
 
 public interface IAuthService

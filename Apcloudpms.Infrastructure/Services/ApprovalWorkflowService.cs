@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
+using Apcloud.Contracts.Common;
+
 namespace Apcloudpms.Infrastructure.Services;
 
 public sealed class ApprovalWorkflowService(

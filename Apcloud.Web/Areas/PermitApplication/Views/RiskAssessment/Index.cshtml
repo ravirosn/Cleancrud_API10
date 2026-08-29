@@ -1,0 +1,96 @@
+@{
+    ViewData["Title"] = "Risk Assessments";
+}
+
+<div class="page-header d-print-none dashboard-header">
+    <div class="row g-3 align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Permit Application</div>
+            <h1 class="page-title">Draft Risk Assessments</h1>
+            <p class="text-secondary mt-2 mb-0">Review and manage the risk assessments available to your account.</p>
+        </div>
+        <div class="col-auto ms-auto d-print-none">
+            <a asp-action="Create" class="btn btn-primary">
+                <svg class="icon"><use href="#icon-plus" /></svg>
+                Add risk assessment
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="card server-data-grid risk-assessments-grid"
+     data-server-grid
+     data-server-sort="true"
+     data-default-sort="issueDate"
+     data-default-sort-direction="desc"
+     data-url="risk-assessments"
+     data-page-size="10"
+     data-search-param="searchTerm"
+     data-search-alias="search"
+     data-edit-url-template="/PermitApplication/RiskAssessment/Edit/{id}"
+     data-row-actions="edit">
+    <div class="card-header server-grid-toolbar">
+        <div class="server-grid-search" role="search">
+            <div class="input-icon">
+                <span class="input-icon-addon"><svg class="icon"><use href="#icon-search" /></svg></span>
+                <input type="search" class="form-control" data-grid-search placeholder="Search assessments…" aria-label="Search risk assessments" autocomplete="off" />
+            </div>
+            <button type="button" class="btn btn-primary" data-grid-search-button>Search</button>
+            <button type="button" class="btn btn-outline-secondary" data-grid-clear>Clear</button>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <label for="riskAssessmentPageSize" class="text-secondary small text-nowrap">Rows per page</label>
+            <select id="riskAssessmentPageSize" class="form-select form-select-sm" data-grid-page-size>
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="server-grid-state" data-grid-loading role="status">
+        <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span>
+        <span>Loading risk assessments…</span>
+    </div>
+
+    <div class="server-grid-state d-none" data-grid-error role="alert">
+        <span class="server-grid-state-icon text-danger"><svg class="icon"><use href="#icon-alert" /></svg></span>
+        <div><strong>Unable to load risk assessments</strong><p data-grid-error-message>The data could not be loaded.</p></div>
+        <button type="button" class="btn btn-outline-danger ms-auto" data-grid-retry>Try again</button>
+    </div>
+
+    <div class="empty py-6 d-none" data-grid-empty>
+        <div class="empty-icon"><svg class="icon"><use href="#icon-search" /></svg></div>
+        <p class="empty-title">No risk assessments found</p>
+        <p class="empty-subtitle text-secondary">Try changing the search term or add a new risk assessment.</p>
+        <div class="empty-action"><a asp-action="Create" class="btn btn-primary"><svg class="icon"><use href="#icon-plus" /></svg>Add risk assessment</a></div>
+    </div>
+
+    <div class="d-none" data-grid-content>
+        <div class="table-responsive server-grid-scroll">
+            <table class="table table-vcenter card-table server-grid-table risk-assessment-table">
+                <thead>
+                    <tr data-grid-head>
+                        @* Change the text inside a <th> to rename its heading. The
+                           data-grid-column value must match the API property and is
+                           also the validated server-side sorting key. Reorder or
+                           remove a <th> to reorder or hide that column. *@
+                        <th data-grid-column="preRiskAssessmentNumber">Assessment No.</th>
+                        <th data-grid-column="issueDate">Issue date</th>
+                        <th data-grid-column="permitIssuerName">Issuer</th>
+                        <th data-grid-column="permitReceiverName">Receiver</th>
+                        <th data-grid-column="areaResponsibleName">Responsible area</th>
+                        <th data-grid-column="plannedStartDateTime">Planned start</th>
+                        <th data-grid-column="plannedEndDateTime">Planned end</th>
+                        <th data-grid-column="riskAssessmentStatus">Status</th>
+                    </tr>
+                </thead>
+                <tbody data-grid-body></tbody>
+            </table>
+        </div>
+        <div class="card-footer server-grid-footer">
+            <p class="m-0 text-secondary" data-grid-summary></p>
+            <ul class="pagination m-0 ms-auto" data-grid-pagination></ul>
+        </div>
+    </div>
+</div>

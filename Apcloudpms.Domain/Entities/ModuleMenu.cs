@@ -6,9 +6,9 @@ public class ModuleMenu
     public int ApplicationModuleId { get; set; }
     public int? ParentMenuId { get; set; }
     public string Name { get; set; } = string.Empty;
-    public string ControllerName { get; set; } = string.Empty;
-    public string ActionName { get; set; } = string.Empty;
-    public string QueryUrl { get; set; } = string.Empty;
+    public string? ControllerName { get; set; }
+    public string? ActionName { get; set; }
+    public string? QueryUrl { get; set; }
     public string? Icon { get; set; }
     public int DisplayOrder { get; set; }
     public bool IsActive { get; set; } = true;

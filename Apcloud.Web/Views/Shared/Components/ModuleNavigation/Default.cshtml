@@ -1,0 +1,47 @@
+@model Apcloud.Web.Areas.Portal.Models.ModuleSidebarViewModel
+
+<aside class="navbar navbar-vertical navbar-expand-lg module-sidebar" data-bs-theme="dark">
+    <div class="container-fluid">
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu" aria-controls="sidebar-menu" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        @if (Model.Module is not null)
+        {
+            <a class="navbar-brand navbar-brand-autodark" asp-area="Portal" asp-controller="Portal" asp-action="Module" asp-route-moduleId="@Model.Module.Id" aria-label="@Model.Module.Name home">
+                <span class="brand-mark">@char.ToUpperInvariant(Model.Module.Name[0])</span>
+                <span class="brand-copy">@Model.Module.Name <small>MODULE WORKSPACE</small></span>
+            </a>
+        }
+        else
+        {
+            <a class="navbar-brand navbar-brand-autodark" asp-area="Portal" asp-controller="Portal" asp-action="Index">
+                <span class="brand-mark">O</span><span class="brand-copy">Operations Hub <small>MODULE WORKSPACE</small></span>
+            </a>
+        }
+        <div class="navbar-nav flex-row d-lg-none">
+            <a class="nav-link px-0 theme-toggle" href="#" aria-label="Switch theme">
+                <svg class="icon icon-sun" aria-hidden="true"><use href="#icon-sun" /></svg>
+                <svg class="icon icon-moon" aria-hidden="true"><use href="#icon-moon" /></svg>
+            </a>
+        </div>
+        <div class="collapse navbar-collapse" id="sidebar-menu">
+            @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+            {
+                <div class="module-sidebar-error" role="alert">@Model.ErrorMessage</div>
+            }
+            else
+            {
+                <ul class="navbar-nav pt-lg-4 module-nav">
+                    <li class="nav-section">Navigation</li>
+                    <partial name="_ModuleSidebarMenu" model="Model.Menus" />
+                </ul>
+            }
+            <div class="module-sidebar-footer mt-auto">
+                <a asp-area="Portal" asp-controller="Portal" asp-action="Index">
+                    <svg class="icon"><use href="#icon-apps" /></svg>
+                    Back to all modules
+                </a>
+            </div>
+        </div>
+    </div>
+</aside>
