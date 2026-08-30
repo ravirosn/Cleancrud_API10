@@ -7,7 +7,7 @@ namespace Apcloudpms.API.Controllers;
 
 [ApiController]
 [Route("api/organization")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 public sealed class OrganizationController : ControllerBase
 {
     private readonly IOrganizationService _service;

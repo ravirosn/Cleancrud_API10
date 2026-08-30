@@ -101,6 +101,7 @@ builder.Services.AddScoped<IOrganizationService, OrganizationService>();
 builder.Services.AddScoped<IModuleAccessService, ModuleAccessService>();
 builder.Services.AddScoped<IUserThemeSettingService, UserThemeSettingService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<IProfileImageStorage, ProfileImageStorage>();
 builder.Services.AddScoped<IListItemService, ListItemService>();
 builder.Services.AddScoped<IPermitApplicationService, PermitApplicationService>();

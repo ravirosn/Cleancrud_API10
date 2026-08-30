@@ -1,0 +1,174 @@
+@{
+    ViewData["Title"] = "Users";
+}
+
+<div class="page-header d-print-none mb-4">
+    <div class="row g-3 align-items-center">
+        <div class="col">
+            <h1 class="page-title">Users</h1>
+            <p class="text-secondary mt-2 mb-0">Manage users, departments, account status, and role assignments.</p>
+        </div>
+        <div class="col-auto ms-auto">
+            <button type="button" class="btn btn-primary" data-user-add>
+                <svg class="icon"><use href="#icon-plus" /></svg> Add user
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card server-data-grid" data-server-grid data-user-grid
+     data-url="users?includeInactive=false" data-page-size="10"
+     data-search-param="searchTerm" data-server-sort="true"
+     data-default-sort="createdAtUtc" data-default-sort-direction="desc"
+     data-row-actions="assign-roles,edit,delete">
+    <div class="card-header server-grid-toolbar">
+        <div class="server-grid-search" role="search">
+            <div class="input-icon">
+                <span class="input-icon-addon"><svg class="icon"><use href="#icon-search" /></svg></span>
+                <input type="search" class="form-control" data-grid-search
+                       placeholder="Search users..." aria-label="Search users" autocomplete="off" />
+            </div>
+            <button type="button" class="btn btn-primary" data-grid-search-button>Search</button>
+            <button type="button" class="btn btn-outline-secondary" data-grid-clear>Clear</button>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <label for="userPageSize" class="text-secondary small text-nowrap">Rows per page</label>
+            <select id="userPageSize" class="form-select form-select-sm" data-grid-page-size>
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+    </div>
+    <div class="server-grid-state" data-grid-loading role="status">
+        <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span><span>Loading users...</span>
+    </div>
+    <div class="server-grid-state d-none" data-grid-error role="alert">
+        <span class="server-grid-state-icon text-danger"><svg class="icon"><use href="#icon-alert" /></svg></span>
+        <div><strong>Unable to load users</strong><p data-grid-error-message>The user data could not be loaded.</p></div>
+        <button type="button" class="btn btn-outline-danger ms-auto" data-grid-retry>Try again</button>
+    </div>
+    <div class="empty py-6 d-none" data-grid-empty>
+        <div class="empty-icon"><svg class="icon"><use href="#icon-users" /></svg></div>
+        <p class="empty-title">No users found</p>
+        <p class="empty-subtitle text-secondary">Try another search term or add a user.</p>
+    </div>
+    <div class="d-none" data-grid-content>
+        <div class="table-responsive server-grid-scroll">
+            <table class="table table-vcenter card-table server-grid-table">
+                <thead>
+                    <tr data-grid-head>
+                        <th data-grid-column="userName">Username</th>
+                        <th data-grid-column="displayName">Display name</th>
+                        <th data-grid-column="email">Email</th>
+                        <th data-grid-column="officeBranchName">Office</th>
+                        <th data-grid-column="departmentName">Department</th>
+                        <th data-grid-column="status">Status</th>
+                        <th data-grid-column="createdAtUtc">Created</th>
+                    </tr>
+                </thead>
+                <tbody data-grid-body></tbody>
+            </table>
+        </div>
+        <div class="card-footer server-grid-footer">
+            <p class="m-0 text-secondary" data-grid-summary></p>
+            <ul class="pagination m-0 ms-auto" data-grid-pagination></ul>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="userEditorModal" tabindex="-1" aria-hidden="true" data-user-modal>
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form data-user-form novalidate>
+                <div class="modal-header">
+                    <h2 class="modal-title" data-user-modal-title>Add user</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" data-user-id />
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="userName" class="form-label required">Username</label>
+                            <input id="userName" class="form-control" minlength="3" maxlength="100"
+                                   pattern="[A-Za-z0-9._@@-]+" required autocomplete="off" data-user-name />
+                            <div class="invalid-feedback">Use 3–100 letters, numbers, dots, underscores, @@ or hyphens.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="displayName" class="form-label">Display name</label>
+                            <input id="displayName" class="form-control" maxlength="200" data-user-display-name />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="userEmail" class="form-label">Email</label>
+                            <input id="userEmail" type="email" class="form-control" maxlength="320" data-user-email />
+                            <div class="invalid-feedback">Enter a valid email address.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="userContact" class="form-label">Contact number</label>
+                            <input id="userContact" type="tel" class="form-control" maxlength="20" data-user-contact />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="userOffice" class="form-label">Office</label>
+                            <select id="userOffice" class="form-select" data-user-office><option value="">No office</option></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="userDepartment" class="form-label">Department</label>
+                            <select id="userDepartment" class="form-select" disabled data-user-department>
+                                <option value="">Select an office first</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label for="userPassword" class="form-label" data-user-password-label>Password</label>
+                            <input id="userPassword" type="password" class="form-control" minlength="12" maxlength="128"
+                                   pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{12,128}"
+                                   autocomplete="new-password" data-user-password />
+                            <div class="form-hint" data-user-password-hint>At least 12 characters with uppercase, lowercase, number, and special characters.</div>
+                            <div class="invalid-feedback">Use at least 12 characters with uppercase, lowercase, number, and special characters.</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" checked data-user-active />
+                                <span class="form-check-label">Active account</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-user-save>
+                        <span data-user-save-label>Save user</span>
+                        <span class="d-none" data-user-save-progress><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="userRolesModal" tabindex="-1" aria-hidden="true" data-user-roles-modal>
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form data-user-roles-form>
+                <div class="modal-header">
+                    <div><h2 class="modal-title">Assign roles</h2><div class="text-secondary" data-user-roles-subtitle></div></div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" data-user-roles-id />
+                    <div class="text-center py-4" data-user-roles-loading>
+                        <span class="spinner-border spinner-border-sm text-primary me-2"></span>Loading roles...
+                    </div>
+                    <div class="d-none" data-user-roles-list></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-user-roles-save>Save role assignments</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/organization-user.js" asp-append-version="true"></script>
+}

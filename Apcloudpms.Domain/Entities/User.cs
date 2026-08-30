@@ -34,6 +34,12 @@ namespace Apcloudpms.Domain.Entities
 
         public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
+        public int? CreatedByUserId { get; set; }
+
+        public DateTime? ModifiedAtUtc { get; set; }
+
+        public int? ModifiedByUserId { get; set; }
+
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 
         public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();

@@ -86,12 +86,19 @@ public class AppDbContext : DbContext
             entity.Property(x => x.ProfilePicturePath).HasMaxLength(500);
             entity.Property(x => x.ProfilePictureUpdatedAtUtc).HasPrecision(0);
             entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.ModifiedAtUtc).HasPrecision(0);
             entity.HasIndex(x => x.NormalizedUserName).IsUnique();
             entity.HasIndex(x => x.DepartmentId);
+            entity.HasIndex(x => x.CreatedByUserId);
+            entity.HasIndex(x => x.ModifiedByUserId);
             entity.HasIndex(x => new { x.EntraTenantId, x.EntraObjectId }).IsUnique()
                 .HasFilter("[EntraTenantId] IS NOT NULL AND [EntraObjectId] IS NOT NULL");
             entity.HasOne(x => x.Department).WithMany(x => x.Users)
                 .HasForeignKey(x => x.DepartmentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<User>().WithMany()
+                .HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<User>().WithMany()
+                .HasForeignKey(x => x.ModifiedByUserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Role>(entity =>
