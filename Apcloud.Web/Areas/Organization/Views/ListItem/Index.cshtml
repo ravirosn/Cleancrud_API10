@@ -1,0 +1,71 @@
+@{
+    ViewData["Title"] = "List item categories";
+}
+
+<div class="page-header d-print-none mb-4">
+    <div class="row g-3 align-items-center">
+        <div class="col">
+            <h1 class="page-title">List item categories</h1>
+            <p class="text-secondary mt-2 mb-0">Manage the categories used to organize configurable list items.</p>
+        </div>
+        <div class="col-auto ms-auto d-flex gap-2">
+            <a class="btn btn-outline-secondary" asp-area="Organization" asp-controller="ListItem" asp-action="ListItem">View list items</a>
+            <button type="button" class="btn btn-primary" data-category-add><svg class="icon"><use href="#icon-plus" /></svg>Add category</button>
+        </div>
+    </div>
+</div>
+
+<div class="card server-data-grid" data-server-grid data-category-grid
+     data-url="list-items/categories?includeInactive=false" data-page-size="10"
+     data-search-param="searchTerm" data-server-sort="true"
+     data-default-sort="createdAtUtc" data-default-sort-direction="desc"
+     data-row-actions="edit,delete">
+    <div class="card-header server-grid-toolbar">
+        <div class="server-grid-search" role="search">
+            <div class="input-icon"><span class="input-icon-addon"><svg class="icon"><use href="#icon-search" /></svg></span>
+                <input type="search" class="form-control" data-grid-search placeholder="Search categories..." autocomplete="off" />
+            </div>
+            <button type="button" class="btn btn-primary" data-grid-search-button>Search</button>
+            <button type="button" class="btn btn-outline-secondary" data-grid-clear>Clear</button>
+        </div>
+        <div class="d-flex align-items-center gap-2"><label for="categoryPageSize" class="text-secondary small text-nowrap">Rows per page</label>
+            <select id="categoryPageSize" class="form-select form-select-sm" data-grid-page-size><option>10</option><option>25</option><option>50</option></select>
+        </div>
+    </div>
+    <div class="server-grid-state" data-grid-loading><span class="spinner-border spinner-border-sm text-primary"></span><span>Loading categories...</span></div>
+    <div class="server-grid-state d-none" data-grid-error role="alert"><span class="server-grid-state-icon text-danger"><svg class="icon"><use href="#icon-alert" /></svg></span>
+        <div><strong>Unable to load categories</strong><p data-grid-error-message>The category data could not be loaded.</p></div>
+        <button type="button" class="btn btn-outline-danger ms-auto" data-grid-retry>Try again</button>
+    </div>
+    <div class="empty py-6 d-none" data-grid-empty><p class="empty-title">No categories found</p><p class="empty-subtitle text-secondary">Try another search or add a category.</p></div>
+    <div class="d-none" data-grid-content>
+        <div class="table-responsive server-grid-scroll"><table class="table table-vcenter card-table server-grid-table">
+            <thead><tr data-grid-head><th data-grid-column="code">Code</th><th data-grid-column="name">Category</th>
+                <th data-grid-column="itemCount">Items</th><th data-grid-column="status">Status</th>
+                <th data-grid-column="updatedAtUtc">Updated</th><th data-grid-column="createdAtUtc">Created</th></tr></thead>
+            <tbody data-grid-body></tbody>
+        </table></div>
+        <div class="card-footer server-grid-footer"><p class="m-0 text-secondary" data-grid-summary></p><ul class="pagination m-0 ms-auto" data-grid-pagination></ul></div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="categoryEditorModal" tabindex="-1" aria-hidden="true" data-category-modal>
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content"><form data-category-form novalidate>
+        <div class="modal-header"><h2 class="modal-title" data-category-title>Add category</h2><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-body"><input type="hidden" data-category-id /><div class="row g-3">
+            <div class="col-md-5"><label class="form-label required" for="categoryCode">Code</label>
+                <input id="categoryCode" class="form-control text-uppercase" minlength="2" maxlength="50" pattern="[A-Za-z0-9_-]+" required data-category-code />
+                <div class="invalid-feedback">Use 2-50 letters, numbers, underscores, or hyphens.</div></div>
+            <div class="col-md-7"><label class="form-label required" for="categoryName">Name</label>
+                <input id="categoryName" class="form-control" minlength="2" maxlength="100" required data-category-name />
+                <div class="invalid-feedback">Enter a name between 2 and 100 characters.</div></div>
+            <div class="col-12"><label class="form-label" for="categoryDescription">Description</label>
+                <textarea id="categoryDescription" class="form-control" rows="3" maxlength="500" data-category-description></textarea></div>
+            <div class="col-12"><label class="form-check form-switch"><input class="form-check-input" type="checkbox" checked data-category-active /><span class="form-check-label">Active</span></label></div>
+        </div></div>
+        <div class="modal-footer"><button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary" data-category-save><span data-category-save-label>Save category</span><span class="d-none" data-category-saving><span class="spinner-border spinner-border-sm me-2"></span>Saving...</span></button></div>
+    </form></div></div>
+</div>
+
+@section Scripts { <script src="~/js/organization-list-item-category.js" asp-append-version="true"></script> }
