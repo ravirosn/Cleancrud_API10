@@ -9,6 +9,56 @@ namespace Apcloudpms.Infrastructure.Services;
 
 public sealed class OrganizationService(AppDbContext context) : IOrganizationService
 {
+    public Task<OrganizationDetailsDto?> GetOrganizationByIdAsync(
+        int id, CancellationToken cancellationToken) =>
+        context.Organizations.AsNoTracking()
+            .Where(item => item.Id == id)
+            .Select(item => new OrganizationDetailsDto(
+                item.Id, item.Code, item.Name, item.Address, item.PhoneNumber,
+                item.Email, item.Website, item.IsActive, item.CreatedAtUtc, item.UpdatedAtUtc))
+            .SingleOrDefaultAsync(cancellationToken);
+
+    public async Task<OrganizationDetailsDto?> UpdateOrganizationAsync(
+        int id, OrganizationUpdateRequestDto dto, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+        var organization = await context.Organizations.SingleOrDefaultAsync(
+            item => item.Id == id, cancellationToken);
+        if (organization is null)
+            return null;
+
+        var code = dto.Code.Trim().ToUpperInvariant();
+        if (await context.Organizations.AsNoTracking().AnyAsync(
+                item => item.Id != id && item.Code == code, cancellationToken))
+            throw new ArgumentException("An organization with this code already exists.");
+        if (!dto.IsActive && await context.OfficeBranches.AsNoTracking().AnyAsync(
+                item => item.OrganizationId == id && item.IsActive, cancellationToken))
+            throw new ArgumentException("Disable the organization's active office branches before disabling the organization.");
+
+        organization.Code = code;
+        organization.Name = dto.Name.Trim();
+        organization.Address = dto.Address.Trim();
+        organization.PhoneNumber = Normalize(dto.PhoneNumber);
+        organization.Email = Normalize(dto.Email);
+        organization.Website = Normalize(dto.Website);
+        organization.IsActive = dto.IsActive;
+        organization.UpdatedAtUtc = DateTime.UtcNow;
+        try
+        {
+            await context.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException exception) when (
+            exception.InnerException is SqlException { Number: 2601 or 2627 })
+        {
+            throw new ArgumentException("An organization with this code already exists.", exception);
+        }
+
+        return new OrganizationDetailsDto(
+            organization.Id, organization.Code, organization.Name, organization.Address,
+            organization.PhoneNumber, organization.Email, organization.Website,
+            organization.IsActive, organization.CreatedAtUtc, organization.UpdatedAtUtc);
+    }
+
     public Task<OrganizationPagedResponseDto<OfficeBranchDto>> GetBranchesAsync(
         OrganizationQueryDto query, CancellationToken cancellationToken) =>
         ReadPagedAsync(
@@ -135,6 +185,7 @@ public sealed class OrganizationService(AppDbContext context) : IOrganizationSer
         await ExecuteWriteAsync(procedure, command =>
         {
             if (id.HasValue) Add(command, "@Id", SqlDbType.Int, id.Value);
+            Add(command, "@OrganizationId", SqlDbType.Int, dto.OrganizationId);
             Add(command, "@Code", SqlDbType.NVarChar, dto.Code.Trim().ToUpperInvariant(), 20);
             Add(command, "@Name", SqlDbType.NVarChar, dto.Name.Trim(), 150);
             Add(command, "@Address", SqlDbType.NVarChar, Normalize(dto.Address), 500);
@@ -210,7 +261,8 @@ public sealed class OrganizationService(AppDbContext context) : IOrganizationSer
     }
 
     private static OfficeBranchDto ReadBranch(SqlDataReader reader) => new(
-        reader.GetInt32(reader.GetOrdinal("Id")), reader.GetString(reader.GetOrdinal("Code")),
+        reader.GetInt32(reader.GetOrdinal("Id")), reader.GetInt32(reader.GetOrdinal("OrganizationId")),
+        reader.GetString(reader.GetOrdinal("OrganizationName")), reader.GetString(reader.GetOrdinal("Code")),
         reader.GetString(reader.GetOrdinal("Name")), GetNullableString(reader, "Address"),
         reader.GetBoolean(reader.GetOrdinal("IsHeadOffice")), reader.GetBoolean(reader.GetOrdinal("IsActive")));
 

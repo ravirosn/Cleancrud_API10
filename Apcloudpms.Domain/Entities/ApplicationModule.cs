@@ -12,5 +12,5 @@ public class ApplicationModule
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public ICollection<ModuleMenu> Menus { get; set; } = new List<ModuleMenu>();
-    public ICollection<UserModule> UserModules { get; set; } = new List<UserModule>();
+    public ICollection<RoleModule> RoleModules { get; set; } = new List<RoleModule>();
 }

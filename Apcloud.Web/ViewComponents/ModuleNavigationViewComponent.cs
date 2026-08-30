@@ -40,7 +40,8 @@ public sealed class ModuleNavigationViewComponent(
                 });
             }
 
-            var menus = await apiClient.GetModuleMenusAsync(module.Id, HttpContext.RequestAborted);
+            var menus = await apiClient.SelectModuleMenusAsync(
+                module.Id, HttpContext.RequestAborted);
             PrepareLinks(menus);
             return View(new ModuleSidebarViewModel { Module = module, Menus = menus });
         }

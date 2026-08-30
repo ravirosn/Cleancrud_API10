@@ -736,6 +736,9 @@ namespace Apcloudpms.Infrastructure.Migrations
                         .HasMaxLength(150)
                         .HasColumnType("nvarchar(150)");
 
+                    b.Property<int>("OrganizationId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.HasIndex("Code")
@@ -745,7 +748,65 @@ namespace Apcloudpms.Infrastructure.Migrations
                         .IsUnique()
                         .HasFilter("[IsHeadOffice] = 1 AND [IsActive] = 1");
 
+                    b.HasIndex("OrganizationId", "IsActive");
+
                     b.ToTable("OfficeBranch", "dbo");
+                });
+
+            modelBuilder.Entity("Apcloudpms.Domain.Entities.Organization", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(320)
+                        .HasColumnType("nvarchar(320)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("nvarchar(30)");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<string>("Website")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("IsActive", "Name");
+
+                    b.ToTable("Organization", "dbo");
                 });
 
             modelBuilder.Entity("Apcloudpms.Domain.Entities.PermitApplication", b =>
@@ -1300,6 +1361,53 @@ namespace Apcloudpms.Infrastructure.Migrations
                     b.ToTable("Role", "dbo");
                 });
 
+            modelBuilder.Entity("Apcloudpms.Domain.Entities.RoleModule", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ApplicationModuleId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("AssignedAtUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.HasKey("RoleId", "ApplicationModuleId");
+
+                    b.HasIndex("ApplicationModuleId", "IsActive");
+
+                    b.ToTable("RoleModule", "dbo");
+                });
+
+            modelBuilder.Entity("Apcloudpms.Domain.Entities.RoleModuleMenu", b =>
+                {
+                    b.Property<int>("RoleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ApplicationModuleId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ModuleMenuId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("AssignedAtUtc")
+                        .HasPrecision(0)
+                        .HasColumnType("datetime2(0)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.HasKey("RoleId", "ApplicationModuleId", "ModuleMenuId");
+
+                    b.HasIndex("ApplicationModuleId", "ModuleMenuId", "IsActive");
+
+                    b.ToTable("RoleModuleMenu", "dbo");
+                });
+
             modelBuilder.Entity("Apcloudpms.Domain.Entities.Student", b =>
                 {
                     b.Property<int>("Id")
@@ -1397,28 +1505,6 @@ namespace Apcloudpms.Infrastructure.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Apcloudpms.Domain.Entities.UserModule", b =>
-                {
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ApplicationModuleId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("AssignedAtUtc")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
-
-                    b.HasKey("UserId", "ApplicationModuleId");
-
-                    b.HasIndex("ApplicationModuleId", "IsActive");
-
-                    b.ToTable("UserModule", "dbo");
-                });
-
             modelBuilder.Entity("Apcloudpms.Domain.Entities.UserRole", b =>
                 {
                     b.Property<int>("UserId")
@@ -1472,7 +1558,9 @@ namespace Apcloudpms.Infrastructure.Migrations
                     b.ToTable("UserThemeSetting", "dbo", t =>
                         {
                             t.HasCheckConstraint("CK_UserThemeSetting_Color", "[Color] IN (N'blue', N'azure', N'indigo', N'purple', N'pink', N'red', N'orange', N'green')");
+
                             t.HasCheckConstraint("CK_UserThemeSetting_Mode", "[Mode] IN (N'light', N'dark', N'system')");
+
                             t.HasCheckConstraint("CK_UserThemeSetting_Radius", "[Radius] IN (0, 6, 12)");
                         });
                 });
@@ -1576,6 +1664,17 @@ namespace Apcloudpms.Infrastructure.Migrations
                     b.Navigation("ApplicationModule");
 
                     b.Navigation("ParentMenu");
+                });
+
+            modelBuilder.Entity("Apcloudpms.Domain.Entities.OfficeBranch", b =>
+                {
+                    b.HasOne("Apcloudpms.Domain.Entities.Organization", "Organization")
+                        .WithMany("OfficeBranches")
+                        .HasForeignKey("OrganizationId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Organization");
                 });
 
             modelBuilder.Entity("Apcloudpms.Domain.Entities.PermitApplication", b =>
@@ -1836,6 +1935,45 @@ namespace Apcloudpms.Infrastructure.Migrations
                     b.Navigation("SpecialPermitListItem");
                 });
 
+            modelBuilder.Entity("Apcloudpms.Domain.Entities.RoleModule", b =>
+                {
+                    b.HasOne("Apcloudpms.Domain.Entities.ApplicationModule", "ApplicationModule")
+                        .WithMany("RoleModules")
+                        .HasForeignKey("ApplicationModuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Apcloudpms.Domain.Entities.Role", "Role")
+                        .WithMany("RoleModules")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("ApplicationModule");
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("Apcloudpms.Domain.Entities.RoleModuleMenu", b =>
+                {
+                    b.HasOne("Apcloudpms.Domain.Entities.ModuleMenu", "ModuleMenu")
+                        .WithMany("RoleModuleMenus")
+                        .HasForeignKey("ApplicationModuleId", "ModuleMenuId")
+                        .HasPrincipalKey("ApplicationModuleId", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Apcloudpms.Domain.Entities.RoleModule", "RoleModule")
+                        .WithMany("RoleModuleMenus")
+                        .HasForeignKey("RoleId", "ApplicationModuleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ModuleMenu");
+
+                    b.Navigation("RoleModule");
+                });
+
             modelBuilder.Entity("Apcloudpms.Domain.Entities.User", b =>
                 {
                     b.HasOne("Apcloudpms.Domain.Entities.Department", "Department")
@@ -1844,25 +1982,6 @@ namespace Apcloudpms.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Department");
-                });
-
-            modelBuilder.Entity("Apcloudpms.Domain.Entities.UserModule", b =>
-                {
-                    b.HasOne("Apcloudpms.Domain.Entities.ApplicationModule", "ApplicationModule")
-                        .WithMany("UserModules")
-                        .HasForeignKey("ApplicationModuleId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.HasOne("Apcloudpms.Domain.Entities.User", "User")
-                        .WithMany("UserModules")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ApplicationModule");
-
-                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("Apcloudpms.Domain.Entities.UserRole", b =>
@@ -1899,7 +2018,7 @@ namespace Apcloudpms.Infrastructure.Migrations
                 {
                     b.Navigation("Menus");
 
-                    b.Navigation("UserModules");
+                    b.Navigation("RoleModules");
                 });
 
             modelBuilder.Entity("Apcloudpms.Domain.Entities.ApprovalWorkflow", b =>
@@ -1943,11 +2062,18 @@ namespace Apcloudpms.Infrastructure.Migrations
             modelBuilder.Entity("Apcloudpms.Domain.Entities.ModuleMenu", b =>
                 {
                     b.Navigation("Children");
+
+                    b.Navigation("RoleModuleMenus");
                 });
 
             modelBuilder.Entity("Apcloudpms.Domain.Entities.OfficeBranch", b =>
                 {
                     b.Navigation("Departments");
+                });
+
+            modelBuilder.Entity("Apcloudpms.Domain.Entities.Organization", b =>
+                {
+                    b.Navigation("OfficeBranches");
                 });
 
             modelBuilder.Entity("Apcloudpms.Domain.Entities.PermitApplication", b =>
@@ -1983,7 +2109,14 @@ namespace Apcloudpms.Infrastructure.Migrations
 
             modelBuilder.Entity("Apcloudpms.Domain.Entities.Role", b =>
                 {
+                    b.Navigation("RoleModules");
+
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("Apcloudpms.Domain.Entities.RoleModule", b =>
+                {
+                    b.Navigation("RoleModuleMenus");
                 });
 
             modelBuilder.Entity("Apcloudpms.Domain.Entities.User", b =>
@@ -1991,8 +2124,6 @@ namespace Apcloudpms.Infrastructure.Migrations
                     b.Navigation("RefreshTokens");
 
                     b.Navigation("ThemeSetting");
-
-                    b.Navigation("UserModules");
 
                     b.Navigation("UserRoles");
                 });

@@ -9,4 +9,5 @@ public class Role
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
+    public ICollection<RoleModule> RoleModules { get; set; } = new List<RoleModule>();
 }

@@ -51,8 +51,8 @@ public class PortalController(
                 return NotFound();
             }
 
+            var menus = await apiClient.SelectModuleMenusAsync(module.Id, cancellationToken);
             HttpContext.Session.SetString(ModuleSessionContext.ActiveModuleIdKey, module.Id);
-            var menus = await apiClient.GetModuleMenusAsync(module.Id, cancellationToken);
             var firstMenu = FindFirstClickableMenu(menus);
             if (firstMenu is not null)
             {

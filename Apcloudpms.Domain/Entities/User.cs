@@ -38,8 +38,6 @@ namespace Apcloudpms.Domain.Entities
 
         public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 
-        public ICollection<UserModule> UserModules { get; set; } = new List<UserModule>();
-
         public UserThemeSetting? ThemeSetting { get; set; }
 
         public Department? Department { get; set; }

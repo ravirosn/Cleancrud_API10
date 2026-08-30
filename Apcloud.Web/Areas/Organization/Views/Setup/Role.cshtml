@@ -1,0 +1,150 @@
+@{
+    ViewData["Title"] = "Roles";
+}
+
+    <div class="page-header d-print-none mb-4">
+        <div class="row g-3 align-items-center">
+            <div class="col">
+                @*<div class="page-pretitle">Organization setup</div> *@
+                <h1 class="page-title">Roles</h1>
+                <p class="text-secondary mt-2 mb-0">
+                    Search, add, edit, and deactivate organization roles.
+                </p>
+            </div>
+            <div class="col-auto ms-auto d-print-none">
+                <button type="button" class="btn btn-primary" data-role-add>
+                    <svg class="icon"><use href="#icon-plus" /></svg>
+                    Add role
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="card server-data-grid"
+         data-server-grid
+         data-url="roles?includeInactive=false"
+         data-page-size="10"
+         data-search-param="searchTerm"
+         data-row-actions="edit,delete"
+         data-role-grid>
+        <div class="card-header server-grid-toolbar">
+            <div class="server-grid-search" role="search">
+                <div class="input-icon">
+                    <span class="input-icon-addon">
+                        <svg class="icon"><use href="#icon-search" /></svg>
+                    </span>
+                    <input type="search" class="form-control" data-grid-search
+                           placeholder="Search roles…" aria-label="Search roles"
+                           autocomplete="off" />
+                </div>
+                <button type="button" class="btn btn-primary" data-grid-search-button>Search</button>
+                <button type="button" class="btn btn-outline-secondary" data-grid-clear>Clear</button>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <label for="rolePageSize" class="text-secondary small text-nowrap">Rows per page</label>
+                <select id="rolePageSize" class="form-select form-select-sm" data-grid-page-size>
+                    <option value="10" selected>10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="server-grid-state" data-grid-loading role="status">
+            <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span>
+            <span>Loading roles…</span>
+        </div>
+
+        <div class="server-grid-state d-none" data-grid-error role="alert">
+            <span class="server-grid-state-icon text-danger">
+                <svg class="icon"><use href="#icon-alert" /></svg>
+            </span>
+            <div>
+                <strong>Unable to load roles</strong>
+                <p data-grid-error-message>The role data could not be loaded.</p>
+            </div>
+            <button type="button" class="btn btn-outline-danger ms-auto" data-grid-retry>
+                Try again
+            </button>
+        </div>
+
+        <div class="empty py-6 d-none" data-grid-empty>
+            <div class="empty-icon"><svg class="icon"><use href="#icon-search" /></svg></div>
+            <p class="empty-title">No roles found</p>
+            <p class="empty-subtitle text-secondary">
+                Try another search term or add a new role.
+            </p>
+            <div class="empty-action">
+                <button type="button" class="btn btn-primary" data-role-add>
+                    <svg class="icon"><use href="#icon-plus" /></svg>
+                    Add role
+                </button>
+            </div>
+        </div>
+
+        <div class="d-none" data-grid-content>
+            <div class="table-responsive server-grid-scroll">
+                <table class="table table-vcenter card-table server-grid-table">
+                    <thead>
+                        <tr data-grid-head>
+                            <th data-grid-column="name">Role name</th>
+                            <th data-grid-column="status">Status</th>
+                            <th data-grid-column="createdAtUtc">Created on</th>
+                        </tr>
+                    </thead>
+                    <tbody data-grid-body></tbody>
+                </table>
+            </div>
+            <div class="card-footer server-grid-footer">
+                <p class="m-0 text-secondary" data-grid-summary></p>
+                <ul class="pagination m-0 ms-auto" data-grid-pagination></ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="roleEditorModal" tabindex="-1"
+     aria-labelledby="roleEditorTitle" aria-hidden="true" data-role-modal>
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form data-role-form novalidate>
+                <div class="modal-header">
+                    <h2 class="modal-title" id="roleEditorTitle" data-role-modal-title>Add role</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"
+                            aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" data-role-id />
+                    <div class="mb-3">
+                        <label for="roleName" class="form-label required">Role name</label>
+                        <input id="roleName" name="name" type="text" class="form-control"
+                               minlength="2" maxlength="50" required data-role-name
+                               autocomplete="off" />
+                        <div class="invalid-feedback">
+                            Enter a role name between 2 and 50 characters.
+                        </div>
+                    </div>
+                    <label class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" checked data-role-active />
+                        <span class="form-check-label">Active</span>
+                    </label>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary"
+                            data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-role-save>
+                        <span data-role-save-label>Save role</span>
+                        <span class="d-none" data-role-save-progress>
+                            <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+                            Saving…
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+@section Scripts {
+    <script src="~/js/organization-role.js" asp-append-version="true"></script>
+}
+

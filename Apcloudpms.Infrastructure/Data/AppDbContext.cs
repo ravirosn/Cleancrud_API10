@@ -18,11 +18,13 @@ public class AppDbContext : DbContext
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
+    public DbSet<RoleModule> RoleModules => Set<RoleModule>();
+    public DbSet<RoleModuleMenu> RoleModuleMenus => Set<RoleModuleMenu>();
+    public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<OfficeBranch> OfficeBranches => Set<OfficeBranch>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<ApplicationModule> ApplicationModules => Set<ApplicationModule>();
     public DbSet<ModuleMenu> ModuleMenus => Set<ModuleMenu>();
-    public DbSet<UserModule> UserModules => Set<UserModule>();
     public DbSet<UserThemeSetting> UserThemeSettings => Set<UserThemeSetting>();
     public DbSet<ListItemCategory> ListItemCategories => Set<ListItemCategory>();
     public DbSet<ListItem> ListItems => Set<ListItem>();
@@ -113,6 +115,33 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Restrict);
         });
 
+        modelBuilder.Entity<RoleModule>(entity =>
+        {
+            entity.ToTable("RoleModule", "dbo");
+            entity.HasKey(x => new { x.RoleId, x.ApplicationModuleId });
+            entity.Property(x => x.AssignedAtUtc).HasPrecision(0);
+            entity.HasIndex(x => new { x.ApplicationModuleId, x.IsActive });
+            entity.HasOne(x => x.Role).WithMany(x => x.RoleModules)
+                .HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.ApplicationModule).WithMany(x => x.RoleModules)
+                .HasForeignKey(x => x.ApplicationModuleId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<RoleModuleMenu>(entity =>
+        {
+            entity.ToTable("RoleModuleMenu", "dbo");
+            entity.HasKey(x => new { x.RoleId, x.ApplicationModuleId, x.ModuleMenuId });
+            entity.Property(x => x.AssignedAtUtc).HasPrecision(0);
+            entity.HasIndex(x => new { x.ApplicationModuleId, x.ModuleMenuId, x.IsActive });
+            entity.HasOne(x => x.RoleModule).WithMany(x => x.RoleModuleMenus)
+                .HasForeignKey(x => new { x.RoleId, x.ApplicationModuleId })
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(x => x.ModuleMenu).WithMany(x => x.RoleModuleMenus)
+                .HasForeignKey(x => new { x.ApplicationModuleId, x.ModuleMenuId })
+                .HasPrincipalKey(x => new { x.ApplicationModuleId, x.Id })
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<RefreshToken>(entity =>
         {
             entity.Property(x => x.TokenHash).HasColumnType("char(64)").IsRequired();
@@ -133,6 +162,21 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
+        modelBuilder.Entity<Organization>(entity =>
+        {
+            entity.ToTable("Organization", "dbo");
+            entity.Property(x => x.Code).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.Address).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.PhoneNumber).HasMaxLength(30);
+            entity.Property(x => x.Email).HasMaxLength(320);
+            entity.Property(x => x.Website).HasMaxLength(500);
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => new { x.IsActive, x.Name });
+        });
+
         modelBuilder.Entity<OfficeBranch>(entity =>
         {
             entity.ToTable("OfficeBranch", "dbo");
@@ -141,8 +185,11 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Address).HasMaxLength(500);
             entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
             entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => new { x.OrganizationId, x.IsActive });
             entity.HasIndex(x => x.IsHeadOffice).IsUnique()
                 .HasFilter("[IsHeadOffice] = 1 AND [IsActive] = 1");
+            entity.HasOne(x => x.Organization).WithMany(x => x.OfficeBranches)
+                .HasForeignKey(x => x.OrganizationId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Department>(entity =>
@@ -178,6 +225,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.QueryUrl).HasMaxLength(500);
             entity.Property(x => x.Icon).HasMaxLength(100);
             entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.HasAlternateKey(x => new { x.ApplicationModuleId, x.Id });
             entity.HasIndex(x => new { x.ApplicationModuleId, x.QueryUrl }).IsUnique()
                 .HasFilter("[QueryUrl] IS NOT NULL");
             entity.HasIndex(x => new { x.ApplicationModuleId, x.IsActive, x.DisplayOrder });
@@ -185,18 +233,6 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.ApplicationModuleId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(x => x.ParentMenu).WithMany(x => x.Children)
                 .HasForeignKey(x => x.ParentMenuId).OnDelete(DeleteBehavior.Restrict);
-        });
-
-        modelBuilder.Entity<UserModule>(entity =>
-        {
-            entity.ToTable("UserModule", "dbo");
-            entity.HasKey(x => new { x.UserId, x.ApplicationModuleId });
-            entity.Property(x => x.AssignedAtUtc).HasPrecision(0);
-            entity.HasIndex(x => new { x.ApplicationModuleId, x.IsActive });
-            entity.HasOne(x => x.User).WithMany(x => x.UserModules)
-                .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
-            entity.HasOne(x => x.ApplicationModule).WithMany(x => x.UserModules)
-                .HasForeignKey(x => x.ApplicationModuleId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<UserThemeSetting>(entity =>

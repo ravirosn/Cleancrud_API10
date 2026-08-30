@@ -13,6 +13,22 @@ public sealed class OrganizationController : ControllerBase
     private readonly IOrganizationService _service;
     public OrganizationController(IOrganizationService service) => _service = service;
 
+    [HttpGet("{id:int}")]
+    public async Task<ActionResult<OrganizationDetailsDto>> GetOrganization(
+        int id, CancellationToken cancellationToken = default)
+    {
+        var result = await _service.GetOrganizationByIdAsync(id, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<OrganizationDetailsDto>> UpdateOrganization(
+        int id, OrganizationUpdateRequestDto dto, CancellationToken cancellationToken)
+    {
+        var result = await _service.UpdateOrganizationAsync(id, dto, cancellationToken);
+        return result is null ? NotFound() : Ok(result);
+    }
+
     [HttpGet("branches")]
     public async Task<ActionResult<OrganizationPagedResponseDto<OfficeBranchDto>>> GetBranches(
         [FromQuery] OrganizationQueryDto query, CancellationToken cancellationToken = default) =>

@@ -15,7 +15,8 @@ namespace Apcloud.Web.Services;
 /// </summary>
 public sealed class ApcloudApiClient(HttpClient httpClient)
 {
-    private static readonly string[] CollectionPropertyNames = ["data", "items", "result", "modules", "menus", "navigationMenus"];
+    private static readonly string[] CollectionPropertyNames =
+        ["data", "items", "result", "modules", "menus", "navigation", "navigationMenus"];
 
     public Task<HttpResponseMessage> SendAsync(
         HttpRequestMessage request,
@@ -88,13 +89,18 @@ public sealed class ApcloudApiClient(HttpClient httpClient)
             .ToArray();
     }
 
-    public async Task<IReadOnlyList<NavigationMenuViewModel>> GetModuleMenusAsync(
+    public async Task<IReadOnlyList<NavigationMenuViewModel>> SelectModuleMenusAsync(
         string moduleId,
         CancellationToken cancellationToken = default)
     {
-        var escapedModuleId = Uri.EscapeDataString(moduleId);
-        using var response = await httpClient.GetAsync(
-            $"api/modules/{escapedModuleId}/menus?includeInactive=false",
+        if (!int.TryParse(moduleId, out var applicationModuleId) || applicationModuleId <= 0)
+        {
+            throw new ArgumentException("A valid application module ID is required.", nameof(moduleId));
+        }
+
+        using var response = await httpClient.PostAsJsonAsync(
+            "api/module-access/select",
+            new { applicationModuleId },
             cancellationToken);
         using var document = await ReadJsonAsync(response, cancellationToken);
 

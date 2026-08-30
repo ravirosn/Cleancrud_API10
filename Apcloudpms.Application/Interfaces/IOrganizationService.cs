@@ -4,6 +4,8 @@ namespace Apcloudpms.Application.Interfaces;
 
 public interface IOrganizationService
 {
+    Task<OrganizationDetailsDto?> GetOrganizationByIdAsync(int id, CancellationToken cancellationToken);
+    Task<OrganizationDetailsDto?> UpdateOrganizationAsync(int id, OrganizationUpdateRequestDto dto, CancellationToken cancellationToken);
     Task<OrganizationPagedResponseDto<OfficeBranchDto>> GetBranchesAsync(OrganizationQueryDto query, CancellationToken cancellationToken);
     Task<IReadOnlyList<DropdownItemDto>> GetBranchDropdownAsync(CancellationToken cancellationToken);
     Task<OfficeBranchDto?> GetBranchByIdAsync(int id, CancellationToken cancellationToken);

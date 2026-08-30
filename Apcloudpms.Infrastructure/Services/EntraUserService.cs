@@ -74,24 +74,6 @@ public sealed class EntraUserService : IEntraUserService
             AssignedAtUtc = DateTime.UtcNow
         });
 
-        var moduleCodes = _options.DefaultModuleCodes
-            .Where(x => !string.IsNullOrWhiteSpace(x))
-            .Select(x => x.Trim().ToUpperInvariant())
-            .Distinct()
-            .ToArray();
-        var modules = await _context.ApplicationModules
-            .Where(x => x.IsActive && moduleCodes.Contains(x.Code))
-            .ToListAsync(cancellationToken);
-        foreach (var module in modules)
-        {
-            user.UserModules.Add(new UserModule
-            {
-                ApplicationModuleId = module.Id,
-                IsActive = true,
-                AssignedAtUtc = DateTime.UtcNow
-            });
-        }
-
         _context.Users.Add(user);
         try
         {

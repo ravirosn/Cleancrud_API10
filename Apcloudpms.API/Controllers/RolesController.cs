@@ -7,16 +7,16 @@ namespace Apcloudpms.API.Controllers;
 
 [ApiController]
 [Route("api/roles")]
-[Authorize(Roles = "Admin")]
+[Authorize]
 public sealed class RolesController : ControllerBase
 {
     private readonly IAccessControlService _service;
     public RolesController(IAccessControlService service) => _service = service;
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<RoleDto>>> GetRoles(
-        bool includeInactive = false, CancellationToken cancellationToken = default) =>
-        Ok(await _service.GetRolesAsync(includeInactive, cancellationToken));
+    public async Task<ActionResult<RolePagedResponseDto>> GetRoles(
+        [FromQuery] RoleQueryDto query, CancellationToken cancellationToken = default) =>
+        Ok(await _service.GetRolesAsync(query, cancellationToken));
 
     [HttpPost]
     public async Task<ActionResult<RoleDto>> CreateRole(
@@ -32,6 +32,14 @@ public sealed class RolesController : ControllerBase
     {
         var result = await _service.UpdateRoleAsync(id, dto, cancellationToken);
         return result is null ? NotFound() : Ok(result);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> DeleteRole(
+        int id, CancellationToken cancellationToken)
+    {
+        var deleted = await _service.DeleteRoleAsync(id, cancellationToken);
+        return deleted ? NoContent() : NotFound();
     }
 
     [HttpPut("user-assignment")]

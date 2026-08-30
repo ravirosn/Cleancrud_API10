@@ -2,8 +2,31 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Apcloudpms.Application.DTOs;
 
-public sealed record OfficeBranchDto(int Id, string Code, string Name, string? Address,
-    bool IsHeadOffice, bool IsActive);
+public sealed record OrganizationDetailsDto(
+    int Id,
+    string Code,
+    string Name,
+    string Address,
+    string? PhoneNumber,
+    string? Email,
+    string? Website,
+    bool IsActive,
+    DateTime CreatedAtUtc,
+    DateTime? UpdatedAtUtc);
+
+public sealed class OrganizationUpdateRequestDto
+{
+    [Required, StringLength(20)] public string Code { get; set; } = string.Empty;
+    [Required, StringLength(200)] public string Name { get; set; } = string.Empty;
+    [Required, StringLength(500)] public string Address { get; set; } = string.Empty;
+    [Phone, StringLength(30)] public string? PhoneNumber { get; set; }
+    [EmailAddress, StringLength(320)] public string? Email { get; set; }
+    [Url, StringLength(500)] public string? Website { get; set; }
+    public bool IsActive { get; set; } = true;
+}
+
+public sealed record OfficeBranchDto(int Id, int OrganizationId, string OrganizationName,
+    string Code, string Name, string? Address, bool IsHeadOffice, bool IsActive);
 
 public class OrganizationQueryDto
 {
@@ -31,6 +54,7 @@ public sealed record DropdownItemDto(int Id, string Code, string Name);
 
 public sealed class OfficeBranchRequestDto
 {
+    [Range(1, int.MaxValue)] public int OrganizationId { get; set; }
     [Required, StringLength(20)] public string Code { get; set; } = string.Empty;
     [Required, StringLength(150)] public string Name { get; set; } = string.Empty;
     [StringLength(500)] public string? Address { get; set; }

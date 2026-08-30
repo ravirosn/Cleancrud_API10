@@ -45,9 +45,10 @@ public sealed class ModuleAuthorizationHandler : AuthorizationHandler<ModuleRequ
         if (!int.TryParse(localUserId, out var userId))
             return;
 
-        var hasAccess = await _context.UserModules.AsNoTracking().AnyAsync(x =>
-            x.UserId == userId && x.IsActive && x.ApplicationModule.IsActive &&
-            x.ApplicationModule.Code == requirement.ModuleCode);
+        var hasAccess = await _context.ApplicationModules.AsNoTracking().AnyAsync(x =>
+            x.IsActive && x.Code == requirement.ModuleCode &&
+            x.RoleModules.Any(rm => rm.IsActive && rm.Role.IsActive &&
+                rm.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive)));
         if (hasAccess) context.Succeed(requirement);
     }
 }

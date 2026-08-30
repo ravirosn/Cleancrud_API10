@@ -4,6 +4,36 @@ namespace Apcloudpms.Application.DTOs;
 
 public sealed record RoleDto(int Id, string Name, bool IsActive);
 
+public sealed class RoleQueryDto
+{
+    [Range(1, int.MaxValue)]
+    public int PageNumber { get; set; } = 1;
+
+    [Range(1, 100)]
+    public int PageSize { get; set; } = 10;
+
+    [StringLength(100)]
+    public string? SearchTerm { get; set; }
+
+    public bool IncludeInactive { get; set; } = true;
+}
+
+public sealed record RoleGridItemDto(
+    int Id,
+    string Name,
+    bool IsActive,
+    string Status,
+    DateTime CreatedAtUtc);
+
+public sealed record RolePagedResponseDto(
+    IReadOnlyList<RoleGridItemDto> Data,
+    long TotalRecords,
+    long TotalPages,
+    int PageNumber,
+    int PageSize,
+    bool HasPreviousPage,
+    bool HasNextPage);
+
 public sealed class RoleRequestDto
 {
     [Required, StringLength(50, MinimumLength = 2)]

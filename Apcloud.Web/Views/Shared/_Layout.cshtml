@@ -18,7 +18,7 @@
 </head>
 <body>
     <script>
-        document.body.dataset.bsTheme = document.documentElement.getAttribute('data-bs-theme');
+            document.body.dataset.bsTheme = document.documentElement.getAttribute('data-bs-theme');
     </script>
     <div class="page">
         @if (!string.IsNullOrWhiteSpace(activeModuleId))
@@ -27,81 +27,81 @@
         }
         else
         {
-        <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
-            <div class="container-fluid">
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu" aria-controls="sidebar-menu" aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <a class="navbar-brand navbar-brand-autodark" asp-area="PermitManagement" asp-controller="Home" asp-action="Index" aria-label="Permit Management home">
-                    <span class="brand-mark">P</span>
-                    <span class="brand-copy">Permit Management <small>ADMIN CONSOLE</small></span>
-                </a>
-                <div class="navbar-nav flex-row d-lg-none">
-                    <a class="nav-link px-0 theme-toggle" href="#" aria-label="Switch theme">
-                        <svg class="icon icon-sun" aria-hidden="true"><use href="#icon-sun" /></svg>
-                        <svg class="icon icon-moon" aria-hidden="true"><use href="#icon-moon" /></svg>
+            <aside class="navbar navbar-vertical navbar-expand-lg" data-bs-theme="dark">
+                <div class="container-fluid">
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#sidebar-menu" aria-controls="sidebar-menu" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+                    <a class="navbar-brand navbar-brand-autodark" asp-area="PermitManagement" asp-controller="Home" asp-action="Index" aria-label="Permit Management home">
+                        <span class="brand-mark">P</span>
+                        <span class="brand-copy">Permit Management <small>ADMIN CONSOLE</small></span>
                     </a>
-                </div>
-                <div class="collapse navbar-collapse" id="sidebar-menu">
-                    <ul class="navbar-nav pt-lg-4">
-                        <li class="nav-section">Workspace</li>
-                        <li class="nav-item">
-                            <a class="nav-link @(currentAction == "Index" ? "active" : null)" asp-area="PermitManagement" asp-controller="Home" asp-action="Index">
-                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-dashboard" /></svg></span>
-                                <span class="nav-link-title">Overview</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#orders">
-                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-orders" /></svg></span>
-                                <span class="nav-link-title">Orders</span>
-                                <span class="badge bg-blue-lt ms-auto">12</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#customers">
-                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-users" /></svg></span>
-                                <span class="nav-link-title">Customers</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#products">
-                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-box" /></svg></span>
-                                <span class="nav-link-title">Products</span>
-                            </a>
-                        </li>
-                        <li class="nav-section mt-4">Management</li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#analytics">
-                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-chart" /></svg></span>
-                                <span class="nav-link-title">Analytics</span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="#messages">
-                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-message" /></svg></span>
-                                <span class="nav-link-title">Messages</span>
-                                <span class="status-dot status-dot-animated bg-green ms-auto"></span>
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link @(currentAction == "Privacy" ? "active" : null)" asp-area="PermitManagement" asp-controller="Home" asp-action="Privacy">
-                                <span class="nav-link-icon"><svg class="icon"><use href="#icon-settings" /></svg></span>
-                                <span class="nav-link-title">Settings</span>
-                            </a>
-                        </li>
-                    </ul>
-                    <div class="sidebar-upgrade mt-auto">
-                        <div class="d-flex align-items-center gap-2 mb-2">
-                            <span class="upgrade-icon"><svg class="icon"><use href="#icon-sparkles" /></svg></span>
-                            <strong>Unlock insights</strong>
+                    <div class="navbar-nav flex-row d-lg-none">
+                        <a class="nav-link px-0 theme-toggle" href="#" aria-label="Switch theme">
+                            <svg class="icon icon-sun" aria-hidden="true"><use href="#icon-sun" /></svg>
+                            <svg class="icon icon-moon" aria-hidden="true"><use href="#icon-moon" /></svg>
+                        </a>
+                    </div>
+                    <div class="collapse navbar-collapse" id="sidebar-menu">
+                        <ul class="navbar-nav pt-lg-4">
+                            <li class="nav-section">Workspace</li>
+                            <li class="nav-item">
+                                <a class="nav-link @(currentAction == "Index" ? "active" : null)" asp-area="PermitManagement" asp-controller="Home" asp-action="Index">
+                                    <span class="nav-link-icon"><svg class="icon"><use href="#icon-dashboard" /></svg></span>
+                                    <span class="nav-link-title">Overview</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#orders">
+                                    <span class="nav-link-icon"><svg class="icon"><use href="#icon-orders" /></svg></span>
+                                    <span class="nav-link-title">Orders</span>
+                                    <span class="badge bg-blue-lt ms-auto">12</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#customers">
+                                    <span class="nav-link-icon"><svg class="icon"><use href="#icon-users" /></svg></span>
+                                    <span class="nav-link-title">Customers</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#products">
+                                    <span class="nav-link-icon"><svg class="icon"><use href="#icon-box" /></svg></span>
+                                    <span class="nav-link-title">Products</span>
+                                </a>
+                            </li>
+                            <li class="nav-section mt-4">Management</li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#analytics">
+                                    <span class="nav-link-icon"><svg class="icon"><use href="#icon-chart" /></svg></span>
+                                    <span class="nav-link-title">Analytics</span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="#messages">
+                                    <span class="nav-link-icon"><svg class="icon"><use href="#icon-message" /></svg></span>
+                                    <span class="nav-link-title">Messages</span>
+                                    <span class="status-dot status-dot-animated bg-green ms-auto"></span>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link @(currentAction == "Privacy" ? "active" : null)" asp-area="PermitManagement" asp-controller="Home" asp-action="Privacy">
+                                    <span class="nav-link-icon"><svg class="icon"><use href="#icon-settings" /></svg></span>
+                                    <span class="nav-link-title">Settings</span>
+                                </a>
+                            </li>
+                        </ul>
+                        <div class="sidebar-upgrade mt-auto">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <span class="upgrade-icon"><svg class="icon"><use href="#icon-sparkles" /></svg></span>
+                                <strong>Unlock insights</strong>
+                            </div>
+                            <p>Get advanced reports and forecasting tools.</p>
+                            <a href="#" class="btn btn-sm btn-light w-100">View plans</a>
                         </div>
-                        <p>Get advanced reports and forecasting tools.</p>
-                        <a href="#" class="btn btn-sm btn-light w-100">View plans</a>
                     </div>
                 </div>
-            </div>
-        </aside>
+            </aside>
         }
 
         <div class="page-wrapper">
@@ -180,14 +180,14 @@
                 </div>
             </header>
 
-           @*  <main class="page-body">
+            @*  <main class="page-body">
                 <div class="container-xl">
                     @RenderBody()
                 </div>
             </main> *@
 
             <main>
-                <div style="padding-right:10px;">
+                <div style="padding:0 10px 0 10px;">
                     @RenderBody()
                 </div>
             </main>

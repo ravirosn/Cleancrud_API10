@@ -37,8 +37,8 @@ Send the access token, not the ID token, to the API.
 
 The first accepted Entra request links the `(tid, oid)` claims to a local `Users` row.
 Email is profile data and is never used as the immutable identity key. The default configuration
-assigns the local `User` role and the `PERMIT` and `VISITOR` modules. Change or clear
-`EntraProvisioning:DefaultModuleCodes` if module access must always be approved manually.
+assigns the local `User` role. Module and menu access comes from the active assignments configured
+for that role.
 
 Set `EntraProvisioning:AutoProvisionUsers` to `false` when accounts will be pre-provisioned by an
 administrator or synchronization process.

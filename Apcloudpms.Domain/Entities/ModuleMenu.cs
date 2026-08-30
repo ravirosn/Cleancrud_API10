@@ -17,4 +17,5 @@ public class ModuleMenu
     public ApplicationModule ApplicationModule { get; set; } = null!;
     public ModuleMenu? ParentMenu { get; set; }
     public ICollection<ModuleMenu> Children { get; set; } = new List<ModuleMenu>();
+    public ICollection<RoleModuleMenu> RoleModuleMenus { get; set; } = new List<RoleModuleMenu>();
 }

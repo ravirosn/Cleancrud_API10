@@ -204,6 +204,7 @@
         this.load();
       });
       this.elements.retry?.addEventListener("click", () => this.load());
+      this.root.addEventListener("server-grid:reload", () => this.load());
       this.elements.head?.addEventListener("click", (event) => {
         const button = event.target.closest("[data-grid-sort]");
         if (!button || !this.elements.head.contains(button)) return;
@@ -356,6 +357,7 @@
         }
         const button = createElement("button", "dropdown-item", this.actionLabel(action));
         button.type = "button";
+        if (action === "delete") button.classList.add("text-danger");
         button.addEventListener("click", () => {
           this.root.dispatchEvent(new CustomEvent("server-grid:action", {
             bubbles: true,

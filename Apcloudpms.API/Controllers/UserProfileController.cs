@@ -85,7 +85,7 @@ public sealed class UserProfileController(IUserProfileService service) : Control
     [RequestSizeLimit(10 * 1024 * 1024)]
     [ProducesResponseType<ReturnMessageModel<ProfilePictureUploadDto>>(StatusCodes.Status200OK)]
     public async Task<ActionResult<ReturnMessageModel<ProfilePictureUploadDto>>> UploadPhoto(
-        [FromForm(Name = "picture")] IFormFile? picture,
+        IFormFile? picture,
         CancellationToken cancellationToken)
     {
         if (!TryGetUserId(out var userId))
