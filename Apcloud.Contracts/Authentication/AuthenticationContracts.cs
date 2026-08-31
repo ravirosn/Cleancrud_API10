@@ -28,7 +28,8 @@ public sealed record AuthResponseDto(
     string RefreshToken,
     DateTimeOffset AccessTokenExpiresAtUtc,
     DateTimeOffset RefreshTokenExpiresAtUtc,
-    string TokenType = "Bearer");
+    string TokenType = "Bearer",
+    CurrentUserDetailsDto? User = null);
 
 public sealed record CurrentUserDetailsDto(
     int Id,

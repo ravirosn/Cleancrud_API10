@@ -10,6 +10,7 @@ using Apcloud.Contracts.Enums;
 using Apcloud.Contracts.Models;
 using Apcloud.Contracts.Authentication;
 using Apcloud.Web.Infrastructure;
+using Apcloud.Web.Services;
 using Apcloud.Web.Services.Authentication;
 
 namespace Apcloud.Web.Areas.Authentication.Controllers;
@@ -17,6 +18,7 @@ namespace Apcloud.Web.Areas.Authentication.Controllers;
 [Area("Authentication")]
 public class AccountController(
     IAuthApiClient authApiClient,
+    ApcloudApiClient apiClient,
     IOptions<MicrosoftEntraOptions> entraOptions,
     ILogger<AccountController> logger) : Controller
 {
@@ -65,7 +67,8 @@ public class AccountController(
         try
         {
             var tokens = await authApiClient.LoginAsync(model.Username.Trim(), model.Password, cancellationToken);
-            var user = await authApiClient.GetCurrentUserAsync(tokens.AccessToken!, cancellationToken);
+            var user = tokens.User ??
+                await authApiClient.GetCurrentUserAsync(tokens.AccessToken!, cancellationToken);
 
             if (!user.IsActive)
             {
@@ -76,6 +79,7 @@ public class AccountController(
             }
 
             await SignInAsync(user, tokens, model.RememberMe);
+            apiClient.CacheCurrentUser(user);
             return RedirectToLocal(model.ReturnUrl);
         }
         catch (AuthApiException exception)

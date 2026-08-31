@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Apcloudpms.Application.DTOs;
 
-public sealed class AuditLogQueryDto
+public sealed class AuditLogQueryDto : IValidatableObject
 {
     [Range(1, int.MaxValue)]
     public int PageNumber { get; set; } = 1;
@@ -18,6 +18,30 @@ public sealed class AuditLogQueryDto
 
     [StringLength(20)]
     public string? Action { get; set; }
+
+    [StringLength(200)]
+    public string? ChangedBy { get; set; }
+
+    public DateTime? FromUtc { get; set; }
+
+    public DateTime? ToUtc { get; set; }
+
+    [RegularExpression("^(changedAtUtc|entityName|action|changedByName)$",
+        ErrorMessage = "SortBy must be changedAtUtc, entityName, action, or changedByName.")]
+    public string SortBy { get; set; } = "changedAtUtc";
+
+    [RegularExpression("^(asc|desc)$", ErrorMessage = "SortDirection must be asc or desc.")]
+    public string SortDirection { get; set; } = "desc";
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (FromUtc.HasValue && ToUtc.HasValue && FromUtc.Value > ToUtc.Value)
+        {
+            yield return new ValidationResult(
+                "FromUtc cannot be later than ToUtc.",
+                [nameof(FromUtc), nameof(ToUtc)]);
+        }
+    }
 }
 
 public sealed record AuditLogItemDto(
@@ -44,3 +68,7 @@ public sealed record AuditLogPagedResponseDto(
     int PageSize,
     bool HasPreviousPage,
     bool HasNextPage);
+
+public sealed record AuditLogFilterOptionsDto(
+    IReadOnlyList<string> EntityNames,
+    IReadOnlyList<string> Actions);

@@ -1,16 +1,30 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Identity.Web;
 using Apcloud.Web.Infrastructure;
 using Apcloud.Web.Services;
 using Apcloud.Web.Services.Authentication;
+using System.IO.Compression;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddControllersWithViews();
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(options =>
+    options.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(options =>
+    options.Level = CompressionLevel.Fastest);
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddMemoryCache();
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
 {
@@ -60,10 +74,23 @@ static void ConfigureApiClient(IServiceProvider services, HttpClient client)
     client.DefaultRequestHeaders.Add("ngrok-skip-browser-warning", "true");
 }
 
-builder.Services.AddHttpClient<IAuthApiClient, AuthApiClient>(ConfigureApiClient);
+builder.Services
+    .AddHttpClient<IAuthApiClient, AuthApiClient>(ConfigureApiClient)
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+    {
+        AutomaticDecompression = DecompressionMethods.Brotli |
+                                 DecompressionMethods.GZip |
+                                 DecompressionMethods.Deflate
+    });
 builder.Services.AddTransient<ApiBearerTokenHandler>();
 builder.Services
     .AddHttpClient<ApcloudApiClient>(ConfigureApiClient)
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+    {
+        AutomaticDecompression = DecompressionMethods.Brotli |
+                                 DecompressionMethods.GZip |
+                                 DecompressionMethods.Deflate
+    })
     .AddHttpMessageHandler<ApiBearerTokenHandler>();
 
 var entraConfiguration = builder.Configuration
@@ -164,6 +191,12 @@ builder.Services.AddAntiforgery(options =>
 });
 
 var app = builder.Build();
+
+// Authentication responses can contain tokens and other secrets. Keep them out
+// of HTTPS response compression while compressing normal MVC and BFF responses.
+app.UseWhen(
+    context => !context.Request.Path.StartsWithSegments("/Authentication/Account"),
+    branch => branch.UseResponseCompression());
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

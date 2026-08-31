@@ -95,6 +95,13 @@ public sealed class BffController(
             Response.ContentType = downstreamResponse.Content.Headers.ContentType?.ToString();
             CopyResponseHeaders(downstreamResponse);
 
+            if (downstreamResponse.IsSuccessStatusCode &&
+                !HttpMethods.IsGet(Request.Method) &&
+                path?.Trim('/').StartsWith("user-profile", StringComparison.OrdinalIgnoreCase) == true)
+            {
+                apiClient.InvalidateCurrentUserProfile();
+            }
+
             await using var responseStream = await downstreamResponse.Content.ReadAsStreamAsync(cancellationToken);
             await responseStream.CopyToAsync(Response.Body, cancellationToken);
         }

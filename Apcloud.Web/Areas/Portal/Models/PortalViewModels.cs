@@ -55,7 +55,7 @@ public sealed class NavigationMenuViewModel
 
     public bool IsActive { get; init; }
 
-    public List<NavigationMenuViewModel> Children { get; } = [];
+    public List<NavigationMenuViewModel> Children { get; init; } = [];
 }
 
 public sealed class ModuleSidebarViewModel

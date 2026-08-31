@@ -1,11 +1,13 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Security.Claims;
 using System.Text.Json;
 using Apcloud.Contracts.Authentication;
 using Apcloud.Contracts.Themes;
 using Apcloud.Web.Areas.PermitApplication.Models;
 using Apcloud.Web.Areas.Portal.Models;
 using Apcloud.Web.Services.Authentication;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace Apcloud.Web.Services;
 
@@ -13,8 +15,14 @@ namespace Apcloud.Web.Services;
 /// Server-side client for authenticated Apcloud API requests. Its message
 /// handler supplies and refreshes the bearer token automatically.
 /// </summary>
-public sealed class ApcloudApiClient(HttpClient httpClient)
+public sealed class ApcloudApiClient(
+    HttpClient httpClient,
+    IHttpContextAccessor httpContextAccessor,
+    IMemoryCache memoryCache)
 {
+    private static readonly TimeSpan ProfileCacheDuration = TimeSpan.FromMinutes(5);
+    private static readonly TimeSpan NavigationCacheDuration = TimeSpan.FromMinutes(1);
+    private static readonly JsonSerializerOptions CacheJsonOptions = new(JsonSerializerDefaults.Web);
     private static readonly string[] CollectionPropertyNames =
         ["data", "items", "result", "modules", "menus", "navigation", "navigationMenus"];
 
@@ -37,6 +45,10 @@ public sealed class ApcloudApiClient(HttpClient httpClient)
     public async Task<CurrentUserDetailsDto> GetCurrentUserAsync(
         CancellationToken cancellationToken = default)
     {
+        var cacheKey = GetCacheKey("profile");
+        if (TryReadCache(cacheKey, out CurrentUserDetailsDto? cachedUser))
+            return cachedUser!;
+
         using var response = await httpClient.GetAsync("api/Auth/me", cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
@@ -45,8 +57,10 @@ public sealed class ApcloudApiClient(HttpClient httpClient)
 
         try
         {
-            return await response.Content.ReadFromJsonAsync<CurrentUserDetailsDto>(cancellationToken)
+            var user = await response.Content.ReadFromJsonAsync<CurrentUserDetailsDto>(cancellationToken)
                 ?? throw new AuthApiException(HttpStatusCode.BadGateway, "The API returned an empty user profile.");
+            WriteCache(GetCacheKey("profile", user.Id), user, ProfileCacheDuration);
+            return user;
         }
         catch (JsonException exception)
         {
@@ -77,16 +91,22 @@ public sealed class ApcloudApiClient(HttpClient httpClient)
     public async Task<IReadOnlyList<AssignedModuleViewModel>> GetMyModulesAsync(
         CancellationToken cancellationToken = default)
     {
+        var cacheKey = GetCacheKey("modules");
+        if (TryReadCache(cacheKey, out AssignedModuleViewModel[]? cachedModules))
+            return cachedModules!;
+
         using var response = await httpClient.GetAsync("api/module-access/my-modules", cancellationToken);
         using var document = await ReadJsonAsync(response, cancellationToken);
 
-        return GetCollection(document.RootElement)
+        var modules = GetCollection(document.RootElement)
             .Select(ParseModule)
             .Where(module => module is not null && module.IsActive)
             .Cast<AssignedModuleViewModel>()
             .OrderBy(module => module.DisplayOrder)
             .ThenBy(module => module.Name, StringComparer.CurrentCultureIgnoreCase)
             .ToArray();
+        WriteCache(cacheKey, modules, NavigationCacheDuration);
+        return modules;
     }
 
     public async Task<IReadOnlyList<NavigationMenuViewModel>> SelectModuleMenusAsync(
@@ -97,6 +117,10 @@ public sealed class ApcloudApiClient(HttpClient httpClient)
         {
             throw new ArgumentException("A valid application module ID is required.", nameof(moduleId));
         }
+
+        var cacheKey = GetCacheKey($"menus:{applicationModuleId}");
+        if (TryReadCache(cacheKey, out NavigationMenuViewModel[]? cachedMenus))
+            return cachedMenus!;
 
         using var response = await httpClient.PostAsJsonAsync(
             "api/module-access/select",
@@ -110,7 +134,48 @@ public sealed class ApcloudApiClient(HttpClient httpClient)
             .Cast<NavigationMenuViewModel>()
             .ToList();
 
-        return BuildMenuTree(menus);
+        var navigation = BuildMenuTree(menus).ToArray();
+        WriteCache(cacheKey, navigation, NavigationCacheDuration);
+        return navigation;
+    }
+
+    public void CacheCurrentUser(CurrentUserDetailsDto user) =>
+        WriteCache(GetCacheKey("profile", user.Id), user, ProfileCacheDuration);
+
+    public void InvalidateCurrentUserProfile()
+    {
+        var key = GetCacheKey("profile");
+        if (key is not null) memoryCache.Remove(key);
+    }
+
+    private string? GetCacheKey(string segment, int? explicitUserId = null)
+    {
+        var userId = explicitUserId?.ToString() ??
+            httpContextAccessor.HttpContext?.User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return string.IsNullOrWhiteSpace(userId) ? null : $"apcloud-ui:{userId}:{segment}";
+    }
+
+    private bool TryReadCache<T>(string? key, out T? value)
+    {
+        value = default;
+        if (key is null || !memoryCache.TryGetValue(key, out string? json) || string.IsNullOrWhiteSpace(json))
+            return false;
+        try
+        {
+            value = JsonSerializer.Deserialize<T>(json, CacheJsonOptions);
+            return value is not null;
+        }
+        catch (JsonException)
+        {
+            memoryCache.Remove(key);
+            return false;
+        }
+    }
+
+    private void WriteCache<T>(string? key, T value, TimeSpan duration)
+    {
+        if (key is null) return;
+        memoryCache.Set(key, JsonSerializer.Serialize(value, CacheJsonOptions), duration);
     }
 
     public async Task<PagedResult<RiskAssessmentListItemViewModel>> GetRiskAssessmentsAsync(

@@ -1,0 +1,137 @@
+@{
+    ViewData["Title"] = "Audit logs";
+}
+
+<div class="page-header d-print-none mb-4">
+    <div class="row g-3 align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Administration</div>
+            <h1 class="page-title">Audit logs</h1>
+            <p class="text-secondary mt-2 mb-0">Review who changed application data, when it changed, and the values before and after each change.</p>
+        </div>
+        <div class="col-auto ms-auto">
+            <button type="button" class="btn btn-success" data-audit-export>
+                <svg class="icon"><use href="#icon-download" /></svg>
+                <span data-audit-export-label>Export to Excel</span>
+                <span class="d-none" data-audit-export-progress><span class="spinner-border spinner-border-sm me-2"></span>Preparing…</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card audit-log-card" data-audit-grid>
+    <div class="card-header audit-log-toolbar">
+        <form class="audit-filter-form" data-audit-filter-form>
+            <div class="audit-search-row">
+                <div class="input-icon audit-search-input">
+                    <span class="input-icon-addon"><svg class="icon"><use href="#icon-search" /></svg></span>
+                    <input type="search" class="form-control" maxlength="200" placeholder="Search records, fields, users, values, IP or trace ID…"
+                           aria-label="Search audit logs" autocomplete="off" data-audit-search />
+                </div>
+                <button type="submit" class="btn btn-primary">Search</button>
+                <button type="button" class="btn btn-outline-secondary" data-audit-clear>Clear</button>
+            </div>
+            <div class="audit-filter-row">
+                <div>
+                    <label for="auditEntity" class="form-label">Entity</label>
+                    <select id="auditEntity" class="form-select form-select-sm" data-audit-entity>
+                        <option value="">All entities</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="auditAction" class="form-label">Action</label>
+                    <select id="auditAction" class="form-select form-select-sm" data-audit-action>
+                        <option value="">All actions</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="auditChangedBy" class="form-label">Changed by</label>
+                    <input id="auditChangedBy" class="form-control form-control-sm" maxlength="200" placeholder="Any administrator or user" data-audit-changed-by />
+                </div>
+                <div>
+                    <label for="auditFrom" class="form-label">From date</label>
+                    <input id="auditFrom" type="date" class="form-control form-control-sm" data-audit-from />
+                </div>
+                <div>
+                    <label for="auditTo" class="form-label">To date</label>
+                    <input id="auditTo" type="date" class="form-control form-control-sm" data-audit-to />
+                </div>
+                <div>
+                    <label for="auditPageSize" class="form-label">Rows</label>
+                    <select id="auditPageSize" class="form-select form-select-sm" data-audit-page-size>
+                        <option value="10">10</option>
+                        <option value="25" selected>25</option>
+                        <option value="50">50</option>
+                        <option value="100">100</option>
+                    </select>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="server-grid-state" data-audit-loading role="status">
+        <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span><span>Loading audit activity…</span>
+    </div>
+    <div class="server-grid-state d-none" data-audit-error role="alert">
+        <span class="server-grid-state-icon text-danger"><svg class="icon"><use href="#icon-alert" /></svg></span>
+        <div><strong>Unable to load audit logs</strong><p data-audit-error-message>The audit data could not be loaded.</p></div>
+        <button type="button" class="btn btn-outline-danger ms-auto" data-audit-retry>Try again</button>
+    </div>
+    <div class="empty py-6 d-none" data-audit-empty>
+        <div class="empty-icon"><svg class="icon"><use href="#icon-search" /></svg></div>
+        <p class="empty-title">No audit activity found</p>
+        <p class="empty-subtitle text-secondary">Change or clear the filters and try again.</p>
+    </div>
+
+    <div class="d-none" data-audit-content>
+        <div class="table-responsive server-grid-scroll audit-log-scroll">
+            <table class="table table-vcenter card-table server-grid-table audit-log-table">
+                <thead>
+                    <tr>
+                        <th><button type="button" class="server-grid-sort active" data-audit-sort="changedAtUtc"><span>Changed date</span><span data-audit-sort-icon>↓</span></button></th>
+                        <th><button type="button" class="server-grid-sort" data-audit-sort="entityName"><span>Entity / record</span><span data-audit-sort-icon>⇅</span></button></th>
+                        <th><button type="button" class="server-grid-sort" data-audit-sort="action"><span>Action</span><span data-audit-sort-icon>⇅</span></button></th>
+                        <th>Changed fields</th>
+                        <th><button type="button" class="server-grid-sort" data-audit-sort="changedByName"><span>Changed by</span><span data-audit-sort-icon>⇅</span></button></th>
+                        <th class="w-1"><span class="visually-hidden">Details</span></th>
+                    </tr>
+                </thead>
+                <tbody data-audit-body></tbody>
+            </table>
+        </div>
+        <div class="card-footer server-grid-footer">
+            <p class="m-0 text-secondary" data-audit-summary></p>
+            <ul class="pagination m-0 ms-auto" data-audit-pagination></ul>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="auditDetailsModal" tabindex="-1" aria-hidden="true" data-audit-modal>
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div><div class="page-pretitle" data-audit-modal-entity>Audit record</div><h2 class="modal-title" data-audit-modal-title>Change details</h2></div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="audit-detail-meta" data-audit-detail-meta></div>
+                <h3 class="h4 mt-4 mb-3">Value changes</h3>
+                <div class="table-responsive border rounded">
+                    <table class="table table-vcenter mb-0 audit-diff-table">
+                        <thead><tr><th>Field</th><th>Old value</th><th>New value</th></tr></thead>
+                        <tbody data-audit-diff-body></tbody>
+                    </table>
+                </div>
+                <details class="mt-4 audit-technical-details">
+                    <summary>Technical context</summary>
+                    <dl class="row mt-3 mb-0" data-audit-technical></dl>
+                </details>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-primary" data-bs-dismiss="modal">Close</button></div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/organization-audit-log.js" asp-append-version="true"></script>
+}

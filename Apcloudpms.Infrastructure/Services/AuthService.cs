@@ -38,6 +38,8 @@ public sealed class AuthService : IAuthService
         var user = await _context.Users.AsNoTracking()
             .Include(x => x.UserRoles.Where(userRole => userRole.IsActive))
             .ThenInclude(userRole => userRole.Role)
+            .Include(x => x.Department)
+            .ThenInclude(department => department!.OfficeBranch)
             .SingleOrDefaultAsync(
                 x => x.NormalizedUserName == normalizedUserName && x.IsActive,
                 cancellationToken);
@@ -64,6 +66,9 @@ public sealed class AuthService : IAuthService
             .Include(x => x.User)
                 .ThenInclude(user => user.UserRoles.Where(userRole => userRole.IsActive))
                     .ThenInclude(userRole => userRole.Role)
+            .Include(x => x.User)
+                .ThenInclude(user => user.Department)
+                    .ThenInclude(department => department!.OfficeBranch)
             .SingleOrDefaultAsync(x => x.TokenHash == tokenHash, cancellationToken);
         if (currentToken is null)
             return null;
@@ -124,10 +129,30 @@ public sealed class AuthService : IAuthService
     {
         var roles = user.UserRoles
             .Where(x => x.IsActive && x.Role.IsActive)
-            .Select(x => x.Role.Name);
+            .Select(x => x.Role.Name)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(x => x)
+            .ToArray();
         var accessToken = _jwtService.GenerateAccessToken(user, roles);
         return new AuthResponseDto(accessToken.Token, rawRefreshToken,
-            accessToken.ExpiresAtUtc, refreshExpiresAtUtc);
+            accessToken.ExpiresAtUtc, refreshExpiresAtUtc, User: new CurrentUserDetailsDto(
+                user.Id,
+                user.UserName,
+                user.DisplayName,
+                user.Email,
+                user.ContactNumber,
+                user.EntraTenantId,
+                user.EntraObjectId,
+                user.IsActive,
+                user.CreatedAtUtc,
+                roles,
+                user.DepartmentId,
+                user.Department?.Name,
+                user.Department?.OfficeBranch.Id,
+                user.Department?.OfficeBranch.Name,
+                user.ProfilePicturePath is null
+                    ? null
+                    : $"/api/user-profile/photo?v={user.ProfilePictureUpdatedAtUtc?.Ticks ?? 0}"));
     }
 
     private (string RawToken, RefreshToken Token) CreateRefreshToken(int userId, Guid familyId,
