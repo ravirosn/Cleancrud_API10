@@ -212,7 +212,7 @@ public sealed record RejectedPermitPagedResponseDto(
 
 public sealed record ApprovalNotificationDto(
     long Id,
-    long PermitApprovalId,
+    long? PermitApprovalId,
     string Title,
     string Message,
     string Status,

@@ -109,6 +109,7 @@ builder.Services.AddScoped<IPermitApplicationService, PermitApplicationService>(
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IRiskAssessmentService, RiskAssessmentService>();
 builder.Services.AddScoped<IApprovalWorkflowService, ApprovalWorkflowService>();
+builder.Services.AddScoped<IWorkflowSetupService, WorkflowSetupService>();
 builder.Services.AddSingleton<IApprovalNotificationQueue, ApprovalNotificationQueue>();
 builder.Services.AddHostedService<ApprovalNotificationWorker>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();

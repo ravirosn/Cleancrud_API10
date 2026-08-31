@@ -3,7 +3,12 @@ namespace Apcloudpms.Domain.Entities;
 public class ApprovalNotification
 {
     public long Id { get; set; }
-    public long PermitApprovalId { get; set; }
+    public long? PermitApprovalId { get; set; }
+    public string WorkflowCode { get; set; } = string.Empty;
+    public string ModuleCode { get; set; } = string.Empty;
+    public string EntityType { get; set; } = string.Empty;
+    public string EntityId { get; set; } = string.Empty;
+    public string EventCode { get; set; } = string.Empty;
     public int RecipientUserId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Message { get; set; } = string.Empty;
@@ -14,7 +19,7 @@ public class ApprovalNotification
     public DateTime? SentAtUtc { get; set; }
     public DateTime? ReadAtUtc { get; set; }
 
-    public PermitApproval PermitApproval { get; set; } = null!;
+    public PermitApproval? PermitApproval { get; set; }
     public User RecipientUser { get; set; } = null!;
 }
 

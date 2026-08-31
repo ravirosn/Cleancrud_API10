@@ -26,21 +26,27 @@ public sealed class ApprovalWorkflowService(
     private const string PermitSubmitted = "PERMIT_SUBMITTED_FOR_APPROVAL";
     private const string PermitApproved = "PERMIT_APPROVED";
     private const string PermitRejected = "PERMIT_REJECTED";
+    private const string PendingEvent = "APPROVAL_REQUESTED";
+    private const string ApprovedEvent = "APPROVED";
+    private const string RejectedEvent = "REJECTED";
 
     public async Task<IReadOnlyList<ApprovalWorkflowDto>> GetAsync(
         int? permitTypeListItemId = null,
         CancellationToken cancellationToken = default)
     {
         var query = context.ApprovalWorkflows.AsNoTracking()
-            .Include(x => x.PermitTypeListItem)
+            .Include(x => x.ApplicationModule)
+            .Include(x => x.SubjectTypeListItem)
             .Include(x => x.Levels).ThenInclude(x => x.PrimaryApproverRole)
             .Include(x => x.Levels).ThenInclude(x => x.AlternateApproverRole)
-            .AsSplitQuery();
+            .AsSplitQuery()
+            .Where(x => x.ApplicationModule.Code == "PERMIT" &&
+                x.SubjectType == PermitTypeCategory && x.SubjectTypeListItemId.HasValue);
 
         if (permitTypeListItemId.HasValue)
-            query = query.Where(x => x.PermitTypeListItemId == permitTypeListItemId.Value);
+            query = query.Where(x => x.SubjectTypeListItemId == permitTypeListItemId.Value);
 
-        var workflows = await query.OrderBy(x => x.PermitTypeListItem.Name)
+        var workflows = await query.OrderBy(x => x.SubjectTypeListItem!.Name)
             .ToListAsync(cancellationToken);
         return workflows.Select(ToDto).ToList();
     }
@@ -53,10 +59,14 @@ public sealed class ApprovalWorkflowService(
     {
         ValidateLevels(request.Levels);
 
-        var permitTypeExists = await context.ListItems.AnyAsync(x =>
-            x.Id == permitTypeListItemId && x.IsActive &&
-            x.ListItemCategory.Code == PermitTypeCategory, cancellationToken);
-        if (!permitTypeExists)
+        var permitType = await context.ListItems.AsNoTracking()
+            .Where(x => x.Id == permitTypeListItemId && x.IsActive &&
+                x.ListItemCategory.Code == PermitTypeCategory)
+            .Select(x => new { x.Id, x.Code }).SingleOrDefaultAsync(cancellationToken);
+        var permitModuleId = await context.ApplicationModules.AsNoTracking()
+            .Where(x => x.Code == "PERMIT" && x.IsActive)
+            .Select(x => (int?)x.Id).SingleOrDefaultAsync(cancellationToken);
+        if (permitType is null || !permitModuleId.HasValue)
             return null;
 
         var roleIds = request.Levels
@@ -69,14 +79,18 @@ public sealed class ApprovalWorkflowService(
 
         var workflow = await context.ApprovalWorkflows
             .Include(x => x.Levels)
-            .SingleOrDefaultAsync(x => x.PermitTypeListItemId == permitTypeListItemId,
+            .SingleOrDefaultAsync(x => x.ApplicationModuleId == permitModuleId.Value &&
+                x.SubjectType == PermitTypeCategory && x.SubjectTypeListItemId == permitTypeListItemId,
                 cancellationToken);
         var now = DateTime.UtcNow;
         if (workflow is null)
         {
             workflow = new ApprovalWorkflow
             {
-                PermitTypeListItemId = permitTypeListItemId,
+                ApplicationModuleId = permitModuleId.Value,
+                WorkflowCode = $"PERMIT.{PermitTypeCategory}.{permitType.Code}".ToUpperInvariant(),
+                SubjectType = PermitTypeCategory,
+                SubjectTypeListItemId = permitTypeListItemId,
                 CreatedByUserId = userId,
                 CreatedAtUtc = now
             };
@@ -138,10 +152,22 @@ public sealed class ApprovalWorkflowService(
 
             var permitTypeIds = risk.PermitApplications.Select(x => x.PermitTypeListItemId)
                 .Distinct().ToList();
-            var workflows = await context.ApprovalWorkflows
+            var workflowCandidates = await context.ApprovalWorkflows
                 .Include(x => x.Levels)
-                .Where(x => x.IsActive && permitTypeIds.Contains(x.PermitTypeListItemId))
-                .ToDictionaryAsync(x => x.PermitTypeListItemId, cancellationToken);
+                .Where(x => x.IsActive && x.ApplicationModule.Code == "PERMIT" &&
+                    x.SubjectType == PermitTypeCategory &&
+                    (!x.SubjectTypeListItemId.HasValue ||
+                        permitTypeIds.Contains(x.SubjectTypeListItemId.Value)))
+                .ToListAsync(cancellationToken);
+            var defaultWorkflow = workflowCandidates.SingleOrDefault(x => !x.SubjectTypeListItemId.HasValue);
+            var workflows = new Dictionary<int, ApprovalWorkflow>();
+            foreach (var permitTypeId in permitTypeIds)
+            {
+                var workflow = workflowCandidates.SingleOrDefault(
+                    x => x.SubjectTypeListItemId == permitTypeId) ?? defaultWorkflow;
+                if (workflow is not null)
+                    workflows.Add(permitTypeId, workflow);
+            }
             var missingTypeIds = permitTypeIds.Where(x => !workflows.ContainsKey(x)).ToArray();
             if (missingTypeIds.Length > 0)
             {
@@ -456,9 +482,11 @@ public sealed class ApprovalWorkflowService(
                 approval.ActionedByUserId = userId;
                 approval.Comments = string.IsNullOrWhiteSpace(request.Comments) ? null : request.Comments.Trim();
                 approval.ActionedAtUtc = now;
+                string? notificationEvent = null;
 
                 if (decision == ApprovalState.Rejected)
                 {
+                    notificationEvent = RejectedEvent;
                     var rejectedPermitId = await GetStatusIdAsync(
                         PermitStatusCategory, PermitRejected, cancellationToken);
                     var rejectedRiskId = await GetStatusIdAsync(
@@ -493,6 +521,7 @@ public sealed class ApprovalWorkflowService(
                     }
                     else
                     {
+                        notificationEvent = ApprovedEvent;
                         var approvedPermitId = await GetStatusIdAsync(
                             PermitStatusCategory, PermitApproved, cancellationToken);
                         approval.PermitApplication.PermitStatusListItemId = approvedPermitId;
@@ -518,6 +547,10 @@ public sealed class ApprovalWorkflowService(
                         }
                     }
                 }
+
+                if (notificationEvent is not null)
+                    await AddDecisionNotificationAsync(
+                        approval, notificationEvent, cancellationToken);
 
                 await context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
@@ -761,9 +794,8 @@ public sealed class ApprovalWorkflowService(
                 .Where(x => x.PermitApprovalId == approval.Id && x.IsActive && x.User.IsActive)
                 .Select(x => x.UserId))
             .Distinct().ToListAsync(cancellationToken);
-        var permitNumber = await context.PermitApplications
-            .Where(x => x.Id == approval.PermitApplicationId)
-            .Select(x => x.PermitNumber).SingleAsync(cancellationToken);
+        var notification = await GetPermitNotificationContextAsync(
+            approval.PermitApplicationId, cancellationToken, approval.Id);
 
         foreach (var recipient in recipients)
         {
@@ -771,8 +803,13 @@ public sealed class ApprovalWorkflowService(
             {
                 PermitApproval = approval,
                 RecipientUserId = recipient,
-                Title = $"Permit {permitNumber} requires approval",
-                Message = $"Permit {permitNumber} is waiting for level {approval.LevelNumber} approval.",
+                WorkflowCode = notification.WorkflowCode,
+                ModuleCode = "PERMIT",
+                EntityType = "PERMIT_APPLICATION",
+                EntityId = approval.PermitApplicationId.ToString(),
+                EventCode = PendingEvent,
+                Title = RenderTemplate(notification.PendingTitle, notification.Reference, approval.LevelNumber),
+                Message = RenderTemplate(notification.PendingMessage, notification.Reference, approval.LevelNumber),
                 CreatedAtUtc = DateTime.UtcNow
             });
         }
@@ -783,8 +820,11 @@ public sealed class ApprovalWorkflowService(
         int userId,
         CancellationToken cancellationToken)
     {
+        var notification = await GetPermitNotificationContextAsync(
+            approval.PermitApplicationId, cancellationToken, approval.Id);
         var existing = await context.ApprovalNotifications.SingleOrDefaultAsync(x =>
-            x.PermitApprovalId == approval.Id && x.RecipientUserId == userId,
+            x.PermitApprovalId == approval.Id && x.RecipientUserId == userId &&
+            x.EventCode == PendingEvent,
             cancellationToken);
         if (existing is not null)
         {
@@ -794,21 +834,98 @@ public sealed class ApprovalWorkflowService(
             existing.CreatedAtUtc = DateTime.UtcNow;
             existing.SentAtUtc = null;
             existing.ReadAtUtc = null;
+            existing.WorkflowCode = notification.WorkflowCode;
+            existing.ModuleCode = "PERMIT";
+            existing.EntityType = "PERMIT_APPLICATION";
+            existing.EntityId = approval.PermitApplicationId.ToString();
+            existing.Title = RenderTemplate(
+                notification.PendingTitle, notification.Reference, approval.LevelNumber);
+            existing.Message = RenderTemplate(
+                notification.PendingMessage, notification.Reference, approval.LevelNumber);
             return;
         }
 
-        var permitNumber = approval.PermitApplication?.PermitNumber ??
-            await context.PermitApplications.Where(x => x.Id == approval.PermitApplicationId)
-                .Select(x => x.PermitNumber).SingleAsync(cancellationToken);
         context.ApprovalNotifications.Add(new ApprovalNotification
         {
             PermitApproval = approval,
             RecipientUserId = userId,
-            Title = $"Permit {permitNumber} requires approval",
-            Message = $"Permit {permitNumber} is waiting for level {approval.LevelNumber} approval.",
+            WorkflowCode = notification.WorkflowCode,
+            ModuleCode = "PERMIT",
+            EntityType = "PERMIT_APPLICATION",
+            EntityId = approval.PermitApplicationId.ToString(),
+            EventCode = PendingEvent,
+            Title = RenderTemplate(notification.PendingTitle, notification.Reference, approval.LevelNumber),
+            Message = RenderTemplate(notification.PendingMessage, notification.Reference, approval.LevelNumber),
             CreatedAtUtc = DateTime.UtcNow
         });
     }
+
+    private async Task AddDecisionNotificationAsync(
+        PermitApproval approval, string eventCode, CancellationToken cancellationToken)
+    {
+        var permit = approval.PermitApplication;
+        if (!permit.CreatedByUserId.HasValue) return;
+        var notification = await GetPermitNotificationContextAsync(
+            approval.PermitApplicationId, cancellationToken, approval.Id);
+        var isApproved = eventCode == ApprovedEvent;
+        context.ApprovalNotifications.Add(new ApprovalNotification
+        {
+            PermitApproval = approval,
+            RecipientUserId = permit.CreatedByUserId.Value,
+            WorkflowCode = notification.WorkflowCode,
+            ModuleCode = "PERMIT",
+            EntityType = "PERMIT_APPLICATION",
+            EntityId = approval.PermitApplicationId.ToString(),
+            EventCode = eventCode,
+            Title = RenderTemplate(
+                isApproved ? notification.ApprovedTitle : notification.RejectedTitle,
+                notification.Reference, approval.LevelNumber),
+            Message = RenderTemplate(
+                isApproved ? notification.ApprovedMessage : notification.RejectedMessage,
+                notification.Reference, approval.LevelNumber),
+            CreatedAtUtc = DateTime.UtcNow
+        });
+    }
+
+    private async Task<PermitNotificationContext> GetPermitNotificationContextAsync(
+        long permitApplicationId, CancellationToken cancellationToken,
+        long? permitApprovalId = null)
+    {
+        var permit = await context.PermitApplications.AsNoTracking()
+            .Where(x => x.Id == permitApplicationId)
+            .Select(x => new { x.PermitNumber, x.PermitTypeListItemId })
+            .SingleAsync(cancellationToken);
+        var entityId = permitApplicationId.ToString();
+        var workflowCode = permitApprovalId.HasValue
+            ? await context.ApprovalNotifications.AsNoTracking()
+                .Where(x => x.WorkflowCode != string.Empty &&
+                    (x.PermitApprovalId == permitApprovalId ||
+                        (x.EntityType == "PERMIT_APPLICATION" && x.EntityId == entityId)))
+                .OrderByDescending(x => x.PermitApprovalId == permitApprovalId)
+                .ThenBy(x => x.CreatedAtUtc)
+                .Select(x => x.WorkflowCode)
+                .FirstOrDefaultAsync(cancellationToken)
+            : null;
+        var workflowQuery = context.ApprovalWorkflows.AsNoTracking()
+            .Where(x => x.ApplicationModule.Code == "PERMIT" && x.SubjectType == PermitTypeCategory);
+        workflowQuery = string.IsNullOrWhiteSpace(workflowCode)
+            ? workflowQuery.Where(x => x.IsActive &&
+                (x.SubjectTypeListItemId == permit.PermitTypeListItemId || !x.SubjectTypeListItemId.HasValue))
+            : workflowQuery.Where(x => x.WorkflowCode == workflowCode);
+        var workflow = await workflowQuery
+            .OrderByDescending(x => x.SubjectTypeListItemId.HasValue)
+            .Select(x => new PermitNotificationContext(
+                x.WorkflowCode, permit.PermitNumber,
+                x.PendingNotificationTitle, x.PendingNotificationMessage,
+                x.ApprovedNotificationTitle, x.ApprovedNotificationMessage,
+                x.RejectedNotificationTitle, x.RejectedNotificationMessage))
+            .FirstAsync(cancellationToken);
+        return workflow;
+    }
+
+    private static string RenderTemplate(string template, string reference, byte level) =>
+        template.Replace("{Reference}", reference, StringComparison.OrdinalIgnoreCase)
+            .Replace("{Level}", level.ToString(), StringComparison.OrdinalIgnoreCase);
 
     private static AssignedApproverUserDto ToAssignedUserDto(User user) =>
         new(user.Id, user.UserName, user.DisplayName, user.Email);
@@ -871,9 +988,9 @@ public sealed class ApprovalWorkflowService(
 
     private static ApprovalWorkflowDto ToDto(ApprovalWorkflow workflow) => new(
         workflow.Id,
-        workflow.PermitTypeListItemId,
-        workflow.PermitTypeListItem.Code,
-        workflow.PermitTypeListItem.Name,
+        workflow.SubjectTypeListItemId!.Value,
+        workflow.SubjectTypeListItem!.Code,
+        workflow.SubjectTypeListItem.Name,
         workflow.Name,
         workflow.IsActive,
         workflow.Levels.OrderBy(x => x.LevelNumber).Select(x =>
@@ -895,4 +1012,10 @@ public sealed class ApprovalWorkflowService(
         string PermitStatus,
         DateTime? DecisionDate,
         string? Remarks);
+
+    private sealed record PermitNotificationContext(
+        string WorkflowCode, string Reference,
+        string PendingTitle, string PendingMessage,
+        string ApprovedTitle, string ApprovedMessage,
+        string RejectedTitle, string RejectedMessage);
 }

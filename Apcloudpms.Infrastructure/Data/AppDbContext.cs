@@ -451,13 +451,24 @@ public class AppDbContext : DbContext
         {
             entity.ToTable("ApprovalWorkflow", "dbo");
             entity.Property(x => x.Name).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.WorkflowCode).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.SubjectType).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.PendingNotificationTitle).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.PendingNotificationMessage).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.ApprovedNotificationTitle).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.ApprovedNotificationMessage).HasMaxLength(1000).IsRequired();
+            entity.Property(x => x.RejectedNotificationTitle).HasMaxLength(200).IsRequired();
+            entity.Property(x => x.RejectedNotificationMessage).HasMaxLength(1000).IsRequired();
             entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
             entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
-            entity.HasIndex(x => x.PermitTypeListItemId)
+            entity.HasIndex(x => x.WorkflowCode).IsUnique();
+            entity.HasIndex(x => new { x.ApplicationModuleId, x.SubjectType, x.SubjectTypeListItemId })
                 .IsUnique()
                 .HasFilter("[IsActive] = 1");
-            entity.HasOne(x => x.PermitTypeListItem).WithMany()
-                .HasForeignKey(x => x.PermitTypeListItemId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.ApplicationModule).WithMany()
+                .HasForeignKey(x => x.ApplicationModuleId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.SubjectTypeListItem).WithMany()
+                .HasForeignKey(x => x.SubjectTypeListItemId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<User>().WithMany().HasForeignKey(x => x.CreatedByUserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
@@ -521,12 +532,19 @@ public class AppDbContext : DbContext
             entity.Property(x => x.Message).HasMaxLength(1000).IsRequired();
             entity.Property(x => x.Status).HasMaxLength(20).IsRequired();
             entity.Property(x => x.LastError).HasMaxLength(1000);
+            entity.Property(x => x.WorkflowCode).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.ModuleCode).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.EntityType).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.EntityId).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.EventCode).HasMaxLength(30).IsRequired();
             entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
             entity.Property(x => x.SentAtUtc).HasPrecision(0);
             entity.Property(x => x.ReadAtUtc).HasPrecision(0);
             entity.HasIndex(x => new { x.Status, x.CreatedAtUtc });
             entity.HasIndex(x => new { x.RecipientUserId, x.ReadAtUtc, x.CreatedAtUtc });
-            entity.HasIndex(x => new { x.PermitApprovalId, x.RecipientUserId }).IsUnique();
+            entity.HasIndex(x => new { x.PermitApprovalId, x.RecipientUserId, x.EventCode })
+                .IsUnique().HasFilter("[PermitApprovalId] IS NOT NULL");
+            entity.HasIndex(x => new { x.WorkflowCode, x.EntityType, x.EntityId, x.EventCode });
             entity.HasOne(x => x.PermitApproval).WithMany(x => x.Notifications)
                 .HasForeignKey(x => x.PermitApprovalId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.RecipientUser).WithMany()
