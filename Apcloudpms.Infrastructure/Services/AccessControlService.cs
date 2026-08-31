@@ -75,27 +75,40 @@ public sealed class AccessControlService : IAccessControlService
 
     public async Task<RoleDto> CreateRoleAsync(RoleRequestDto dto, CancellationToken cancellationToken)
     {
+        ArgumentNullException.ThrowIfNull(dto);
         var name = dto.Name.Trim();
         var normalizedName = name.ToUpperInvariant();
         if (await _context.Roles.AnyAsync(x => x.NormalizedName == normalizedName, cancellationToken))
             throw new ArgumentException("A role with this name already exists.");
 
+        var moduleIds = await ValidateModuleIdsAsync(dto.ModuleIds, cancellationToken);
+        var now = DateTime.UtcNow;
         var role = new Role
         {
             Name = name,
             NormalizedName = normalizedName,
             IsActive = dto.IsActive,
-            CreatedAtUtc = DateTime.UtcNow
+            CreatedAtUtc = now
         };
+        foreach (var moduleId in moduleIds)
+            role.RoleModules.Add(new RoleModule
+            {
+                ApplicationModuleId = moduleId,
+                IsActive = true,
+                AssignedAtUtc = now
+            });
         _context.Roles.Add(role);
         await _context.SaveChangesAsync(cancellationToken);
-        return new RoleDto(role.Id, role.Name, role.IsActive);
+        return new RoleDto(role.Id, role.Name, role.IsActive, moduleIds.Order().ToArray());
     }
 
     public async Task<RoleDto?> UpdateRoleAsync(
         int id, RoleRequestDto dto, CancellationToken cancellationToken)
     {
-        var role = await _context.Roles.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        ArgumentNullException.ThrowIfNull(dto);
+        var role = await _context.Roles.Include(x => x.RoleModules)
+            .ThenInclude(x => x.ApplicationModule)
+            .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (role is null) return null;
         var name = dto.Name.Trim();
         var normalizedName = name.ToUpperInvariant();
@@ -106,8 +119,35 @@ public sealed class AccessControlService : IAccessControlService
         role.Name = name;
         role.NormalizedName = normalizedName;
         role.IsActive = dto.IsActive;
+        HashSet<int>? synchronizedModuleIds = null;
+        if (dto.ModuleIds is not null)
+        {
+            synchronizedModuleIds = await ValidateModuleIdsAsync(dto.ModuleIds, cancellationToken);
+            SynchronizeRoleModules(role, synchronizedModuleIds);
+        }
         await _context.SaveChangesAsync(cancellationToken);
-        return new RoleDto(role.Id, role.Name, role.IsActive);
+        var activeModuleIds = synchronizedModuleIds is not null
+            ? synchronizedModuleIds.Order().ToArray()
+            : role.RoleModules.Where(x => x.IsActive && x.ApplicationModule.IsActive)
+                .Select(x => x.ApplicationModuleId).Order().ToArray();
+        return new RoleDto(role.Id, role.Name, role.IsActive, activeModuleIds);
+    }
+
+    public async Task<IReadOnlyList<RoleModuleOptionDto>> GetRoleModuleOptionsAsync(
+        int? roleId, CancellationToken cancellationToken)
+    {
+        if (roleId is <= 0) throw new ArgumentException("Role id must be positive.");
+        if (roleId.HasValue && !await _context.Roles.AnyAsync(x => x.Id == roleId.Value, cancellationToken))
+            throw new KeyNotFoundException("The role was not found.");
+
+        return await _context.ApplicationModules.AsNoTracking()
+            .Where(x => x.IsActive)
+            .OrderBy(x => x.DisplayOrder).ThenBy(x => x.Name)
+            .Select(x => new RoleModuleOptionDto(
+                x.Id, x.Code, x.Name, x.DisplayOrder,
+                roleId.HasValue && x.RoleModules.Any(rm =>
+                    rm.RoleId == roleId.Value && rm.IsActive)))
+            .ToListAsync(cancellationToken);
     }
 
     public async Task<bool> DeleteRoleAsync(int id, CancellationToken cancellationToken)
@@ -157,4 +197,43 @@ public sealed class AccessControlService : IAccessControlService
 
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private async Task<HashSet<int>> ValidateModuleIdsAsync(
+        IReadOnlyList<int>? requestedModuleIds, CancellationToken cancellationToken)
+    {
+        var moduleIds = (requestedModuleIds ?? []).ToHashSet();
+        if (moduleIds.Any(id => id <= 0))
+            throw new ArgumentException("Module ids must be positive.");
+        if (moduleIds.Count != (requestedModuleIds?.Count ?? 0))
+            throw new ArgumentException("A module cannot be assigned more than once.");
+        if (moduleIds.Count == 0) return moduleIds;
+
+        var activeIds = await _context.ApplicationModules.AsNoTracking()
+            .Where(x => moduleIds.Contains(x.Id) && x.IsActive)
+            .Select(x => x.Id).ToListAsync(cancellationToken);
+        if (activeIds.Count != moduleIds.Count)
+            throw new ArgumentException("One or more selected modules do not exist or are inactive.");
+        return moduleIds;
+    }
+
+    private static void SynchronizeRoleModules(Role role, HashSet<int> selectedModuleIds)
+    {
+        var now = DateTime.UtcNow;
+        foreach (var assignment in role.RoleModules)
+        {
+            if (!assignment.ApplicationModule.IsActive) continue;
+            var shouldBeActive = selectedModuleIds.Contains(assignment.ApplicationModuleId);
+            if (shouldBeActive && !assignment.IsActive) assignment.AssignedAtUtc = now;
+            assignment.IsActive = shouldBeActive;
+        }
+
+        var existingIds = role.RoleModules.Select(x => x.ApplicationModuleId).ToHashSet();
+        foreach (var moduleId in selectedModuleIds.Except(existingIds))
+            role.RoleModules.Add(new RoleModule
+            {
+                ApplicationModuleId = moduleId,
+                IsActive = true,
+                AssignedAtUtc = now
+            });
+    }
 }

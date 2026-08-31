@@ -104,6 +104,7 @@ builder.Services.AddScoped<IUserProfileService, UserProfileService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<IProfileImageStorage, ProfileImageStorage>();
 builder.Services.AddScoped<IListItemService, ListItemService>();
+builder.Services.AddScoped<IRoleModuleMenuManagementService, RoleModuleMenuManagementService>();
 builder.Services.AddScoped<IPermitApplicationService, PermitApplicationService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IRiskAssessmentService, RiskAssessmentService>();

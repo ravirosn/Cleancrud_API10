@@ -14,6 +14,7 @@
     const idInput = form.querySelector("[data-role-id]");
     const nameInput = form.querySelector("[data-role-name]");
     const activeInput = form.querySelector("[data-role-active]");
+    const modulesContainer = form.querySelector("[data-role-modules]");
     const title = form.querySelector("[data-role-modal-title]");
     const saveButton = form.querySelector("[data-role-save]");
     const saveLabel = form.querySelector("[data-role-save-label]");
@@ -31,17 +32,62 @@
     const notifyError = (message) =>
       window.apcloudNotifications?.error(message, "Unable to save role");
 
-    const showEditor = (record = null) => {
-      form.reset();
-      form.classList.remove("was-validated");
-      const id = property(record, "id");
-      idInput.value = id == null ? "" : String(id);
-      nameInput.value = property(record, "name") ?? "";
-      activeInput.checked = record ? property(record, "isActive") !== false : true;
-      title.textContent = id == null ? "Add role" : "Edit role";
-      saveLabel.textContent = id == null ? "Add role" : "Save changes";
-      modal?.show();
-      modalElement.addEventListener("shown.bs.modal", () => nameInput.focus(), { once: true });
+    const loadModules = async (roleId) => {
+      modulesContainer.innerHTML = '<div class="d-flex align-items-center gap-2 text-secondary"><span class="spinner-border spinner-border-sm" aria-hidden="true"></span><span>Loading modules…</span></div>';
+      const suffix = roleId == null ? "" : `?roleId=${encodeURIComponent(roleId)}`;
+      const payload = await window.apcloudApi.json(`roles/module-options${suffix}`);
+      const modules = Array.isArray(payload) ? payload : (property(payload, "data") ?? []);
+      modulesContainer.replaceChildren();
+      if (!modules.length) {
+        const empty = document.createElement("p");
+        empty.className = "text-secondary mb-0";
+        empty.textContent = "No active application modules are available.";
+        modulesContainer.append(empty);
+        return;
+      }
+
+      const row = document.createElement("div");
+      row.className = "row g-2";
+      modules.forEach((module) => {
+        const moduleId = property(module, "id");
+        const column = document.createElement("div");
+        column.className = "col-md-6";
+        const label = document.createElement("label");
+        label.className = "form-check border rounded p-2 h-100 m-0";
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "form-check-input";
+        checkbox.value = String(moduleId);
+        checkbox.checked = property(module, "isAssigned") === true;
+        checkbox.dataset.roleModule = "";
+        const text = document.createElement("span");
+        text.className = "form-check-label";
+        text.textContent = `${property(module, "name")} (${property(module, "code")})`;
+        label.append(checkbox, text);
+        column.append(label);
+        row.append(column);
+      });
+      modulesContainer.append(row);
+    };
+
+    const showEditor = async (record = null) => {
+      try {
+        form.reset();
+        form.classList.remove("was-validated");
+        const id = property(record, "id");
+        idInput.value = id == null ? "" : String(id);
+        nameInput.value = property(record, "name") ?? "";
+        activeInput.checked = record ? property(record, "isActive") !== false : true;
+        title.textContent = id == null ? "Add role" : "Edit role";
+        saveLabel.textContent = id == null ? "Add role" : "Save changes";
+        await loadModules(id);
+        modal?.show();
+        modalElement.addEventListener("shown.bs.modal", () => nameInput.focus(), { once: true });
+      } catch (error) {
+        window.apcloudNotifications?.error(
+          error.message || "The role editor could not be loaded.",
+          "Unable to load role form");
+      }
     };
 
     document.querySelectorAll("[data-role-add]").forEach((button) => {
@@ -80,7 +126,9 @@
       const id = idInput.value;
       const request = {
         name: nameInput.value.trim(),
-        isActive: activeInput.checked
+        isActive: activeInput.checked,
+        moduleIds: [...modulesContainer.querySelectorAll("[data-role-module]:checked")]
+          .map((checkbox) => Number(checkbox.value))
       };
 
       saveButton.disabled = true;
@@ -105,4 +153,3 @@
     });
   });
 })();
-

@@ -1,0 +1,160 @@
+@{
+    ViewData["Title"] = "Role menu assignments";
+}
+
+<div class="page-header d-print-none mb-4">
+    <div class="row g-3 align-items-center">
+        <div class="col">
+            <h1 class="page-title">Role menu assignments</h1>
+            <p class="text-secondary mt-2 mb-0">
+                Control which active menus are available to each role within its assigned modules.
+            </p>
+        </div>
+        <div class="col-auto ms-auto d-print-none">
+            <button type="button" class="btn btn-primary" data-role-menu-add>
+                <svg class="icon"><use href="#icon-plus" /></svg>
+                Assign menu
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card server-data-grid"
+     data-server-grid
+     data-url="role-module-menus?includeInactive=false"
+     data-page-size="10"
+     data-search-param="searchTerm"
+     data-server-sort="true"
+     data-default-sort="assignedAtUtc"
+     data-default-sort-direction="desc"
+     data-row-actions="edit,delete"
+     data-role-menu-grid>
+    <div class="card-header server-grid-toolbar">
+        <div class="server-grid-search" role="search">
+            <div class="input-icon">
+                <span class="input-icon-addon"><svg class="icon"><use href="#icon-search" /></svg></span>
+                <input type="search" class="form-control" data-grid-search
+                       placeholder="Search role, module, or menu…"
+                       aria-label="Search role menu assignments" autocomplete="off" />
+            </div>
+            <button type="button" class="btn btn-primary" data-grid-search-button>Search</button>
+            <button type="button" class="btn btn-outline-secondary" data-grid-clear>Clear</button>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <label for="roleMenuPageSize" class="text-secondary small text-nowrap">Rows per page</label>
+            <select id="roleMenuPageSize" class="form-select form-select-sm" data-grid-page-size>
+                <option value="10" selected>10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="server-grid-state" data-grid-loading role="status">
+        <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span>
+        <span>Loading role menu assignments…</span>
+    </div>
+    <div class="server-grid-state d-none" data-grid-error role="alert">
+        <span class="server-grid-state-icon text-danger"><svg class="icon"><use href="#icon-alert" /></svg></span>
+        <div>
+            <strong>Unable to load assignments</strong>
+            <p data-grid-error-message>The assignment data could not be loaded.</p>
+        </div>
+        <button type="button" class="btn btn-outline-danger ms-auto" data-grid-retry>Try again</button>
+    </div>
+    <div class="empty py-6 d-none" data-grid-empty>
+        <div class="empty-icon"><svg class="icon"><use href="#icon-search" /></svg></div>
+        <p class="empty-title">No role menu assignments found</p>
+        <p class="empty-subtitle text-secondary">Try another search or assign a menu to a role.</p>
+        <div class="empty-action">
+            <button type="button" class="btn btn-primary" data-role-menu-add>
+                <svg class="icon"><use href="#icon-plus" /></svg>
+                Assign menu
+            </button>
+        </div>
+    </div>
+
+    <div class="d-none" data-grid-content>
+        <div class="table-responsive server-grid-scroll">
+            <table class="table table-vcenter card-table server-grid-table">
+                <thead><tr data-grid-head>
+                    <th data-grid-column="roleName">Role</th>
+                    <th data-grid-column="moduleName">Module</th>
+                    <th data-grid-column="menuName">Menu</th>
+                    <th data-grid-column="menuHierarchy">Menu hierarchy</th>
+                    <th data-grid-column="displayOrder">Display order</th>
+                    <th data-grid-column="status">Status</th>
+                    <th data-grid-column="assignedAtUtc">Assigned</th>
+                    <th data-grid-column="assignedBy">Assigned by</th>
+                </tr></thead>
+                <tbody data-grid-body></tbody>
+            </table>
+        </div>
+        <div class="card-footer server-grid-footer">
+            <p class="m-0 text-secondary" data-grid-summary></p>
+            <ul class="pagination m-0 ms-auto" data-grid-pagination></ul>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="roleMenuEditorModal" tabindex="-1"
+     aria-labelledby="roleMenuEditorTitle" aria-hidden="true" data-role-menu-modal>
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <form data-role-menu-form novalidate>
+                <div class="modal-header">
+                    <h2 class="modal-title" id="roleMenuEditorTitle" data-role-menu-title>Assign menu</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info py-2" role="note">
+                        Modules are limited to those already assigned to the selected role. Menus are shown in hierarchy and display order.
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="roleMenuRole" class="form-label required">Role</label>
+                            <select id="roleMenuRole" class="form-select" required data-role-menu-role>
+                                <option value="">Select role</option>
+                            </select>
+                            <div class="invalid-feedback">Select a role.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="roleMenuModule" class="form-label required">Module</label>
+                            <select id="roleMenuModule" class="form-select" required disabled data-role-menu-module>
+                                <option value="">Select module</option>
+                            </select>
+                            <div class="invalid-feedback">Select a module assigned to this role.</div>
+                        </div>
+                        <div class="col-12">
+                            <label for="roleMenuMenu" class="form-label required">Menu</label>
+                            <select id="roleMenuMenu" class="form-select" required disabled data-role-menu-menu>
+                                <option value="">Select menu</option>
+                            </select>
+                            <div class="form-hint">The full parent path is included for each menu.</div>
+                            <div class="invalid-feedback">Select a menu.</div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" checked data-role-menu-active />
+                                <span class="form-check-label">Active assignment</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-role-menu-save>
+                        <span data-role-menu-save-label>Assign menu</span>
+                        <span class="d-none" data-role-menu-saving>
+                            <span class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>Saving…
+                        </span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/organization-role-module-menu.js" asp-append-version="true"></script>
+}

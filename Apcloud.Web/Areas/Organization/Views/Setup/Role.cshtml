@@ -12,6 +12,10 @@
                 </p>
             </div>
             <div class="col-auto ms-auto d-print-none">
+                <a class="btn btn-outline-primary me-2"
+                   asp-area="Organization" asp-controller="RoleModuleMenu" asp-action="Index">
+                    Menu assignments
+                </a>
                 <button type="button" class="btn btn-primary" data-role-add>
                     <svg class="icon"><use href="#icon-plus" /></svg>
                     Add role
@@ -105,7 +109,7 @@
 
 <div class="modal modal-blur fade" id="roleEditorModal" tabindex="-1"
      aria-labelledby="roleEditorTitle" aria-hidden="true" data-role-modal>
-    <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <form data-role-form novalidate>
                 <div class="modal-header">
@@ -122,6 +126,19 @@
                                autocomplete="off" />
                         <div class="invalid-feedback">
                             Enter a role name between 2 and 50 characters.
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Assigned modules</label>
+                        <div class="border rounded p-3 overflow-auto" style="max-height: 18rem"
+                             role="group" aria-label="Assigned modules" data-role-modules>
+                            <div class="d-flex align-items-center gap-2 text-secondary">
+                                <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+                                <span>Loading modules…</span>
+                            </div>
+                        </div>
+                        <div class="form-hint">
+                            Select every module this role should be able to access. Menu assignments remain managed separately.
                         </div>
                     </div>
                     <label class="form-check form-switch">
@@ -147,4 +164,3 @@
 @section Scripts {
     <script src="~/js/organization-role.js" asp-append-version="true"></script>
 }
-

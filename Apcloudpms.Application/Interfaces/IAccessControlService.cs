@@ -5,6 +5,7 @@ namespace Apcloudpms.Application.Interfaces;
 public interface IAccessControlService
 {
     Task<RolePagedResponseDto> GetRolesAsync(RoleQueryDto query, CancellationToken cancellationToken);
+    Task<IReadOnlyList<RoleModuleOptionDto>> GetRoleModuleOptionsAsync(int? roleId, CancellationToken cancellationToken);
     Task<RoleDto> CreateRoleAsync(RoleRequestDto dto, CancellationToken cancellationToken);
     Task<RoleDto?> UpdateRoleAsync(int id, RoleRequestDto dto, CancellationToken cancellationToken);
     Task<bool> DeleteRoleAsync(int id, CancellationToken cancellationToken);

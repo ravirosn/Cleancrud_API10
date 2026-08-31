@@ -18,6 +18,11 @@ public sealed class RolesController : ControllerBase
         [FromQuery] RoleQueryDto query, CancellationToken cancellationToken = default) =>
         Ok(await _service.GetRolesAsync(query, cancellationToken));
 
+    [HttpGet("module-options")]
+    public async Task<ActionResult<IReadOnlyList<RoleModuleOptionDto>>> GetModuleOptions(
+        [FromQuery] int? roleId, CancellationToken cancellationToken = default) =>
+        Ok(await _service.GetRoleModuleOptionsAsync(roleId, cancellationToken));
+
     [HttpPost]
     public async Task<ActionResult<RoleDto>> CreateRole(
         RoleRequestDto dto, CancellationToken cancellationToken)

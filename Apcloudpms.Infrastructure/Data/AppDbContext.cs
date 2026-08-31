@@ -139,6 +139,9 @@ public class AppDbContext : DbContext
             entity.ToTable("RoleModuleMenu", "dbo");
             entity.HasKey(x => new { x.RoleId, x.ApplicationModuleId, x.ModuleMenuId });
             entity.Property(x => x.AssignedAtUtc).HasPrecision(0);
+            entity.Property(x => x.AssignedBy).HasMaxLength(256);
+            entity.Property(x => x.ModifiedAtUtc).HasPrecision(0);
+            entity.Property(x => x.ModifiedBy).HasMaxLength(256);
             entity.HasIndex(x => new { x.ApplicationModuleId, x.ModuleMenuId, x.IsActive });
             entity.HasOne(x => x.RoleModule).WithMany(x => x.RoleModuleMenus)
                 .HasForeignKey(x => new { x.RoleId, x.ApplicationModuleId })

@@ -2,7 +2,11 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Apcloudpms.Application.DTOs;
 
-public sealed record RoleDto(int Id, string Name, bool IsActive);
+public sealed record RoleDto(
+    int Id, string Name, bool IsActive, IReadOnlyList<int> ModuleIds);
+
+public sealed record RoleModuleOptionDto(
+    int Id, string Code, string Name, int DisplayOrder, bool IsAssigned);
 
 public sealed class RoleQueryDto
 {
@@ -39,6 +43,7 @@ public sealed class RoleRequestDto
     [Required, StringLength(50, MinimumLength = 2)]
     public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
+    public IReadOnlyList<int>? ModuleIds { get; set; }
 }
 
 public sealed class UserRoleAssignmentDto

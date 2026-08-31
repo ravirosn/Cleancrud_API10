@@ -7,6 +7,9 @@ public sealed class RoleModuleMenu
     public int ModuleMenuId { get; set; }
     public bool IsActive { get; set; } = true;
     public DateTime AssignedAtUtc { get; set; } = DateTime.UtcNow;
+    public string? AssignedBy { get; set; }
+    public DateTime? ModifiedAtUtc { get; set; }
+    public string? ModifiedBy { get; set; }
 
     public RoleModule RoleModule { get; set; } = null!;
     public ModuleMenu ModuleMenu { get; set; } = null!;
