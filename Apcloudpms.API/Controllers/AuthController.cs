@@ -17,11 +17,35 @@ public sealed class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly IUserService _userService;
+    private readonly IPasswordResetService _passwordResetService;
 
-    public AuthController(IAuthService authService, IUserService userService)
+    public AuthController(IAuthService authService, IUserService userService, IPasswordResetService passwordResetService)
     {
         _authService = authService;
         _userService = userService;
+        _passwordResetService = passwordResetService;
+    }
+
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword(
+        ForgotPasswordRequestDto dto, CancellationToken cancellationToken)
+    {
+        await _passwordResetService.RequestAsync(dto.UserNameOrEmail, GetClientIp(), cancellationToken);
+        return Accepted(new { Message = "If the account exists, password reset instructions have been queued." });
+    }
+
+    [AllowAnonymous]
+    [EnableRateLimiting("auth")]
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword(
+        ResetPasswordRequestDto dto, CancellationToken cancellationToken)
+    {
+        var reset = await _passwordResetService.ResetAsync(dto.Token, dto.NewPassword, GetClientIp(), cancellationToken);
+        return reset
+            ? Ok(new { Message = "Your password has been reset." })
+            : BadRequest(new { Message = "The password reset link is invalid or has expired." });
     }
 
     [AllowAnonymous]

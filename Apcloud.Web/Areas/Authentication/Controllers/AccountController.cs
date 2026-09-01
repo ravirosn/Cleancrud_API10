@@ -35,6 +35,60 @@ public class AccountController(
     }
 
     [AllowAnonymous]
+    [HttpGet]
+    public IActionResult ForgotPassword() => View(new ForgotPasswordViewModel());
+
+    [AllowAnonymous]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ForgotPassword(ForgotPasswordViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return View(model);
+        try { await authApiClient.RequestPasswordResetAsync(model.UserNameOrEmail.Trim(), cancellationToken); }
+        catch (Exception exception) when (exception is AuthApiException or HttpRequestException or TaskCanceledException)
+        {
+            logger.LogWarning(exception, "Password reset request could not be submitted.");
+        }
+
+        ViewData["Submitted"] = true;
+        ModelState.Clear();
+        return View(new ForgotPasswordViewModel());
+    }
+
+    [AllowAnonymous]
+    [HttpGet]
+    public IActionResult ResetPassword(string? token)
+    {
+        if (string.IsNullOrWhiteSpace(token)) return RedirectToAction(nameof(ForgotPassword));
+        return View(new ResetPasswordViewModel { Token = token });
+    }
+
+    [AllowAnonymous]
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ResetPassword(ResetPasswordViewModel model, CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid) return View(model);
+        try
+        {
+            await authApiClient.ResetPasswordAsync(model.Token, model.NewPassword, model.ConfirmPassword, cancellationToken);
+            TempData["PasswordResetSuccess"] = "Your password has been reset. You can now sign in.";
+            return RedirectToAction(nameof(Login));
+        }
+        catch (AuthApiException exception)
+        {
+            ModelState.AddModelError(string.Empty, exception.Message);
+        }
+        catch (Exception exception) when (exception is HttpRequestException or TaskCanceledException)
+        {
+            logger.LogError(exception, "Password reset API request failed.");
+            ModelState.AddModelError(string.Empty, "Password reset is temporarily unavailable. Please try again.");
+        }
+        model.NewPassword = model.ConfirmPassword = string.Empty;
+        return View(model);
+    }
+
+    [AllowAnonymous]
     [HttpPost]
     [ValidateAntiForgeryToken]
     public IActionResult EntraLogin(string? returnUrl = null)
@@ -184,7 +238,9 @@ public class AccountController(
             AllowRefresh = true,
             IsPersistent = persistent,
             IssuedUtc = DateTimeOffset.UtcNow,
-            ExpiresUtc = tokens.RefreshTokenExpiresAtUtc
+            ExpiresUtc = persistent
+                ? tokens.RefreshTokenExpiresAtUtc
+                : DateTimeOffset.UtcNow.AddHours(8)
         };
         ApiBearerTokenHandler.StoreTokens(properties, tokens);
 

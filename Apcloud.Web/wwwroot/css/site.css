@@ -1093,7 +1093,9 @@ body {
 .password-toggle { position: absolute; z-index: 2; top: 50%; right: .5rem; display: grid; width: 2rem; height: 2rem; padding: 0; place-items: center; color: #8491a6; border: 0; background: transparent; transform: translateY(-50%); }
 .password-toggle svg { width: 1.05rem; height: 1.05rem; fill: none; stroke: currentColor; stroke-width: 1.7; }
 .password-toggle:hover, .password-toggle.is-visible { color: #0f6cbd; }
-.auth-muted-link { color: #607089; pointer-events: none; }
+.auth-muted-link { color: #607089; text-decoration: none; }
+.auth-muted-link:hover,
+.auth-muted-link:focus-visible { color: #0f6cbd; text-decoration: underline; }
 .login-card .form-check-label { color: #4c5a70; font-size: .75rem; }
 .auth-submit { min-height: 3rem; font-size: .84rem; font-weight: 650; border-radius: .55rem; background: #0f6cbd; box-shadow: 0 8px 20px rgb(15 108 189 / 18%); }
 .auth-submit:disabled { cursor: wait; opacity: .78; }

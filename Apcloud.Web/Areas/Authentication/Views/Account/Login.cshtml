@@ -40,6 +40,11 @@
                 <p>Use your organization credentials to continue.</p>
             </div>
 
+            @if (TempData["PasswordResetSuccess"] is string resetMessage)
+            {
+                <div class="alert alert-success py-2" role="status">@resetMessage</div>
+            }
+
             <form asp-area="Authentication" asp-controller="Account" asp-action="Login" method="post" novalidate data-login-form>
                 <input asp-for="ReturnUrl" type="hidden" />
                 <div asp-validation-summary="ModelOnly" class="alert alert-danger auth-validation-summary py-2" role="alert" aria-live="assertive"></div>
@@ -54,7 +59,8 @@
                 <div class="mb-2">
                     <div class="d-flex align-items-center">
                         <label asp-for="Password" class="form-label"></label>
-                        <a href="#" class="ms-auto small auth-muted-link" aria-disabled="true">Forgot password?</a>
+                        <a asp-area="Authentication" asp-controller="Account" asp-action="ForgotPassword"
+                           class="ms-auto small auth-muted-link">Forgot password?</a>
                     </div>
                     <div class="auth-input-wrap">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>

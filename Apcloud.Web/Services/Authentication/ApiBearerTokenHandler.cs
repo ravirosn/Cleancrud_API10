@@ -117,7 +117,10 @@ public sealed class ApiBearerTokenHandler(
                 }
 
                 StoreTokens(properties, tokens);
-                properties.ExpiresUtc = tokens.RefreshTokenExpiresAtUtc;
+                if (properties.IsPersistent)
+                {
+                    properties.ExpiresUtc = tokens.RefreshTokenExpiresAtUtc;
+                }
                 await context.SignInAsync(
                     AuthenticationSchemeNames.ApplicationCookie,
                     authentication.Principal!,

@@ -42,6 +42,8 @@ namespace Apcloudpms.Domain.Entities
 
         public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 
+        public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
+
         public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 
         public UserThemeSetting? ThemeSetting { get; set; }

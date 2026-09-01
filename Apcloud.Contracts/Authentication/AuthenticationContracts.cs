@@ -23,6 +23,26 @@ public sealed class RevokeTokenRequestDto
     public string RefreshToken { get; set; } = string.Empty;
 }
 
+public sealed class ForgotPasswordRequestDto
+{
+    [Required, StringLength(320, MinimumLength = 3)]
+    public string UserNameOrEmail { get; set; } = string.Empty;
+}
+
+public sealed class ResetPasswordRequestDto
+{
+    [Required, StringLength(512, MinimumLength = 32)]
+    public string Token { get; set; } = string.Empty;
+
+    [Required, StringLength(128, MinimumLength = 12)]
+    [RegularExpression("^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9]).{12,128}$",
+        ErrorMessage = "Password must include uppercase, lowercase, number, and special characters.")]
+    public string NewPassword { get; set; } = string.Empty;
+
+    [Required, Compare(nameof(NewPassword))]
+    public string ConfirmPassword { get; set; } = string.Empty;
+}
+
 public sealed record AuthResponseDto(
     string AccessToken,
     string RefreshToken,

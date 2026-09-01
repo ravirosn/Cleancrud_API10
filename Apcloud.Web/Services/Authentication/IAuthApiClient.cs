@@ -11,4 +11,8 @@ public interface IAuthApiClient
     Task<CurrentUserDetailsDto> GetCurrentUserAsync(string accessToken, CancellationToken cancellationToken = default);
 
     Task RevokeAsync(string refreshToken, CancellationToken cancellationToken = default);
+
+    Task RequestPasswordResetAsync(string userNameOrEmail, CancellationToken cancellationToken = default);
+
+    Task ResetPasswordAsync(string token, string newPassword, string confirmPassword, CancellationToken cancellationToken = default);
 }

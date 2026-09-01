@@ -45,6 +45,27 @@ public sealed class AuthApiClient(HttpClient httpClient, ILogger<AuthApiClient> 
         }
     }
 
+    public async Task RequestPasswordResetAsync(string userNameOrEmail, CancellationToken cancellationToken = default)
+    {
+        using var response = await httpClient.PostAsJsonAsync("api/Auth/forgot-password",
+            new ForgotPasswordRequestDto { UserNameOrEmail = userNameOrEmail }, JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new AuthApiException(response.StatusCode, "The password reset request could not be completed.");
+    }
+
+    public async Task ResetPasswordAsync(string token, string newPassword, string confirmPassword,
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await httpClient.PostAsJsonAsync("api/Auth/reset-password",
+            new ResetPasswordRequestDto { Token = token, NewPassword = newPassword, ConfirmPassword = confirmPassword },
+            JsonOptions, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+            throw new AuthApiException(response.StatusCode,
+                response.StatusCode == HttpStatusCode.BadRequest
+                    ? "The password reset link is invalid or has expired."
+                    : "The password could not be reset.");
+    }
+
     private async Task<AuthResponseDto> PostForTokensAsync<TRequest>(
         string path,
         TRequest payload,

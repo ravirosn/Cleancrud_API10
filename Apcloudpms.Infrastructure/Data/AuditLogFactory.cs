@@ -17,7 +17,7 @@ internal static class AuditLogFactory
         var changedAtUtc = DateTime.UtcNow;
 
         return changeTracker.Entries()
-            .Where(entry => entry.Entity is not AuditLog &&
+            .Where(entry => entry.Entity is not AuditLog and not EmailQueueItem &&
                 entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted)
             .Select(entry => CreateLog(entry, auditContext, changedAtUtc))
             .Where(log => log is not null)

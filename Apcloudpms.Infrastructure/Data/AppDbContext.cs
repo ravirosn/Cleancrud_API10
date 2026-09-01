@@ -16,6 +16,8 @@ public class AppDbContext : DbContext
     public DbSet<Student> Students => Set<Student>();
     public DbSet<User> Users => Set<User>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
+    public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
+    public DbSet<EmailQueueItem> EmailQueue => Set<EmailQueueItem>();
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RoleModule> RoleModules => Set<RoleModule>();
@@ -99,6 +101,41 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<User>().WithMany()
                 .HasForeignKey(x => x.ModifiedByUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.ToTable("PasswordResetToken", "dbo");
+            entity.Property(x => x.TokenHash).HasColumnType("char(64)").IsRequired();
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.ExpiresAtUtc).HasPrecision(0);
+            entity.Property(x => x.UsedAtUtc).HasPrecision(0);
+            entity.Property(x => x.RevokedAtUtc).HasPrecision(0);
+            entity.Property(x => x.RequestedByIp).HasMaxLength(45);
+            entity.Property(x => x.RowVersion).IsRowVersion();
+            entity.HasIndex(x => x.TokenHash).IsUnique();
+            entity.HasIndex(x => new { x.UserId, x.ExpiresAtUtc });
+            entity.HasOne(x => x.User).WithMany(x => x.PasswordResetTokens)
+                .HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EmailQueueItem>(entity =>
+        {
+            entity.ToTable("EmailQueue", "dbo");
+            entity.Property(x => x.ToEmail).HasMaxLength(320).IsRequired();
+            entity.Property(x => x.ToName).HasMaxLength(200);
+            entity.Property(x => x.Subject).HasMaxLength(500).IsRequired();
+            entity.Property(x => x.Status).HasMaxLength(20).IsRequired();
+            entity.Property(x => x.LastError).HasMaxLength(2000);
+            entity.Property(x => x.CorrelationId).HasMaxLength(100);
+            entity.Property(x => x.NextAttemptAtUtc).HasPrecision(0);
+            entity.Property(x => x.LockedUntilUtc).HasPrecision(0);
+            entity.Property(x => x.SentAtUtc).HasPrecision(0);
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
+            entity.HasIndex(x => new { x.Status, x.NextAttemptAtUtc, x.CreatedAtUtc });
+            entity.HasIndex(x => x.LockToken).HasFilter("[LockToken] IS NOT NULL");
+            entity.HasIndex(x => x.CorrelationId).HasFilter("[CorrelationId] IS NOT NULL");
         });
 
         modelBuilder.Entity<Role>(entity =>

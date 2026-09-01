@@ -113,6 +113,9 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IAccessControlService, AccessControlService>();
 builder.Services.AddScoped<IOrganizationService, OrganizationService>();
+builder.Services.AddScoped<IEmailQueueService, EmailQueueService>();
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+builder.Services.AddScoped<IPasswordResetService, PasswordResetService>();
 builder.Services.AddScoped<IModuleAccessService, ModuleAccessService>();
 builder.Services.AddScoped<IUserThemeSettingService, UserThemeSettingService>();
 builder.Services.AddScoped<IUserProfileService, UserProfileService>();
@@ -127,6 +130,7 @@ builder.Services.AddScoped<IApprovalWorkflowService, ApprovalWorkflowService>();
 builder.Services.AddScoped<IWorkflowSetupService, WorkflowSetupService>();
 builder.Services.AddSingleton<IApprovalNotificationQueue, ApprovalNotificationQueue>();
 builder.Services.AddHostedService<ApprovalNotificationWorker>();
+builder.Services.AddHostedService<EmailQueueWorker>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IPasswordService, PasswordService>();
@@ -145,6 +149,19 @@ builder.Services.AddOptions<ProfileImageStorageOptions>()
                          (!string.IsNullOrWhiteSpace(options.Azure.ConnectionString) &&
                           !string.IsNullOrWhiteSpace(options.Azure.ContainerName)),
         "Azure connection settings are required when profile image Azure storage is enabled.")
+    .ValidateOnStart();
+builder.Services.AddOptions<EmailOptions>()
+    .Bind(builder.Configuration.GetSection(EmailOptions.SectionName))
+    .Validate(options => options.PollSeconds is >= 2 and <= 300 && options.BatchSize is >= 1 and <= 100 &&
+        options.LeaseMinutes is >= 1 and <= 60, "Email queue processing settings are invalid.")
+    .Validate(options => !options.Enabled || (!string.IsNullOrWhiteSpace(options.Host) &&
+        options.Port is >= 1 and <= 65535 && !string.IsNullOrWhiteSpace(options.FromAddress)),
+        "SMTP host, port, and from address are required when email is enabled.")
+    .ValidateOnStart();
+builder.Services.AddOptions<PasswordResetOptions>()
+    .Bind(builder.Configuration.GetSection(PasswordResetOptions.SectionName))
+    .Validate(options => Uri.TryCreate(options.ResetPageUrl, UriKind.Absolute, out _) &&
+        options.TokenLifetimeMinutes is >= 10 and <= 1440, "Password reset URL or token lifetime is invalid.")
     .ValidateOnStart();
 builder.Services.AddHttpClient("PowerBi", client =>
     client.BaseAddress = new Uri("https://api.powerbi.com/v1.0/myorg/"));
