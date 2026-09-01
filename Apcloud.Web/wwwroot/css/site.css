@@ -1382,3 +1382,18 @@ a.menu-tree-link:hover { color: var(--tblr-primary); text-decoration: none; bord
   .audit-search-input { flex-basis: 100%; }
   .audit-filter-row, .audit-detail-meta { grid-template-columns: 1fr; }
 }
+
+/* Organization, office branch, and department administration */
+.organization-profile-card > .card-header { display: flex; min-height: 4.5rem; align-items: center; justify-content: space-between; gap: 1rem; }
+.organization-heading { display: flex; align-items: center; gap: 1rem; }
+.organization-heading .avatar .icon { width: 1.5rem; height: 1.5rem; }
+.organization-details-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin-bottom: 0; gap: 1rem; }
+.organization-details-grid > div { min-width: 0; padding: .85rem 1rem; border: 1px solid var(--tblr-border-color); border-radius: var(--tblr-border-radius); background: var(--tblr-bg-surface-secondary); }
+.organization-details-grid dt { margin-bottom: .25rem; color: var(--tblr-secondary); font-size: .65rem; font-weight: 650; letter-spacing: .04em; text-transform: uppercase; }
+.organization-details-grid dd { margin: 0; overflow: hidden; font-size: .76rem; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.organization-grid-scroll { height: clamp(16rem, calc(100vh - 31rem), 30rem); }
+
+@media (max-width: 767.98px) {
+  .organization-details-grid { grid-template-columns: 1fr; }
+  .organization-profile-card > .card-header { align-items: flex-start; flex-direction: column; }
+}

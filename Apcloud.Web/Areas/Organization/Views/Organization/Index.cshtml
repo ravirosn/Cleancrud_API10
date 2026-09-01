@@ -3,73 +3,63 @@
 }
 
 <div class="page-header d-print-none mb-4">
-    <div class="row align-items-center">
+    <div class="row g-3 align-items-center">
         <div class="col">
             <div class="page-pretitle">Administration</div>
             <h1 class="page-title">Organization</h1>
-            <p class="text-secondary mt-2 mb-0">
-                Manage organization information and access-control setup.
-            </p>
+            <p class="text-secondary mt-2 mb-0">Maintain the organization information used across the application.</p>
         </div>
     </div>
 </div>
 
-<div class="row row-cards">
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-body">
-                <span class="avatar bg-blue-lt mb-3" aria-hidden="true">
-                    <svg class="icon"><use href="#icon-users" /></svg>
-                </span>
-                <h2 class="card-title">Role</h2>
-                <p class="text-secondary">
-                    Configure the roles used to control access across the organization.
-                </p>
-            </div>
-            <div class="card-footer bg-transparent">
-                <a asp-area="Organization" asp-controller="Setup" asp-action="Role"
-                   class="btn btn-outline-primary">
-                    Open role setup
-                </a>
-            </div>
+<section class="card mb-4 organization-profile-card" data-organization-profile>
+    <div class="card-header">
+        <div>
+            <h2 class="card-title mb-1">Organization details</h2>
+            <div class="text-secondary small">Information used across modules, documents, and administration pages.</div>
+        </div>
+        <div class="card-actions d-none" data-organization-actions>
+            <button type="button" class="btn btn-outline-primary" data-organization-edit>Edit details</button>
         </div>
     </div>
+    <div class="server-grid-state" data-organization-loading>
+        <span class="spinner-border spinner-border-sm text-primary"></span><span>Loading organization details…</span>
+    </div>
+    <div class="server-grid-state d-none" data-organization-error role="alert">
+        <span class="server-grid-state-icon text-danger"><svg class="icon"><use href="#icon-alert" /></svg></span>
+        <div><strong>Unable to load organization</strong><p data-organization-error-message></p></div>
+        <button type="button" class="btn btn-outline-danger ms-auto" data-organization-retry>Try again</button>
+    </div>
+    <div class="card-body d-none" data-organization-display>
+        <div class="organization-heading">
+            <span class="avatar avatar-lg bg-blue-lt"><svg class="icon"><use href="#icon-apps" /></svg></span>
+            <div><h2 class="mb-1" data-organization-name>—</h2><div class="d-flex gap-2 align-items-center"><span class="badge bg-blue-lt" data-organization-code>—</span><span class="badge" data-organization-status>—</span></div></div>
+        </div>
+        <dl class="organization-details-grid mt-4">
+            <div><dt>Address</dt><dd data-organization-address>—</dd></div>
+            <div><dt>Phone</dt><dd data-organization-phone>—</dd></div>
+            <div><dt>Email</dt><dd data-organization-email>—</dd></div>
+            <div><dt>Website</dt><dd data-organization-website>—</dd></div>
+            <div><dt>Created</dt><dd data-organization-created>—</dd></div>
+            <div><dt>Last updated</dt><dd data-organization-updated>—</dd></div>
+        </dl>
+    </div>
+    <form class="card-body d-none" data-organization-form novalidate>
+        <div class="row g-3">
+            <div class="col-md-4"><label for="organizationCode" class="form-label required">Code</label><input id="organizationCode" class="form-control" minlength="2" maxlength="20" required data-organization-form-code /><div class="invalid-feedback">Enter an organization code.</div></div>
+            <div class="col-md-8"><label for="organizationName" class="form-label required">Name</label><input id="organizationName" class="form-control" minlength="2" maxlength="200" required data-organization-form-name /><div class="invalid-feedback">Enter the organization name.</div></div>
+            <div class="col-12"><label for="organizationAddress" class="form-label required">Address</label><textarea id="organizationAddress" class="form-control" rows="2" minlength="3" maxlength="500" required data-organization-form-address></textarea><div class="invalid-feedback">Enter the organization address.</div></div>
+            <div class="col-md-4"><label for="organizationPhone" class="form-label">Phone</label><input id="organizationPhone" type="tel" class="form-control" maxlength="30" data-organization-form-phone /></div>
+            <div class="col-md-4"><label for="organizationEmail" class="form-label">Email</label><input id="organizationEmail" type="email" class="form-control" maxlength="320" data-organization-form-email /><div class="invalid-feedback">Enter a valid email address.</div></div>
+            <div class="col-md-4"><label for="organizationWebsite" class="form-label">Website</label><input id="organizationWebsite" type="url" class="form-control" maxlength="500" placeholder="https://example.com" data-organization-form-website /><div class="invalid-feedback">Enter a full website URL.</div></div>
+        </div>
+        <div class="d-flex justify-content-end gap-2 mt-4 border-top pt-3">
+            <button type="button" class="btn btn-link link-secondary" data-organization-cancel>Cancel</button>
+            <button type="submit" class="btn btn-primary" data-organization-save><span data-organization-save-label>Save changes</span><span class="d-none" data-organization-saving><span class="spinner-border spinner-border-sm me-2"></span>Saving…</span></button>
+        </div>
+    </form>
+</section>
 
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-body">
-                <span class="avatar bg-purple-lt mb-3" aria-hidden="true">
-                    <svg class="icon"><use href="#icon-apps" /></svg>
-                </span>
-                <h2 class="card-title">Module</h2>
-                <p class="text-secondary">
-                    Configure application modules and their role assignments.
-                </p>
-            </div>
-            <div class="card-footer bg-transparent">
-                <a asp-area="Organization" asp-controller="Setup" asp-action="Module"
-                   class="btn btn-outline-primary">
-                    Open module setup
-                </a>
-            </div>
-        </div>
-    </div>
-
-    <div class="col-md-6">
-        <div class="card h-100">
-            <div class="card-body">
-                <span class="avatar bg-green-lt mb-3" aria-hidden="true">
-                    <svg class="icon"><use href="#icon-settings" /></svg>
-                </span>
-                <h2 class="card-title">Approval workflows</h2>
-                <p class="text-secondary">
-                    Configure approval levels and notification templates for each module and workflow type.
-                </p>
-            </div>
-            <div class="card-footer bg-transparent">
-                <a asp-area="Organization" asp-controller="Workflow" asp-action="Index"
-                   class="btn btn-outline-primary">Open workflow setup</a>
-            </div>
-        </div>
-    </div>
-</div>
+@section Scripts {
+    <script src="~/js/organization-administration.js" asp-append-version="true"></script>
+}

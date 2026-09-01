@@ -1,5 +1,6 @@
 using Apcloudpms.Application.DTOs;
 using Apcloudpms.Application.Interfaces;
+using Apcloudpms.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -7,11 +8,19 @@ namespace Apcloudpms.API.Controllers;
 
 [ApiController]
 [Route("api/organization")]
-[Authorize]
+[Authorize(Roles = nameof(ApplicationRole.Admin) + "," + nameof(ApplicationRole.SuperAdmin))]
 public sealed class OrganizationController : ControllerBase
 {
     private readonly IOrganizationService _service;
     public OrganizationController(IOrganizationService service) => _service = service;
+
+    [HttpGet("current")]
+    public async Task<ActionResult<OrganizationDetailsDto>> GetCurrentOrganization(
+        CancellationToken cancellationToken = default)
+    {
+        var result = await _service.GetCurrentOrganizationAsync(cancellationToken);
+        return result is null ? NotFound() : Ok(result);
+    }
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<OrganizationDetailsDto>> GetOrganization(

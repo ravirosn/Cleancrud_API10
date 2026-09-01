@@ -7,56 +7,41 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Apcloudpms.Infrastructure.Services;
 
-public sealed class OrganizationService(AppDbContext context) : IOrganizationService
+public sealed class OrganizationService(
+    AppDbContext context,
+    IAuditContext auditContext) : IOrganizationService
 {
+    public Task<OrganizationDetailsDto?> GetCurrentOrganizationAsync(
+        CancellationToken cancellationToken) => ReadOrganizationAsync(null, cancellationToken);
+
     public Task<OrganizationDetailsDto?> GetOrganizationByIdAsync(
-        int id, CancellationToken cancellationToken) =>
-        context.Organizations.AsNoTracking()
-            .Where(item => item.Id == id)
-            .Select(item => new OrganizationDetailsDto(
-                item.Id, item.Code, item.Name, item.Address, item.PhoneNumber,
-                item.Email, item.Website, item.IsActive, item.CreatedAtUtc, item.UpdatedAtUtc))
-            .SingleOrDefaultAsync(cancellationToken);
+        int id, CancellationToken cancellationToken) => ReadOrganizationAsync(id, cancellationToken);
 
     public async Task<OrganizationDetailsDto?> UpdateOrganizationAsync(
         int id, OrganizationUpdateRequestDto dto, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(dto);
-        var organization = await context.Organizations.SingleOrDefaultAsync(
-            item => item.Id == id, cancellationToken);
-        if (organization is null)
-            return null;
-
-        var code = dto.Code.Trim().ToUpperInvariant();
-        if (await context.Organizations.AsNoTracking().AnyAsync(
-                item => item.Id != id && item.Code == code, cancellationToken))
-            throw new ArgumentException("An organization with this code already exists.");
-        if (!dto.IsActive && await context.OfficeBranches.AsNoTracking().AnyAsync(
-                item => item.OrganizationId == id && item.IsActive, cancellationToken))
-            throw new ArgumentException("Disable the organization's active office branches before disabling the organization.");
-
-        organization.Code = code;
-        organization.Name = dto.Name.Trim();
-        organization.Address = dto.Address.Trim();
-        organization.PhoneNumber = Normalize(dto.PhoneNumber);
-        organization.Email = Normalize(dto.Email);
-        organization.Website = Normalize(dto.Website);
-        organization.IsActive = dto.IsActive;
-        organization.UpdatedAtUtc = DateTime.UtcNow;
-        try
+        ValidateOrganization(dto);
+        return await WithConnectionAsync<OrganizationDetailsDto?>(async connection =>
         {
-            await context.SaveChangesAsync(cancellationToken);
-        }
-        catch (DbUpdateException exception) when (
-            exception.InnerException is SqlException { Number: 2601 or 2627 })
-        {
-            throw new ArgumentException("An organization with this code already exists.", exception);
-        }
-
-        return new OrganizationDetailsDto(
-            organization.Id, organization.Code, organization.Name, organization.Address,
-            organization.PhoneNumber, organization.Email, organization.Website,
-            organization.IsActive, organization.CreatedAtUtc, organization.UpdatedAtUtc);
+            await using var command = CreateCommand(connection, "dbo.SPOrganizationUpd");
+            Add(command, "@Id", SqlDbType.Int, id);
+            Add(command, "@Code", SqlDbType.NVarChar, dto.Code.Trim().ToUpperInvariant(), 20);
+            Add(command, "@Name", SqlDbType.NVarChar, dto.Name.Trim(), 200);
+            Add(command, "@Address", SqlDbType.NVarChar, dto.Address.Trim(), 500);
+            Add(command, "@PhoneNumber", SqlDbType.NVarChar, Normalize(dto.PhoneNumber), 30);
+            Add(command, "@Email", SqlDbType.NVarChar, Normalize(dto.Email), 320);
+            Add(command, "@Website", SqlDbType.NVarChar, Normalize(dto.Website), 500);
+            AddAudit(command);
+            try
+            {
+                await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+                return await reader.ReadAsync(cancellationToken) ? ReadOrganization(reader) : null;
+            }
+            catch (SqlException ex) when (ex.Number >= 50000 || ex.Number is 2601 or 2627 or 547)
+            {
+                throw new ArgumentException(ex.Message, ex);
+            }
+        }, cancellationToken);
     }
 
     public Task<OrganizationPagedResponseDto<OfficeBranchDto>> GetBranchesAsync(
@@ -136,6 +121,8 @@ public sealed class OrganizationService(AppDbContext context) : IOrganizationSer
             Add(command, "@PageSize", SqlDbType.Int, query.PageSize);
             Add(command, "@SearchTerm", SqlDbType.NVarChar, Normalize(query.Search), 200);
             Add(command, "@IncludeInactive", SqlDbType.Bit, query.IncludeInactive);
+            Add(command, "@SortBy", SqlDbType.NVarChar, Normalize(query.SortBy), 32);
+            Add(command, "@SortDirection", SqlDbType.VarChar, query.SortDirection, 4);
             addFilters(command);
 
             await using var reader = await command.ExecuteReaderAsync(cancellationToken);
@@ -191,6 +178,7 @@ public sealed class OrganizationService(AppDbContext context) : IOrganizationSer
             Add(command, "@Address", SqlDbType.NVarChar, Normalize(dto.Address), 500);
             Add(command, "@IsHeadOffice", SqlDbType.Bit, dto.IsHeadOffice);
             Add(command, "@IsActive", SqlDbType.Bit, dto.IsActive);
+            AddAudit(command);
         }, ReadBranch, cancellationToken);
 
     private async Task<DepartmentDto> ExecuteDepartmentWriteAsync(string procedure, int? id,
@@ -202,6 +190,7 @@ public sealed class OrganizationService(AppDbContext context) : IOrganizationSer
             Add(command, "@Code", SqlDbType.NVarChar, dto.Code.Trim().ToUpperInvariant(), 20);
             Add(command, "@Name", SqlDbType.NVarChar, dto.Name.Trim(), 150);
             Add(command, "@IsActive", SqlDbType.Bit, dto.IsActive);
+            AddAudit(command);
         }, ReadDepartment, cancellationToken);
 
     private async Task<T> ExecuteWriteAsync<T>(string procedure, Action<SqlCommand> addParameters,
@@ -229,6 +218,7 @@ public sealed class OrganizationService(AppDbContext context) : IOrganizationSer
         {
             await using var command = CreateCommand(connection, procedure);
             Add(command, "@Id", SqlDbType.Int, id);
+            AddAudit(command);
             try
             {
                 var result = await command.ExecuteScalarAsync(cancellationToken);
@@ -271,10 +261,57 @@ public sealed class OrganizationService(AppDbContext context) : IOrganizationSer
         reader.GetString(reader.GetOrdinal("BranchName")), reader.GetString(reader.GetOrdinal("Code")),
         reader.GetString(reader.GetOrdinal("Name")), reader.GetBoolean(reader.GetOrdinal("IsActive")));
 
+    private Task<OrganizationDetailsDto?> ReadOrganizationAsync(
+        int? id, CancellationToken cancellationToken) =>
+        WithConnectionAsync<OrganizationDetailsDto?>(async connection =>
+        {
+            await using var command = CreateCommand(connection, "dbo.SPOrganizationGet");
+            Add(command, "@Id", SqlDbType.Int, id);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            return await reader.ReadAsync(cancellationToken) ? ReadOrganization(reader) : null;
+        }, cancellationToken);
+
+    private static OrganizationDetailsDto ReadOrganization(SqlDataReader reader) => new(
+        reader.GetInt32(reader.GetOrdinal("Id")),
+        reader.GetString(reader.GetOrdinal("Code")),
+        reader.GetString(reader.GetOrdinal("Name")),
+        reader.GetString(reader.GetOrdinal("Address")),
+        GetNullableString(reader, "PhoneNumber"),
+        GetNullableString(reader, "Email"),
+        GetNullableString(reader, "Website"),
+        reader.GetBoolean(reader.GetOrdinal("IsActive")),
+        reader.GetDateTime(reader.GetOrdinal("CreatedAtUtc")),
+        GetNullableDateTime(reader, "UpdatedAtUtc"));
+
+    private void AddAudit(SqlCommand command)
+    {
+        Add(command, "@ActorUserId", SqlDbType.Int, auditContext.UserId);
+        Add(command, "@ActorName", SqlDbType.NVarChar, Normalize(auditContext.UserName), 256);
+        Add(command, "@TraceId", SqlDbType.NVarChar, Normalize(auditContext.TraceId), 100);
+        Add(command, "@IpAddress", SqlDbType.NVarChar, Normalize(auditContext.IpAddress), 45);
+    }
+
+    private static void ValidateOrganization(OrganizationUpdateRequestDto dto)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+        if (string.IsNullOrWhiteSpace(dto.Code) || dto.Code.Trim().Length < 2)
+            throw new ArgumentException("Organization code must contain at least two characters.");
+        if (string.IsNullOrWhiteSpace(dto.Name) || dto.Name.Trim().Length < 2)
+            throw new ArgumentException("Organization name must contain at least two characters.");
+        if (string.IsNullOrWhiteSpace(dto.Address) || dto.Address.Trim().Length < 3)
+            throw new ArgumentException("Organization address must contain at least three characters.");
+    }
+
     private static string? GetNullableString(SqlDataReader reader, string column)
     {
         var ordinal = reader.GetOrdinal(column);
         return reader.IsDBNull(ordinal) ? null : reader.GetString(ordinal);
+    }
+
+    private static DateTime? GetNullableDateTime(SqlDataReader reader, string column)
+    {
+        var ordinal = reader.GetOrdinal(column);
+        return reader.IsDBNull(ordinal) ? null : reader.GetDateTime(ordinal);
     }
 
     private static string? Normalize(string? value) =>

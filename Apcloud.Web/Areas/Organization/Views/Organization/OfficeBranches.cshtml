@@ -1,0 +1,96 @@
+@{
+    ViewData["Title"] = "Office branches";
+}
+
+<div class="page-header d-print-none mb-4">
+    <div class="row g-3 align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Organization setup</div>
+            <h1 class="page-title">Office branches</h1>
+            <p class="text-secondary mt-2 mb-0">Maintain the offices and physical locations belonging to the organization.</p>
+        </div>
+        <div class="col-auto ms-auto d-print-none">
+            <button type="button" class="btn btn-primary" data-branch-add>
+                <svg class="icon"><use href="#icon-plus" /></svg>
+                Add office branch
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card server-data-grid" data-server-grid data-branch-grid
+     data-url="organization/branches?includeInactive=true" data-page-size="10"
+     data-search-param="search" data-server-sort="true" data-default-sort="name"
+     data-default-sort-direction="asc" data-row-actions="edit,delete">
+    <div class="card-header server-grid-toolbar">
+        <div class="server-grid-search" role="search">
+            <div class="input-icon">
+                <span class="input-icon-addon"><svg class="icon"><use href="#icon-search" /></svg></span>
+                <input type="search" class="form-control" data-grid-search placeholder="Search office branches…"
+                       aria-label="Search office branches" autocomplete="off" />
+            </div>
+            <button type="button" class="btn btn-primary" data-grid-search-button>Search</button>
+            <button type="button" class="btn btn-outline-secondary" data-grid-clear>Clear</button>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <label for="branchPageSize" class="text-secondary small text-nowrap">Rows per page</label>
+            <select id="branchPageSize" class="form-select form-select-sm" data-grid-page-size>
+                <option value="10" selected>10</option><option value="25">25</option><option value="50">50</option>
+            </select>
+        </div>
+    </div>
+    <div class="server-grid-state" data-grid-loading role="status">
+        <span class="spinner-border spinner-border-sm text-primary"></span><span>Loading office branches…</span>
+    </div>
+    <div class="server-grid-state d-none" data-grid-error role="alert">
+        <span class="server-grid-state-icon text-danger"><svg class="icon"><use href="#icon-alert" /></svg></span>
+        <div><strong>Unable to load office branches</strong><p data-grid-error-message>The office branch data could not be loaded.</p></div>
+        <button type="button" class="btn btn-outline-danger ms-auto" data-grid-retry>Try again</button>
+    </div>
+    <div class="empty py-6 d-none" data-grid-empty>
+        <div class="empty-icon"><svg class="icon"><use href="#icon-search" /></svg></div>
+        <p class="empty-title">No office branches found</p>
+        <p class="empty-subtitle text-secondary">Try another search term or add an office branch.</p>
+        <div class="empty-action"><button type="button" class="btn btn-primary" data-branch-add><svg class="icon"><use href="#icon-plus" /></svg>Add office branch</button></div>
+    </div>
+    <div class="d-none" data-grid-content>
+        <div class="table-responsive server-grid-scroll organization-grid-scroll">
+            <table class="table table-vcenter card-table server-grid-table">
+                <thead><tr data-grid-head>
+                    <th data-grid-column="organizationName">Organization</th>
+                    <th data-grid-column="code">Code</th>
+                    <th data-grid-column="name">Office branch</th>
+                    <th data-grid-column="address">Address</th>
+                    <th data-grid-column="headOffice">Head office</th>
+                    <th data-grid-column="status">Status</th>
+                </tr></thead>
+                <tbody data-grid-body></tbody>
+            </table>
+        </div>
+        <div class="card-footer server-grid-footer"><p class="m-0 text-secondary" data-grid-summary></p><ul class="pagination m-0 ms-auto" data-grid-pagination></ul></div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="branchEditorModal" tabindex="-1" aria-labelledby="branchEditorTitle" aria-hidden="true" data-branch-modal>
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form data-branch-form novalidate>
+                <div class="modal-header"><h2 class="modal-title" id="branchEditorTitle" data-branch-title>Add office branch</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+                <div class="modal-body">
+                    <div class="row g-3">
+                        <div class="col-md-4"><label for="branchCode" class="form-label required">Code</label><input id="branchCode" class="form-control" minlength="2" maxlength="20" required data-branch-code /><div class="invalid-feedback">Enter a branch code.</div></div>
+                        <div class="col-md-8"><label for="branchName" class="form-label required">Name</label><input id="branchName" class="form-control" minlength="2" maxlength="200" required data-branch-name /><div class="invalid-feedback">Enter the branch name.</div></div>
+                        <div class="col-12"><label for="branchAddress" class="form-label">Address</label><textarea id="branchAddress" class="form-control" rows="3" maxlength="500" data-branch-address></textarea></div>
+                        <div class="col-md-6"><label class="form-check form-switch"><input type="checkbox" class="form-check-input" data-branch-head /><span class="form-check-label">Head office</span></label></div>
+                        <div class="col-md-6"><label class="form-check form-switch"><input type="checkbox" class="form-check-input" checked data-branch-active /><span class="form-check-label">Active</span></label></div>
+                    </div>
+                </div>
+                <div class="modal-footer"><button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary" data-branch-save><span data-branch-save-label>Add office branch</span><span class="d-none" data-branch-saving><span class="spinner-border spinner-border-sm me-2"></span>Saving…</span></button></div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/organization-administration.js" asp-append-version="true"></script>
+}
