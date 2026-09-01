@@ -13,10 +13,7 @@ public sealed class RiskAssessmentController : Controller
     public IActionResult Index() => View();
 
     [HttpGet("Create")]
-    public IActionResult Create()
-    {
-        return View();
-    }
+    public IActionResult Create() => RedirectToAction(nameof(Index), new { create = true });
 
     [HttpGet("Edit/{id}")]
     public IActionResult Edit(string id)
@@ -26,8 +23,7 @@ public sealed class RiskAssessmentController : Controller
             return BadRequest();
         }
 
-        ViewData["RiskAssessmentId"] = id;
-        return View();
+        return RedirectToAction(nameof(Index), new { edit = id });
     }
 
 }

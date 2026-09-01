@@ -10,10 +10,10 @@
             <p class="text-secondary mt-2 mb-0">Review and manage the risk assessments available to your account.</p>
         </div>
         <div class="col-auto ms-auto d-print-none">
-            <a asp-action="Create" class="btn btn-primary">
+            <button type="button" class="btn btn-primary" data-risk-add>
                 <svg class="icon"><use href="#icon-plus" /></svg>
                 Add risk assessment
-            </a>
+            </button>
         </div>
     </div>
 </div>
@@ -27,7 +27,6 @@
      data-page-size="10"
      data-search-param="searchTerm"
      data-search-alias="search"
-     data-edit-url-template="/PermitApplication/RiskAssessment/Edit/{id}"
      data-row-actions="edit">
     <div class="card-header server-grid-toolbar">
         <div class="server-grid-search" role="search">
@@ -63,7 +62,7 @@
         <div class="empty-icon"><svg class="icon"><use href="#icon-search" /></svg></div>
         <p class="empty-title">No risk assessments found</p>
         <p class="empty-subtitle text-secondary">Try changing the search term or add a new risk assessment.</p>
-        <div class="empty-action"><a asp-action="Create" class="btn btn-primary"><svg class="icon"><use href="#icon-plus" /></svg>Add risk assessment</a></div>
+        <div class="empty-action"><button type="button" class="btn btn-primary" data-risk-add><svg class="icon"><use href="#icon-plus" /></svg>Add risk assessment</button></div>
     </div>
 
     <div class="d-none" data-grid-content>
@@ -94,3 +93,90 @@
         </div>
     </div>
 </div>
+
+<div class="modal modal-blur fade" id="riskAssessmentEditorModal" tabindex="-1"
+     aria-labelledby="riskAssessmentEditorTitle" aria-hidden="true" data-risk-modal>
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form data-risk-form novalidate>
+                <div class="modal-header align-items-start">
+                    <div>
+                        <div class="text-secondary small mb-1" data-risk-mode>Add risk assessment</div>
+                        <h2 class="modal-title" id="riskAssessmentEditorTitle" data-risk-title>New risk assessment</h2>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="risk-stepper" aria-label="Risk assessment form progress">
+                    <button type="button" class="risk-step is-active" data-risk-step-button="0"><span>1</span><strong>Assessment &amp; work</strong><small>Details, people and scope</small></button>
+                    <button type="button" class="risk-step" data-risk-step-button="1"><span>2</span><strong>Hazards &amp; permits</strong><small>Hazards and permit types</small></button>
+                    <button type="button" class="risk-step" data-risk-step-button="2"><span>3</span><strong>Protection</strong><small>PPE and additional controls</small></button>
+                    <button type="button" class="risk-step" data-risk-step-button="3"><span>4</span><strong>Final verification</strong><small>Review before submitting</small></button>
+                </div>
+                <div class="modal-body risk-editor-body">
+                    <div class="alert alert-danger d-none" role="alert" data-risk-error></div>
+                    <input type="hidden" data-risk-id />
+
+                    <section data-risk-step-panel="0">
+                        <div class="risk-section-heading"><div><h3>Assessment and work details</h3><p>Identify the assessment, define the planned work window, and record the responsible people.</p></div><span class="badge bg-blue-lt">Step 1 of 4</span></div>
+                        <div class="row g-3">
+                            <div class="col-md-5"><label class="form-label required" for="riskNumber">Pre-risk assessment number</label><input id="riskNumber" class="form-control" maxlength="50" required data-risk-number /><div class="invalid-feedback">Enter the assessment number.</div></div>
+                            <div class="col-md-3"><label class="form-label required" for="riskIssueDate">Issue date</label><input id="riskIssueDate" type="date" class="form-control" required data-risk-issue-date /><div class="invalid-feedback">Select the issue date.</div></div>
+                            <div class="col-md-4"><label class="form-label required" for="riskLocation">Location of work</label><input id="riskLocation" class="form-control" maxlength="255" required data-risk-location /><div class="invalid-feedback">Enter the work location.</div></div>
+                            <div class="col-md-6"><label class="form-label" for="riskStart">Planned start</label><input id="riskStart" type="datetime-local" class="form-control" data-risk-start /></div>
+                            <div class="col-md-6"><label class="form-label" for="riskEnd">Planned end</label><input id="riskEnd" type="datetime-local" class="form-control" data-risk-end /><div class="invalid-feedback">Planned end must be on or after planned start.</div></div>
+                            <div class="col-12"><div class="risk-form-divider"><span>People and work scope</span></div></div>
+                            <div class="col-md-4"><label class="form-label required" for="riskIssuer">Permit issuer</label><input id="riskIssuer" class="form-control" maxlength="100" required data-risk-issuer /><div class="invalid-feedback">Enter the permit issuer.</div></div>
+                            <div class="col-md-4"><label class="form-label required" for="riskReceiver">Permit receiver</label><input id="riskReceiver" class="form-control" maxlength="100" required data-risk-receiver /><div class="invalid-feedback">Enter the permit receiver.</div></div>
+                            <div class="col-md-4"><label class="form-label required" for="riskResponsible">Area responsible</label><input id="riskResponsible" class="form-control" maxlength="100" required data-risk-responsible /><div class="invalid-feedback">Enter the responsible person or area.</div></div>
+                            <div class="col-12"><label class="form-label" for="riskDescription">Description of work</label><textarea id="riskDescription" class="form-control" rows="4" data-risk-description></textarea><div class="form-hint">Describe the activity, equipment, work method, and boundaries.</div></div>
+                            <div class="col-12"><label class="form-label" for="riskInstructions">Special instructions</label><textarea id="riskInstructions" class="form-control" rows="3" data-risk-instructions></textarea></div>
+                        </div>
+                    </section>
+
+                    <section class="d-none" data-risk-step-panel="1">
+                        <div class="risk-section-heading"><div><h3>Hazards and special permits</h3><p>Select every applicable item. Special permits are loaded from the PermitType category.</p></div><span class="badge bg-blue-lt">Step 2 of 4</span></div>
+                        <div class="row g-4">
+                            <div class="col-lg-6"><div class="risk-selection-card"><h4>Hazard categories</h4><p class="text-secondary small">Known sources of harm associated with this work.</p><div class="risk-option-grid" data-risk-options="hazardCategories"><span class="spinner-border spinner-border-sm"></span> Loading options…</div></div></div>
+                            <div class="col-lg-6"><div class="risk-selection-card"><h4>Special permits</h4><p class="text-secondary small">Additional permit controls required for the activity.</p><div class="risk-option-grid" data-risk-options="specialPermits"><span class="spinner-border spinner-border-sm"></span> Loading options…</div></div></div>
+                        </div>
+                    </section>
+
+                    <section class="d-none" data-risk-step-panel="2">
+                        <div class="risk-section-heading"><div><h3>Protective measures</h3><p>Select the required PPE and record any additional equipment or protection measures.</p></div><span class="badge bg-blue-lt">Step 3 of 4</span></div>
+                        <div class="row g-4">
+                            <div class="col-lg-6">
+                                <div class="risk-protection-column">
+                                    <div class="risk-selection-card"><h4>Personal protective equipment</h4><div class="risk-option-grid" data-risk-options="personalProtectiveEquipment"><span class="spinner-border spinner-border-sm"></span> Loading options…</div></div>
+                                    <div><label class="form-label" for="riskOtherPpe">Other equipment or PPE</label><textarea id="riskOtherPpe" class="form-control" rows="3" maxlength="500" data-risk-other-ppe></textarea><div class="form-hint">Maximum 500 characters.</div></div>
+                                </div>
+                            </div>
+                            <div class="col-lg-6">
+                                <div class="risk-protection-column">
+                                    <div class="risk-selection-card"><h4>Additional protective measures</h4><div class="risk-option-grid" data-risk-options="additionalPpe"><span class="spinner-border spinner-border-sm"></span> Loading options…</div></div>
+                                    <div><label class="form-label" for="riskOtherMeasures">Other protection measures</label><textarea id="riskOtherMeasures" class="form-control" rows="3" maxlength="500" data-risk-other-measures></textarea><div class="form-hint">Maximum 500 characters.</div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="d-none risk-verification-panel" data-risk-step-panel="3">
+                        <div class="risk-section-heading"><div><h3>Final verification</h3><p>Review all assessment information carefully before submitting the form.</p></div><span class="badge bg-blue-lt">Step 4 of 4</span></div>
+                        <div class="risk-review-card" data-risk-review></div>
+                    </section>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-secondary d-none" data-risk-previous>Previous</button>
+                        <button type="button" class="btn btn-primary" data-risk-next>Continue</button>
+                        <button type="submit" class="btn btn-success d-none" data-risk-save><svg class="icon me-1"><use href="#icon-check" /></svg><span data-risk-save-label>Submit</span><span class="d-none" data-risk-saving><span class="spinner-border spinner-border-sm me-2"></span>Submitting…</span></button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="~/js/risk-assessment-editor.js" asp-append-version="true"></script>
+}
