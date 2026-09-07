@@ -129,6 +129,107 @@
 
     const displayDateTime = value => value ? new Date(value).toLocaleString() : "Not provided";
 
+    const displayDate = value => {
+      const match = String(value ?? "").match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!match) return value || "—";
+      return new Intl.DateTimeFormat(undefined, { day: "2-digit", month: "short", year: "numeric" })
+        .format(new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+    };
+
+    const permitStatusClass = status => {
+      switch (String(status ?? "").toLowerCase()) {
+        case "approved": case "active": case "completed": return "bg-green-lt";
+        case "pending": case "submitted": return "bg-yellow-lt";
+        case "rejected": case "inactive": case "cancelled": return "bg-red-lt";
+        default: return "bg-blue-lt";
+      }
+    };
+
+    const createPermitCell = (value, className = "") => {
+      const cell = document.createElement("td");
+      if (className) cell.className = className;
+      cell.textContent = value ?? "—";
+      return cell;
+    };
+
+    const renderPermitApplications = (container, permits) => {
+      container.replaceChildren();
+      const panel = document.createElement("div"); panel.className = "risk-related-permits";
+      const header = document.createElement("div"); header.className = "risk-related-permits-header";
+      const headingCopy = document.createElement("div");
+      const title = document.createElement("h4"); title.textContent = "Related permit applications";
+      const hint = document.createElement("p"); hint.textContent = "Permit applications created from this risk assessment.";
+      const count = document.createElement("span"); count.className = "badge bg-blue-lt";
+      count.textContent = `${permits.length} ${permits.length === 1 ? "permit" : "permits"}`;
+      headingCopy.append(title, hint); header.append(headingCopy, count); panel.append(header);
+
+      if (!permits.length) {
+        const empty = document.createElement("div"); empty.className = "risk-related-permits-empty";
+        empty.textContent = "No permit applications have been created for this risk assessment.";
+        panel.append(empty); container.append(panel); return;
+      }
+
+      const scroll = document.createElement("div"); scroll.className = "table-responsive";
+      const table = document.createElement("table"); table.className = "table table-vcenter risk-related-permits-table mb-0";
+      const head = document.createElement("thead");
+      const headRow = document.createElement("tr");
+      ["Permit number", "Issue date", "Permit type", "Issuer", "Receiver", "Status", "Action"].forEach(label => {
+        const cell = document.createElement("th"); cell.textContent = label; headRow.append(cell);
+      });
+      head.append(headRow); table.append(head);
+      const body = document.createElement("tbody");
+      permits.forEach(permit => {
+        const row = document.createElement("tr");
+        const permitNumber = property(permit, "permitNumber") || "—";
+        row.append(
+          createPermitCell(permitNumber, "fw-semibold"),
+          createPermitCell(displayDate(property(permit, "issueDate"))),
+          createPermitCell(property(permit, "permitTypeName")),
+          createPermitCell(property(permit, "permitIssuerName")),
+          createPermitCell(property(permit, "permitReceiverName"))
+        );
+        const statusCell = document.createElement("td");
+        const status = property(permit, "permitStatusName") || "Unknown";
+        const badge = document.createElement("span"); badge.className = `badge ${permitStatusClass(status)}`; badge.textContent = status;
+        statusCell.append(badge); row.append(statusCell);
+        const actionCell = document.createElement("td");
+        const dropdown = document.createElement("div"); dropdown.className = "dropdown dropstart risk-permit-action-dropdown";
+        const trigger = document.createElement("button");
+        trigger.type = "button"; trigger.className = "btn btn-sm btn-icon btn-ghost-secondary risk-permit-actions";
+        trigger.dataset.bsToggle = "dropdown"; trigger.dataset.bsBoundary = "viewport"; trigger.setAttribute("aria-expanded", "false");
+        trigger.setAttribute("aria-label", `Actions for ${permitNumber}`); trigger.textContent = "⋯";
+        const menu = document.createElement("div"); menu.className = "dropdown-menu";
+        ["Preview", "Edit", "Finalize", "Print"].forEach(action => {
+          const item = document.createElement("button"); item.type = "button"; item.className = "dropdown-item";
+          item.textContent = action; item.disabled = true;
+          item.title = `${action} will be implemented in the next permit-application step.`;
+          menu.append(item);
+        });
+        dropdown.append(trigger, menu); actionCell.append(dropdown); row.append(actionCell); body.append(row);
+      });
+      table.append(body); scroll.append(table); panel.append(scroll); container.append(panel);
+    };
+
+    const loadPermitApplications = async (riskAssessmentId, container) => {
+      container.replaceChildren();
+      const loading = document.createElement("div"); loading.className = "risk-related-permits-loading";
+      const spinner = document.createElement("span"); spinner.className = "spinner-border spinner-border-sm text-primary";
+      const text = document.createElement("span"); text.textContent = "Loading related permit applications…";
+      loading.append(spinner, text); container.append(loading);
+      try {
+        const result = await window.apcloudApi.json(`risk-assessments/${encodeURIComponent(riskAssessmentId)}/permit-applications`);
+        const permits = Array.isArray(result) ? result : (property(result, "data") ?? []);
+        renderPermitApplications(container, permits);
+      } catch (error) {
+        container.replaceChildren();
+        const alert = document.createElement("div"); alert.className = "alert alert-danger m-3 d-flex align-items-center gap-3";
+        const message = document.createElement("span"); message.textContent = error.message || "Related permit applications could not be loaded.";
+        const retry = document.createElement("button"); retry.type = "button"; retry.className = "btn btn-sm btn-outline-danger ms-auto"; retry.textContent = "Retry";
+        retry.addEventListener("click", () => loadPermitApplications(riskAssessmentId, container));
+        alert.append(message, retry); container.append(alert);
+      }
+    };
+
     const renderReview = () => {
       const review = form.querySelector("[data-risk-review]");
       const heading = document.createElement("div"); heading.className = "risk-review-heading";
@@ -265,6 +366,42 @@
     document.querySelectorAll("[data-risk-add]").forEach(button => button.addEventListener("click", () => openEditor()));
     grid?.addEventListener("server-grid:action", event => {
       if (event.detail?.action === "edit") openEditor(property(event.detail.record, "id"));
+    });
+    grid?.addEventListener("server-grid:expand", event => {
+      const { id, row, button, columnCount } = event.detail ?? {};
+      if (!id || !row || !button) return;
+      const existing = row.nextElementSibling?.dataset.riskPermitChildFor === String(id)
+        ? row.nextElementSibling
+        : null;
+      if (existing) {
+        existing.remove();
+        row.classList.remove("is-expanded");
+        button.classList.remove("is-expanded");
+        button.setAttribute("aria-expanded", "false");
+        button.removeAttribute("aria-controls");
+        return;
+      }
+
+      grid.querySelectorAll(".risk-permit-child-row").forEach(child => child.remove());
+      grid.querySelectorAll("[data-grid-record-id].is-expanded").forEach(parent => parent.classList.remove("is-expanded"));
+      grid.querySelectorAll(".server-grid-expand.is-expanded").forEach(expandButton => {
+        expandButton.classList.remove("is-expanded");
+        expandButton.setAttribute("aria-expanded", "false");
+        expandButton.removeAttribute("aria-controls");
+      });
+
+      const childRow = document.createElement("tr");
+      childRow.className = "risk-permit-child-row";
+      childRow.dataset.riskPermitChildFor = String(id);
+      childRow.id = `risk-permits-${id}`;
+      const childCell = document.createElement("td"); childCell.colSpan = Number(columnCount) || row.children.length;
+      const content = document.createElement("div"); content.className = "risk-permit-child-content";
+      childCell.append(content); childRow.append(childCell); row.after(childRow);
+      row.classList.add("is-expanded");
+      button.classList.add("is-expanded");
+      button.setAttribute("aria-expanded", "true");
+      button.setAttribute("aria-controls", childRow.id);
+      loadPermitApplications(id, content);
     });
     fields.start.addEventListener("change", validateDates); fields.end.addEventListener("change", validateDates);
     form.addEventListener("input", () => { if (currentStep === panels.length - 1) renderReview(); });

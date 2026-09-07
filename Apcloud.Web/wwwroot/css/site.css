@@ -1360,6 +1360,23 @@ a.menu-tree-link:hover { color: var(--tblr-primary); text-decoration: none; bord
 .risk-review-selection-list { display: grid; margin: .2rem 0 0; padding: 0; gap: .45rem; list-style: none; }
 .risk-review-selection-list li { position: relative; min-height: 1.75rem; padding: .35rem .65rem .35rem 1.75rem; color: var(--tblr-body-color); font-weight: 550; border: 1px solid var(--tblr-border-color); border-radius: var(--tblr-border-radius); background: var(--tblr-bg-surface-secondary); }
 .risk-review-selection-list li::before { position: absolute; top: .38rem; left: .58rem; color: var(--tblr-success); content: "✓"; font-weight: 800; }
+.risk-assessment-table > tbody > tr.is-expanded > td { background: rgba(var(--tblr-primary-rgb), .035); }
+.risk-permit-child-row { position: relative; z-index: 4; }
+.risk-permit-child-row:has(.dropdown-menu.show) { z-index: 30; }
+.risk-permit-child-row > td { position: relative; overflow: visible; padding: 0 !important; border-top: 0; background: var(--tblr-bg-surface-secondary); }
+.risk-permit-child-content { padding: .85rem 1rem 1rem 3.25rem; }
+.risk-related-permits { overflow: visible; border: 1px solid var(--tblr-border-color); border-radius: var(--tblr-border-radius-lg); background: var(--tblr-bg-surface); box-shadow: 0 .25rem .75rem rgba(31, 42, 55, .05); }
+.risk-related-permits > .table-responsive { overflow: visible; border-radius: 0 0 var(--tblr-border-radius-lg) var(--tblr-border-radius-lg); }
+.risk-related-permits-header { display: flex; min-height: 4rem; padding: .8rem 1rem; align-items: center; justify-content: space-between; gap: 1rem; border-bottom: 1px solid var(--tblr-border-color); border-radius: var(--tblr-border-radius-lg) var(--tblr-border-radius-lg) 0 0; background: rgba(var(--tblr-primary-rgb), .035); }
+.risk-related-permits-header h4 { margin: 0; font-size: .78rem; }
+.risk-related-permits-header p { margin: .2rem 0 0; color: var(--tblr-secondary); font-size: .66rem; }
+.risk-related-permits-table { min-width: 62rem; }
+.risk-related-permits-table th { padding: .65rem .8rem; color: var(--tblr-secondary); font-size: .62rem; letter-spacing: .03em; text-transform: uppercase; background: var(--tblr-bg-surface-secondary); }
+.risk-related-permits-table td { padding: .7rem .8rem; font-size: .7rem; }
+.risk-related-permits-table th:last-child, .risk-related-permits-table td:last-child { width: 1%; white-space: nowrap; }
+.risk-permit-actions { font-size: 1.25rem; font-weight: 750; line-height: 1; letter-spacing: .08em; }
+.risk-permit-action-dropdown, .risk-permit-action-dropdown .dropdown-menu { z-index: 1085; }
+.risk-related-permits-loading, .risk-related-permits-empty { display: flex; min-height: 5.5rem; padding: 1rem; align-items: center; justify-content: center; gap: .65rem; color: var(--tblr-secondary); font-size: .72rem; }
 
 @media (max-width: 767.98px) {
   .risk-list-toolbar { align-items: stretch; flex-direction: column; }
@@ -1372,6 +1389,7 @@ a.menu-tree-link:hover { color: var(--tblr-primary); text-decoration: none; bord
   .risk-step:last-child { border-bottom: 0; }
   .risk-editor-body { min-height: 24rem; padding: 1rem; }
   .risk-option-grid, .risk-review-body, .risk-review-grid { grid-template-columns: 1fr; }
+  .risk-permit-child-content { padding: .75rem; }
 }
 
 /* Reusable asynchronous server data grid */
@@ -1392,6 +1410,10 @@ a.menu-tree-link:hover { color: var(--tblr-primary); text-decoration: none; bord
 .server-grid-sort:hover, .server-grid-sort.active { color: var(--tblr-primary); }
 .server-grid-sort-icon { flex: 0 0 auto; font-size: .8rem; line-height: 1; }
 .server-grid-cell { max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.server-grid-expand-cell { width: 1%; padding-right: .25rem !important; white-space: nowrap; }
+.server-grid-expand { width: 2.15rem; height: 2.15rem; color: var(--tblr-secondary); font-size: 1.65rem; font-weight: 750; line-height: 1; transition: color .15s ease, transform .15s ease, background-color .15s ease; }
+.server-grid-expand:hover { color: var(--tblr-primary); }
+.server-grid-expand.is-expanded { color: var(--tblr-primary); transform: rotate(90deg); background: rgba(var(--tblr-primary-rgb), .08); }
 .server-grid-actions { font-size: 1.2rem; font-weight: 700; line-height: 1; letter-spacing: .08em; }
 .server-grid-footer { display: flex; min-height: 4rem; align-items: center; }
 

@@ -110,6 +110,8 @@
       this.root = root;
       this.url = root.dataset.url;
       this.editUrlTemplate = root.dataset.editUrlTemplate || "";
+      this.rowExpand = root.dataset.rowExpand === "true";
+      this.rowExpandWhen = root.dataset.rowExpandWhen || "";
       this.rowActions = (root.dataset.rowActions || "").split(",").map((value) => value.trim()).filter(Boolean);
       this.hiddenColumns = (root.dataset.hiddenColumns || "")
         .split(",")
@@ -275,6 +277,11 @@
         : inferredColumns;
 
       this.elements.head.replaceChildren();
+      if (this.rowExpand) {
+        const expandHeader = createElement("th", "w-1");
+        expandHeader.append(createElement("span", "visually-hidden", "Expand row"));
+        this.elements.head.append(expandHeader);
+      }
       columns.forEach((column) => {
         const header = document.createElement("th");
         const isActiveSort = this.serverSorting && this.state.sortBy === column.key;
@@ -304,6 +311,31 @@
       this.elements.body.replaceChildren();
       flattened.forEach((item) => {
         const row = document.createElement("tr");
+        if (item.id) row.dataset.gridRecordId = item.id;
+        if (this.rowExpand) {
+          const cell = createElement("td", "server-grid-expand-cell");
+          const canExpand = item.id && (!this.rowExpandWhen || findProperty(item.record, [this.rowExpandWhen]) === true);
+          if (canExpand) {
+            const button = createElement("button", "btn btn-sm btn-icon btn-ghost-secondary server-grid-expand", "›");
+            button.type = "button";
+            button.setAttribute("aria-expanded", "false");
+            button.setAttribute("aria-label", "Show related records");
+            button.addEventListener("click", () => {
+              this.root.dispatchEvent(new CustomEvent("server-grid:expand", {
+                bubbles: true,
+                detail: {
+                  id: item.id,
+                  record: item.record,
+                  row,
+                  button,
+                  columnCount: columns.length + 1 + (this.editUrlTemplate || this.rowActions.length ? 1 : 0)
+                }
+              }));
+            });
+            cell.append(button);
+          }
+          row.append(cell);
+        }
         columns.forEach((column) => {
           const cell = document.createElement("td");
           const value = this.fieldValue(item.fields, column.key);

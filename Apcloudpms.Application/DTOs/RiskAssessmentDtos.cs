@@ -94,7 +94,8 @@ public sealed record RiskAssessmentGridItemDto(
     DateTime? PlannedStartDateTime,
     DateTime? PlannedEndDateTime,
     int RiskAssessmentStatusListItemId,
-    string RiskAssessmentStatus);
+    string RiskAssessmentStatus,
+    bool HasPermitType = false);
 
 public sealed record RiskAssessmentDetailsDto(
     int Id,

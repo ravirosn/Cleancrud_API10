@@ -145,6 +145,29 @@ public sealed class RiskAssessmentService(AppDbContext context) : IRiskAssessmen
                     reader.GetString(statusOrdinal)));
             }
 
+            if (items.Count > 0)
+            {
+                await reader.DisposeAsync();
+                var pageIds = items.Select(x => x.Id).ToArray();
+                var riskAssessmentIdsWithPermitTypes = await context.RiskAssessmentSpecialPermits
+                    .AsNoTracking()
+                    .Where(x => pageIds.Contains(x.RiskAssessmentId)
+                        && x.IsSelected == true
+                        && x.SpecialPermitListItem.IsActive
+                        && x.SpecialPermitListItem.ListItemCategory.IsActive
+                        && x.SpecialPermitListItem.ListItemCategory.Name == "PermitType")
+                    .Select(x => x.RiskAssessmentId)
+                    .Distinct()
+                    .ToHashSetAsync(cancellationToken);
+
+                items = items
+                    .Select(item => item with
+                    {
+                        HasPermitType = riskAssessmentIdsWithPermitTypes.Contains(item.Id)
+                    })
+                    .ToList();
+            }
+
             var totalPages = totalRecords == 0
                 ? 0
                 : (totalRecords + query.PageSize - 1L) / query.PageSize;
