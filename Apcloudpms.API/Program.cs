@@ -123,6 +123,7 @@ builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<IProfileImageStorage, ProfileImageStorage>();
 builder.Services.AddScoped<IListItemService, ListItemService>();
 builder.Services.AddScoped<IRoleModuleMenuManagementService, RoleModuleMenuManagementService>();
+builder.Services.AddScoped<IPermissionAssignmentService, PermissionAssignmentService>();
 builder.Services.AddScoped<IPermitApplicationService, PermitApplicationService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IRiskAssessmentService, RiskAssessmentService>();
@@ -235,6 +236,8 @@ builder.Services.AddAuthorization(options =>
 });
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, ModulePolicyProvider>();
 builder.Services.AddScoped<IAuthorizationHandler, ModuleAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, MenuAuthorizationHandler>();
+builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();
 builder.Services.AddSingleton<IAuthorizationHandler, ApiScopeAuthorizationHandler>();
 
 builder.Services.AddRateLimiter(options =>

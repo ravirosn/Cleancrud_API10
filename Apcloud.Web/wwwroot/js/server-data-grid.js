@@ -207,6 +207,13 @@
       });
       this.elements.retry?.addEventListener("click", () => this.load());
       this.root.addEventListener("server-grid:reload", () => this.load());
+      this.root.addEventListener("server-grid:set-actions", (event) => {
+        const actions = event.detail?.actions;
+        this.rowActions = Array.isArray(actions)
+          ? actions.map((value) => String(value).trim()).filter(Boolean)
+          : [];
+        if (event.detail?.reload !== false) this.load();
+      });
       this.elements.head?.addEventListener("click", (event) => {
         const button = event.target.closest("[data-grid-sort]");
         if (!button || !this.elements.head.contains(button)) return;

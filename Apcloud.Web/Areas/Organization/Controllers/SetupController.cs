@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace Apcloud.Web.Areas.Organization.Controllers;
 
 [Area("Organization")]
-[Authorize]
+[Authorize(Roles = "Admin,SuperAdmin")]
 [Route("Organization/Setup")]
 public sealed class SetupController : Controller
 {
@@ -13,4 +13,7 @@ public sealed class SetupController : Controller
 
     [HttpGet("Module")]
     public IActionResult Module() => View();
+
+    [HttpGet("Permission")]
+    public IActionResult Permission() => View();
 }

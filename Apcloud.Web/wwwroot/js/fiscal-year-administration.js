@@ -22,6 +22,21 @@
     const closeContainer = form.querySelector("[data-fiscal-year-close-container]");
     const closeWarning = form.querySelector("[data-fiscal-year-close-warning]");
     let editingId = null;
+    const permissions = new Set();
+    const permissionCode = {
+      create: "FiscalYear.Create", edit: "FiscalYear.Edit", close: "FiscalYear.Close", delete: "FiscalYear.Delete"
+    };
+
+    const loadPermissions = async () => {
+      const rows = await window.apcloudApi.json("permissions/me?moduleCode=ORGANIZATION&menuController=Organization&menuAction=FiscalYears");
+      rows.forEach((row) => permissions.add(property(row, "code")));
+      document.querySelectorAll("[data-fiscal-year-add]").forEach((button) =>
+        button.classList.toggle("d-none", !permissions.has(permissionCode.create)));
+      const actions = [];
+      if (permissions.has(permissionCode.edit) || permissions.has(permissionCode.close)) actions.push("edit");
+      if (permissions.has(permissionCode.delete)) actions.push("delete");
+      grid.dispatchEvent(new CustomEvent("server-grid:set-actions", { detail: { actions } }));
+    };
 
     const showEditor = (record = null) => {
       if (property(record, "isClosed") === true) {
@@ -29,6 +44,8 @@
         return;
       }
       editingId = record ? property(record, "id") : null;
+      if (!editingId && !permissions.has(permissionCode.create)) return;
+      if (editingId && !permissions.has(permissionCode.edit) && !permissions.has(permissionCode.close)) return;
       form.reset(); form.classList.remove("was-validated");
       fields.end.setCustomValidity("");
       fields.name.value = property(record, "displayName") || "";
@@ -41,7 +58,11 @@
       fields.nextPa.value = property(record, "nextPaNumber") || "";
       fields.active.checked = property(record, "isActive") === true;
       fields.closed.checked = false;
-      closeContainer.classList.toggle("d-none", !editingId);
+      const canEdit = permissions.has(permissionCode.edit);
+      const canClose = editingId && permissions.has(permissionCode.close);
+      [fields.name, fields.start, fields.end, fields.raPrefix, fields.paPrefix, fields.nextRa, fields.nextPa, fields.active]
+        .forEach((field) => { field.disabled = !!editingId && !canEdit; });
+      closeContainer.classList.toggle("d-none", !canClose);
       closeWarning.classList.add("d-none");
       modalElement.querySelector("[data-fiscal-year-title]").textContent = record ? "Edit fiscal year" : "Add fiscal year";
       modalElement.querySelector("[data-fiscal-year-save-label]").textContent = record ? "Save changes" : "Add fiscal year";
@@ -79,8 +100,9 @@
       const save = form.querySelector("[data-fiscal-year-save]");
       save.disabled = true; form.querySelector("[data-fiscal-year-save-label]").classList.add("d-none"); form.querySelector("[data-fiscal-year-saving]").classList.remove("d-none");
       try {
-        await window.apcloudApi.json(editingId ? `organization/fiscal-years/${editingId}` : "organization/fiscal-years", {
-          method: editingId ? "PUT" : "POST",
+        const closing = editingId && fields.closed.checked;
+        await window.apcloudApi.json(closing ? `organization/fiscal-years/${editingId}/close` : editingId ? `organization/fiscal-years/${editingId}` : "organization/fiscal-years", {
+          method: closing ? "POST" : editingId ? "PUT" : "POST",
           body: { displayName: fields.name.value.trim(), startDate: fields.start.value, endDate: fields.end.value,
             raPrefix: fields.raPrefix.value.trim(), paPrefix: fields.paPrefix.value.trim(), nextRaNumber: fields.nextRa.value.trim(),
             nextPaNumber: fields.nextPa.value.trim(), isActive: fields.active.checked, isClosed: fields.closed.checked }
@@ -89,6 +111,10 @@
         grid.dispatchEvent(new CustomEvent("server-grid:reload"));
       } catch (error) { notify("error", error.message || "The fiscal year could not be saved.", "Unable to save fiscal year"); }
       finally { save.disabled = false; form.querySelector("[data-fiscal-year-save-label]").classList.remove("d-none"); form.querySelector("[data-fiscal-year-saving]").classList.add("d-none"); }
+    });
+
+    loadPermissions().catch(() => {
+      grid.dispatchEvent(new CustomEvent("server-grid:set-actions", { detail: { actions: [] } }));
     });
   });
 })();

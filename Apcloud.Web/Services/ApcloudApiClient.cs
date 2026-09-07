@@ -109,6 +109,15 @@ public sealed class ApcloudApiClient(
         }
     }
 
+    public async Task<bool> HasMenuAccessAsync(string moduleCode,string menuController,string menuAction,CancellationToken cancellationToken=default)
+    {
+        var path=$"api/permissions/menu-access?moduleCode={Uri.EscapeDataString(moduleCode)}&menuController={Uri.EscapeDataString(menuController)}&menuAction={Uri.EscapeDataString(menuAction)}";
+        using var response=await httpClient.GetAsync(path,cancellationToken);
+        if(!response.IsSuccessStatusCode)return false;
+        using var document=await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken),cancellationToken:cancellationToken);
+        return document.RootElement.TryGetProperty("hasAccess",out var value)&&value.ValueKind==JsonValueKind.True;
+    }
+
     public async Task<IReadOnlyList<AssignedModuleViewModel>> GetMyModulesAsync(
         CancellationToken cancellationToken = default)
     {

@@ -9,6 +9,8 @@ using System.Security.Claims;
 namespace Apcloudpms.API.Authorization;
 
 public sealed record ModuleRequirement(string ModuleCode) : IAuthorizationRequirement;
+public sealed record MenuRequirement(string ModuleCode, string Controller, string Action) : IAuthorizationRequirement;
+public sealed record PermissionRequirement(string PermissionCode) : IAuthorizationRequirement;
 public sealed record ApiScopeRequirement(string Scope) : IAuthorizationRequirement;
 
 public sealed class ApiScopeAuthorizationHandler : AuthorizationHandler<ApiScopeRequirement>
@@ -53,6 +55,59 @@ public sealed class ModuleAuthorizationHandler : AuthorizationHandler<ModuleRequ
     }
 }
 
+public sealed class MenuAuthorizationHandler(AppDbContext context) : AuthorizationHandler<MenuRequirement>
+{
+    protected override async Task HandleRequirementAsync(
+        AuthorizationHandlerContext authorizationContext, MenuRequirement requirement)
+    {
+        if (authorizationContext.User.IsInRole("SuperAdmin"))
+        {
+            authorizationContext.Succeed(requirement);
+            return;
+        }
+
+        if (!AuthorizationUser.TryGetLocalUserId(authorizationContext.User, out var userId)) return;
+        var hasAccess = await context.RoleModuleMenus.AsNoTracking().AnyAsync(rmm =>
+            rmm.IsActive && rmm.RoleModule.IsActive && rmm.RoleModule.Role.IsActive &&
+            rmm.RoleModule.ApplicationModule.IsActive && rmm.RoleModule.ApplicationModule.Code == requirement.ModuleCode &&
+            rmm.ModuleMenu.IsActive && rmm.ModuleMenu.ControllerName == requirement.Controller &&
+            rmm.ModuleMenu.ActionName == requirement.Action &&
+            rmm.RoleModule.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive));
+        if (hasAccess) authorizationContext.Succeed(requirement);
+    }
+}
+
+public sealed class PermissionAuthorizationHandler(AppDbContext context) : AuthorizationHandler<PermissionRequirement>
+{
+    protected override async Task HandleRequirementAsync(
+        AuthorizationHandlerContext authorizationContext, PermissionRequirement requirement)
+    {
+        if (authorizationContext.User.IsInRole("SuperAdmin"))
+        {
+            authorizationContext.Succeed(requirement);
+            return;
+        }
+
+        if (!AuthorizationUser.TryGetLocalUserId(authorizationContext.User, out var userId)) return;
+        var hasPermission = await context.RolePermissions.AsNoTracking().AnyAsync(rp =>
+            rp.IsActive && rp.PermissionPolicy.IsActive && rp.PermissionPolicy.Code == requirement.PermissionCode &&
+            rp.Role.IsActive && rp.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive) &&
+            rp.Role.RoleModules.Any(rm => rm.IsActive && rm.ApplicationModule.IsActive &&
+                rm.ApplicationModule.Code == rp.PermissionPolicy.ModuleCode &&
+                rm.RoleModuleMenus.Any(rmm => rmm.IsActive && rmm.ModuleMenu.IsActive &&
+                    rmm.ModuleMenu.ControllerName == rp.PermissionPolicy.MenuController &&
+                    rmm.ModuleMenu.ActionName == rp.PermissionPolicy.MenuAction)));
+        if (hasPermission) authorizationContext.Succeed(requirement);
+    }
+}
+
+internal static class AuthorizationUser
+{
+    public static bool TryGetLocalUserId(ClaimsPrincipal principal, out int userId) =>
+        int.TryParse(principal.FindFirstValue(EntraUserMiddleware.LocalUserIdClaim)
+            ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub), out userId) && userId > 0;
+}
+
 public sealed class ModulePolicyProvider : DefaultAuthorizationPolicyProvider
 {
     private readonly string _apiScope;
@@ -63,17 +118,36 @@ public sealed class ModulePolicyProvider : DefaultAuthorizationPolicyProvider
 
     public override Task<AuthorizationPolicy?> GetPolicyAsync(string policyName)
     {
+        if (policyName.StartsWith(RequireMenuAttribute.PolicyPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            var parts = policyName[RequireMenuAttribute.PolicyPrefix.Length..].Split(':', 3);
+            if (parts.Length != 3 || parts.Any(string.IsNullOrWhiteSpace))
+                return Task.FromResult<AuthorizationPolicy?>(null);
+            return Task.FromResult<AuthorizationPolicy?>(BuildPolicy(
+                new MenuRequirement(parts[0].Trim(), parts[1].Trim(), parts[2].Trim())));
+        }
+
+        if (policyName.StartsWith(RequirePermissionAttribute.PolicyPrefix, StringComparison.OrdinalIgnoreCase))
+        {
+            var code = policyName[RequirePermissionAttribute.PolicyPrefix.Length..].Trim();
+            return Task.FromResult<AuthorizationPolicy?>(string.IsNullOrWhiteSpace(code)
+                ? null
+                : BuildPolicy(new PermissionRequirement(code)));
+        }
+
         if (!policyName.StartsWith(RequireModuleAttribute.PolicyPrefix,
                 StringComparison.OrdinalIgnoreCase))
             return base.GetPolicyAsync(policyName);
 
         var moduleCode = policyName[RequireModuleAttribute.PolicyPrefix.Length..]
             .Trim().ToUpperInvariant();
-        var policy = new AuthorizationPolicyBuilder()
+        return Task.FromResult<AuthorizationPolicy?>(BuildPolicy(new ModuleRequirement(moduleCode)));
+    }
+
+    private AuthorizationPolicy BuildPolicy(IAuthorizationRequirement requirement) =>
+        new AuthorizationPolicyBuilder()
             .RequireAuthenticatedUser()
             .AddRequirements(new ApiScopeRequirement(_apiScope))
-            .AddRequirements(new ModuleRequirement(moduleCode))
+            .AddRequirements(requirement)
             .Build();
-        return Task.FromResult<AuthorizationPolicy?>(policy);
-    }
 }

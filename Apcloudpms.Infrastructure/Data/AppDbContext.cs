@@ -22,6 +22,8 @@ public class AppDbContext : DbContext
     public DbSet<UserRole> UserRoles => Set<UserRole>();
     public DbSet<RoleModule> RoleModules => Set<RoleModule>();
     public DbSet<RoleModuleMenu> RoleModuleMenus => Set<RoleModuleMenu>();
+    public DbSet<PermissionPolicy> PermissionPolicies => Set<PermissionPolicy>();
+    public DbSet<RolePermission> RolePermissions => Set<RolePermission>();
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<OfficeBranch> OfficeBranches => Set<OfficeBranch>();
     public DbSet<Department> Departments => Set<Department>();
@@ -189,6 +191,37 @@ public class AppDbContext : DbContext
                 .HasForeignKey(x => new { x.ApplicationModuleId, x.ModuleMenuId })
                 .HasPrincipalKey(x => new { x.ApplicationModuleId, x.Id })
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PermissionPolicy>(entity =>
+        {
+            entity.ToTable("PermissionPolicy", "dbo");
+            entity.Property(x => x.Code).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.Name).HasMaxLength(150).IsRequired();
+            entity.Property(x => x.Description).HasMaxLength(500);
+            entity.Property(x => x.ModuleCode).HasMaxLength(30).IsRequired();
+            entity.Property(x => x.MenuController).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.MenuAction).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.RowVersion).IsRowVersion();
+            entity.HasIndex(x => x.Code).IsUnique();
+            entity.HasIndex(x => new { x.ModuleCode, x.MenuController, x.MenuAction, x.IsActive });
+        });
+
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.ToTable("RolePermission", "dbo");
+            entity.HasKey(x => new { x.RoleId, x.PermissionPolicyId });
+            entity.Property(x => x.AssignedAtUtc).HasPrecision(0);
+            entity.Property(x => x.AssignedBy).HasMaxLength(256);
+            entity.Property(x => x.ModifiedAtUtc).HasPrecision(0);
+            entity.Property(x => x.ModifiedBy).HasMaxLength(256);
+            entity.HasIndex(x => new { x.PermissionPolicyId, x.IsActive });
+            entity.HasOne(x => x.Role).WithMany(x => x.RolePermissions)
+                .HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.PermissionPolicy).WithMany(x => x.RolePermissions)
+                .HasForeignKey(x => x.PermissionPolicyId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<RefreshToken>(entity =>

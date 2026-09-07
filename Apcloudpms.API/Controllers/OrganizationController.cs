@@ -114,36 +114,4 @@ public sealed class OrganizationController : ControllerBase
     public async Task<IActionResult> DeleteDepartment(int id, CancellationToken cancellationToken) =>
         await _service.DeleteDepartmentAsync(id, cancellationToken) ? NoContent() : NotFound();
 
-    [HttpGet("fiscal-years")]
-    public async Task<ActionResult<OrganizationPagedResponseDto<FiscalYearDto>>> GetFiscalYears(
-        [FromQuery] FiscalYearQueryDto query, CancellationToken cancellationToken = default) =>
-        Ok(await _service.GetFiscalYearsAsync(query, cancellationToken));
-
-    [HttpGet("fiscal-years/{id:int}")]
-    public async Task<ActionResult<FiscalYearDto>> GetFiscalYearById(
-        int id, CancellationToken cancellationToken = default)
-    {
-        var result = await _service.GetFiscalYearByIdAsync(id, cancellationToken);
-        return result is null ? NotFound() : Ok(result);
-    }
-
-    [HttpPost("fiscal-years")]
-    public async Task<ActionResult<FiscalYearDto>> CreateFiscalYear(
-        FiscalYearRequestDto dto, CancellationToken cancellationToken)
-    {
-        var result = await _service.CreateFiscalYearAsync(dto, cancellationToken);
-        return StatusCode(StatusCodes.Status201Created, result);
-    }
-
-    [HttpPut("fiscal-years/{id:int}")]
-    public async Task<ActionResult<FiscalYearDto>> UpdateFiscalYear(
-        int id, FiscalYearRequestDto dto, CancellationToken cancellationToken)
-    {
-        var result = await _service.UpdateFiscalYearAsync(id, dto, cancellationToken);
-        return result is null ? NotFound() : Ok(result);
-    }
-
-    [HttpDelete("fiscal-years/{id:int}")]
-    public async Task<IActionResult> DeleteFiscalYear(int id, CancellationToken cancellationToken) =>
-        await _service.DeleteFiscalYearAsync(id, cancellationToken) ? NoContent() : NotFound();
 }

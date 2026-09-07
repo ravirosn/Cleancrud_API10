@@ -10,7 +10,7 @@
             <p class="text-secondary mt-2 mb-0">Maintain fiscal periods and their risk-assessment and permit numbering settings.</p>
         </div>
         <div class="col-auto ms-auto d-print-none">
-            <button type="button" class="btn btn-primary" data-fiscal-year-add>
+            <button type="button" class="btn btn-primary d-none" data-fiscal-year-add>
                 <svg class="icon"><use href="#icon-plus" /></svg> Add fiscal year
             </button>
         </div>
@@ -24,7 +24,7 @@
 <div class="card server-data-grid" data-server-grid data-fiscal-year-grid
      data-url="organization/fiscal-years?includeInactive=true" data-page-size="10"
      data-search-param="search" data-server-sort="true" data-default-sort="startDate"
-     data-default-sort-direction="desc" data-row-actions="edit,delete">
+     data-default-sort-direction="desc" data-row-actions="">
     <div class="card-header server-grid-toolbar">
         <div class="server-grid-search" role="search">
             <div class="input-icon">
@@ -52,7 +52,7 @@
         <div class="empty-icon"><svg class="icon"><use href="#icon-search" /></svg></div>
         <p class="empty-title">No fiscal years found</p>
         <p class="empty-subtitle text-secondary">Try another search term or add a fiscal year.</p>
-        <div class="empty-action"><button type="button" class="btn btn-primary" data-fiscal-year-add><svg class="icon"><use href="#icon-plus" /></svg>Add fiscal year</button></div>
+        <div class="empty-action"><button type="button" class="btn btn-primary d-none" data-fiscal-year-add><svg class="icon"><use href="#icon-plus" /></svg>Add fiscal year</button></div>
     </div>
     <div class="d-none" data-grid-content>
         <div class="table-responsive server-grid-scroll organization-grid-scroll">

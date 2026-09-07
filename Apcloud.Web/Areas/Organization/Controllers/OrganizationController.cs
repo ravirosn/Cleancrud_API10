@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Apcloud.Web.Authorization;
 
 namespace Apcloud.Web.Areas.Organization.Controllers;
 
@@ -18,5 +19,6 @@ public sealed class OrganizationController : Controller
     public IActionResult Departments() => View();
 
     [HttpGet("FiscalYears")]
+    [RequireMenu("ORGANIZATION", "Organization", "FiscalYears")]
     public IActionResult FiscalYears() => View();
 }
