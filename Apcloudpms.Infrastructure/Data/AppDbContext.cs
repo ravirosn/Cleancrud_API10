@@ -25,6 +25,8 @@ public class AppDbContext : DbContext
     public DbSet<Organization> Organizations => Set<Organization>();
     public DbSet<OfficeBranch> OfficeBranches => Set<OfficeBranch>();
     public DbSet<Department> Departments => Set<Department>();
+    public DbSet<FiscalYear> FiscalYears => Set<FiscalYear>();
+    public DbSet<FiscalYearSetting> FiscalYearSettings => Set<FiscalYearSetting>();
     public DbSet<ApplicationModule> ApplicationModules => Set<ApplicationModule>();
     public DbSet<ModuleMenu> ModuleMenus => Set<ModuleMenu>();
     public DbSet<UserThemeSetting> UserThemeSettings => Set<UserThemeSetting>();
@@ -249,6 +251,41 @@ public class AppDbContext : DbContext
             entity.HasIndex(x => new { x.OfficeBranchId, x.IsActive });
             entity.HasOne(x => x.OfficeBranch).WithMany(x => x.Departments)
                 .HasForeignKey(x => x.OfficeBranchId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FiscalYear>(entity =>
+        {
+            entity.ToTable("FiscalYear", "dbo", table =>
+            {
+                table.HasCheckConstraint("CK_FiscalYear_DateRange", "[EndDate] >= [StartDate]");
+                table.HasCheckConstraint("CK_FiscalYear_ClosedNotActive", "[IsClosed] = 0 OR [IsActive] = 0");
+            });
+            entity.Property(x => x.DisplayName).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.StartDate).HasColumnType("date");
+            entity.Property(x => x.EndDate).HasColumnType("date");
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.ClosedAtUtc).HasPrecision(0);
+            entity.Property(x => x.RowVersion).IsRowVersion();
+            entity.HasIndex(x => x.DisplayName).IsUnique();
+            entity.HasIndex(x => new { x.StartDate, x.EndDate }).IsUnique();
+            entity.HasIndex(x => x.IsActive).IsUnique().HasFilter("[IsActive] = 1");
+        });
+
+        modelBuilder.Entity<FiscalYearSetting>(entity =>
+        {
+            entity.ToTable("FiscalYearSetting", "dbo");
+            entity.HasKey(x => x.FiscalYearId);
+            entity.Property(x => x.RaPrefix).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.PaPrefix).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.NextRaNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.NextPaNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.RowVersion).IsRowVersion();
+            entity.HasOne(x => x.FiscalYear).WithOne(x => x.Setting)
+                .HasForeignKey<FiscalYearSetting>(x => x.FiscalYearId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<ApplicationModule>(entity =>

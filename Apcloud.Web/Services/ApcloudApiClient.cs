@@ -6,6 +6,7 @@ using Apcloud.Contracts.Authentication;
 using Apcloud.Contracts.Themes;
 using Apcloud.Web.Areas.PermitApplication.Models;
 using Apcloud.Web.Areas.Portal.Models;
+using Apcloud.Web.Models;
 using Apcloud.Web.Services.Authentication;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -85,6 +86,26 @@ public sealed class ApcloudApiClient(
         catch (JsonException exception)
         {
             throw new AuthApiException(HttpStatusCode.BadGateway, "The API returned invalid theme settings.", exception);
+        }
+    }
+
+    public async Task<ActiveFiscalYearHeaderViewModel?> GetActiveFiscalYearAsync(
+        CancellationToken cancellationToken = default)
+    {
+        using var response = await httpClient.GetAsync("api/fiscal-years/current", cancellationToken);
+        if (response.StatusCode == HttpStatusCode.NotFound)
+            return null;
+        if (!response.IsSuccessStatusCode)
+            throw new AuthApiException(response.StatusCode, "The active fiscal year could not be loaded.");
+
+        try
+        {
+            return await response.Content.ReadFromJsonAsync<ActiveFiscalYearHeaderViewModel>(cancellationToken)
+                ?? throw new AuthApiException(HttpStatusCode.BadGateway, "The API returned an empty active fiscal year.");
+        }
+        catch (JsonException exception)
+        {
+            throw new AuthApiException(HttpStatusCode.BadGateway, "The API returned an invalid active fiscal year.", exception);
         }
     }
 

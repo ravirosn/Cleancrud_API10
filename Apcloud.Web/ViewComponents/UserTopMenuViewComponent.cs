@@ -12,6 +12,26 @@ public sealed class UserTopMenuViewComponent : ViewComponent
     public IViewComponentResult Invoke() => View();
 }
 
+public sealed class ActiveFiscalYearViewComponent(
+    ApcloudApiClient apiClient,
+    ILogger<ActiveFiscalYearViewComponent> logger) : ViewComponent
+{
+    public async Task<IViewComponentResult> InvokeAsync()
+    {
+        try
+        {
+            return View(await apiClient.GetActiveFiscalYearAsync(HttpContext.RequestAborted));
+        }
+        catch (Exception exception) when (
+            !HttpContext.RequestAborted.IsCancellationRequested &&
+            exception is HttpRequestException or AuthApiException or TaskCanceledException)
+        {
+            logger.LogWarning(exception, "Could not load the active fiscal year from /api/fiscal-years/current.");
+            return View(null);
+        }
+    }
+}
+
 public sealed class UserProfileMenuViewComponent(
     ApcloudApiClient apiClient,
     ILogger<UserProfileMenuViewComponent> logger) : ViewComponent

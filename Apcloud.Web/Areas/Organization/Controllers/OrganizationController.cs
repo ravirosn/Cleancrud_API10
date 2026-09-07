@@ -8,7 +8,6 @@ namespace Apcloud.Web.Areas.Organization.Controllers;
 [Route("Organization/Organization")]
 public sealed class OrganizationController : Controller
 {
-    [HttpGet("")]
     [HttpGet("Index")]
     public IActionResult Index() => View();
 
@@ -17,4 +16,7 @@ public sealed class OrganizationController : Controller
 
     [HttpGet("Departments")]
     public IActionResult Departments() => View();
+
+    [HttpGet("FiscalYears")]
+    public IActionResult FiscalYears() => View();
 }

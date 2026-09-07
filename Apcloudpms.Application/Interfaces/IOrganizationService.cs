@@ -19,4 +19,10 @@ public interface IOrganizationService
     Task<DepartmentDto> CreateDepartmentAsync(DepartmentRequestDto dto, CancellationToken cancellationToken);
     Task<DepartmentDto?> UpdateDepartmentAsync(int id, DepartmentRequestDto dto, CancellationToken cancellationToken);
     Task<bool> DeleteDepartmentAsync(int id, CancellationToken cancellationToken);
+    Task<OrganizationPagedResponseDto<FiscalYearDto>> GetFiscalYearsAsync(FiscalYearQueryDto query, CancellationToken cancellationToken);
+    Task<ActiveFiscalYearDto?> GetActiveFiscalYearAsync(CancellationToken cancellationToken);
+    Task<FiscalYearDto?> GetFiscalYearByIdAsync(int id, CancellationToken cancellationToken);
+    Task<FiscalYearDto> CreateFiscalYearAsync(FiscalYearRequestDto dto, CancellationToken cancellationToken);
+    Task<FiscalYearDto?> UpdateFiscalYearAsync(int id, FiscalYearRequestDto dto, CancellationToken cancellationToken);
+    Task<bool> DeleteFiscalYearAsync(int id, CancellationToken cancellationToken);
 }

@@ -253,6 +253,27 @@ body {
   border: 2px solid var(--tblr-bg-surface);
 }
 
+.active-fiscal-year-indicator {
+  cursor: default;
+  user-select: none;
+}
+
+.active-fiscal-year-icon {
+  position: relative;
+  display: inline-flex;
+}
+
+.fiscal-year-status-dot {
+  position: absolute;
+  top: -.2rem;
+  right: -.3rem;
+  width: .45rem;
+  min-width: .45rem;
+  height: .45rem;
+  padding: 0;
+  border: 2px solid var(--tblr-bg-surface);
+}
+
 .notification-menu {
   min-width: 19rem;
 }

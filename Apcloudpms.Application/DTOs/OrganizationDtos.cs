@@ -81,3 +81,46 @@ public sealed class DepartmentRequestDto
     [Required, StringLength(150)] public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; } = true;
 }
+
+public sealed record FiscalYearDto(
+    int Id,
+    string DisplayName,
+    DateOnly StartDate,
+    DateOnly EndDate,
+    string RaPrefix,
+    string PaPrefix,
+    string NextRaNumber,
+    string NextPaNumber,
+    bool IsActive,
+    bool IsClosed,
+    DateTime CreatedAtUtc,
+    DateTime? UpdatedAtUtc,
+    DateTime? ClosedAtUtc)
+{
+    public string Status => IsClosed ? "Closed" : IsActive ? "Active" : "Draft";
+}
+
+public sealed record ActiveFiscalYearDto(int Id, string DisplayName, DateOnly StartDate, DateOnly EndDate);
+
+public sealed class FiscalYearQueryDto : OrganizationQueryDto
+{
+    public FiscalYearQueryDto()
+    {
+        IncludeInactive = true;
+        SortBy = "startDate";
+        SortDirection = "desc";
+    }
+}
+
+public sealed class FiscalYearRequestDto
+{
+    [Required, StringLength(100)] public string DisplayName { get; set; } = string.Empty;
+    public DateOnly StartDate { get; set; }
+    public DateOnly EndDate { get; set; }
+    [Required, StringLength(50)] public string RaPrefix { get; set; } = string.Empty;
+    [Required, StringLength(50)] public string PaPrefix { get; set; } = string.Empty;
+    [Required, StringLength(50)] public string NextRaNumber { get; set; } = string.Empty;
+    [Required, StringLength(50)] public string NextPaNumber { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public bool IsClosed { get; set; }
+}

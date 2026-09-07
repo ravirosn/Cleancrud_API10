@@ -1,0 +1,11 @@
+@model Apcloud.Web.Models.ActiveFiscalYearHeaderViewModel?
+
+<div class="nav-item d-flex" data-active-fiscal-year title="@(Model is null ? "No active fiscal year" : $"Active fiscal year: {Model.DisplayName}")">
+    <span class="nav-link px-2 active-fiscal-year-indicator" aria-label="@(Model is null ? "No active fiscal year" : $"Active fiscal year {Model.DisplayName}")">
+        <span class="active-fiscal-year-icon">
+            <svg class="icon"><use href="#icon-calendar" /></svg>
+            <span class="badge @(Model is null ? "bg-secondary" : "bg-green") fiscal-year-status-dot"></span>
+        </span>
+        <span class="d-none d-lg-inline ms-1 text-nowrap">@(Model?.DisplayName ?? "No active fiscal year")</span>
+    </span>
+</div>

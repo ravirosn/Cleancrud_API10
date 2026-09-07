@@ -109,6 +109,46 @@ public sealed class OrganizationService(
     public Task<bool> DeleteDepartmentAsync(int id, CancellationToken cancellationToken) =>
         ExecuteDeleteAsync("dbo.SPDepartmentDel", id, cancellationToken);
 
+    public Task<OrganizationPagedResponseDto<FiscalYearDto>> GetFiscalYearsAsync(
+        FiscalYearQueryDto query, CancellationToken cancellationToken) =>
+        ReadPagedAsync("dbo.SPFiscalYearGet", query, command => { }, ReadFiscalYear, cancellationToken);
+
+    public Task<ActiveFiscalYearDto?> GetActiveFiscalYearAsync(CancellationToken cancellationToken) =>
+        WithConnectionAsync<ActiveFiscalYearDto?>(async connection =>
+        {
+            await using var command = CreateCommand(connection, "dbo.SPFiscalYearGetActive");
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            return await reader.ReadAsync(cancellationToken)
+                ? new ActiveFiscalYearDto(
+                    reader.GetInt32(reader.GetOrdinal("Id")),
+                    reader.GetString(reader.GetOrdinal("DisplayName")),
+                    DateOnly.FromDateTime(reader.GetDateTime(reader.GetOrdinal("StartDate"))),
+                    DateOnly.FromDateTime(reader.GetDateTime(reader.GetOrdinal("EndDate"))))
+                : null;
+        }, cancellationToken);
+
+    public Task<FiscalYearDto?> GetFiscalYearByIdAsync(
+        int id, CancellationToken cancellationToken) =>
+        ReadSingleAsync("dbo.SPFiscalYearGetById", id, ReadFiscalYear, cancellationToken);
+
+    public Task<FiscalYearDto> CreateFiscalYearAsync(
+        FiscalYearRequestDto dto, CancellationToken cancellationToken)
+    {
+        ValidateFiscalYear(dto);
+        return ExecuteFiscalYearWriteAsync("dbo.SPFiscalYearIns", null, dto, cancellationToken);
+    }
+
+    public async Task<FiscalYearDto?> UpdateFiscalYearAsync(
+        int id, FiscalYearRequestDto dto, CancellationToken cancellationToken)
+    {
+        ValidateFiscalYear(dto);
+        try { return await ExecuteFiscalYearWriteAsync("dbo.SPFiscalYearUpd", id, dto, cancellationToken); }
+        catch (KeyNotFoundException) { return null; }
+    }
+
+    public Task<bool> DeleteFiscalYearAsync(int id, CancellationToken cancellationToken) =>
+        ExecuteDeleteAsync("dbo.SPFiscalYearDel", id, cancellationToken);
+
     private async Task<OrganizationPagedResponseDto<T>> ReadPagedAsync<T>(
         string procedure, OrganizationQueryDto query, Action<SqlCommand> addFilters,
         Func<SqlDataReader, T> map, CancellationToken cancellationToken)
@@ -193,6 +233,23 @@ public sealed class OrganizationService(
             AddAudit(command);
         }, ReadDepartment, cancellationToken);
 
+    private async Task<FiscalYearDto> ExecuteFiscalYearWriteAsync(string procedure, int? id,
+        FiscalYearRequestDto dto, CancellationToken cancellationToken) =>
+        await ExecuteWriteAsync(procedure, command =>
+        {
+            if (id.HasValue) Add(command, "@Id", SqlDbType.Int, id.Value);
+            Add(command, "@DisplayName", SqlDbType.NVarChar, dto.DisplayName.Trim(), 100);
+            Add(command, "@StartDate", SqlDbType.Date, dto.StartDate);
+            Add(command, "@EndDate", SqlDbType.Date, dto.EndDate);
+            Add(command, "@RaPrefix", SqlDbType.NVarChar, dto.RaPrefix.Trim(), 50);
+            Add(command, "@PaPrefix", SqlDbType.NVarChar, dto.PaPrefix.Trim(), 50);
+            Add(command, "@NextRaNumber", SqlDbType.NVarChar, dto.NextRaNumber.Trim(), 50);
+            Add(command, "@NextPaNumber", SqlDbType.NVarChar, dto.NextPaNumber.Trim(), 50);
+            Add(command, "@IsActive", SqlDbType.Bit, dto.IsActive);
+            Add(command, "@IsClosed", SqlDbType.Bit, dto.IsClosed);
+            AddAudit(command);
+        }, ReadFiscalYear, cancellationToken);
+
     private async Task<T> ExecuteWriteAsync<T>(string procedure, Action<SqlCommand> addParameters,
         Func<SqlDataReader, T> map, CancellationToken cancellationToken) =>
         await WithConnectionAsync(async connection =>
@@ -261,6 +318,21 @@ public sealed class OrganizationService(
         reader.GetString(reader.GetOrdinal("BranchName")), reader.GetString(reader.GetOrdinal("Code")),
         reader.GetString(reader.GetOrdinal("Name")), reader.GetBoolean(reader.GetOrdinal("IsActive")));
 
+    private static FiscalYearDto ReadFiscalYear(SqlDataReader reader) => new(
+        reader.GetInt32(reader.GetOrdinal("Id")),
+        reader.GetString(reader.GetOrdinal("DisplayName")),
+        DateOnly.FromDateTime(reader.GetDateTime(reader.GetOrdinal("StartDate"))),
+        DateOnly.FromDateTime(reader.GetDateTime(reader.GetOrdinal("EndDate"))),
+        reader.GetString(reader.GetOrdinal("RaPrefix")),
+        reader.GetString(reader.GetOrdinal("PaPrefix")),
+        reader.GetString(reader.GetOrdinal("NextRaNumber")),
+        reader.GetString(reader.GetOrdinal("NextPaNumber")),
+        reader.GetBoolean(reader.GetOrdinal("IsActive")),
+        reader.GetBoolean(reader.GetOrdinal("IsClosed")),
+        reader.GetDateTime(reader.GetOrdinal("CreatedAtUtc")),
+        GetNullableDateTime(reader, "UpdatedAtUtc"),
+        GetNullableDateTime(reader, "ClosedAtUtc"));
+
     private Task<OrganizationDetailsDto?> ReadOrganizationAsync(
         int? id, CancellationToken cancellationToken) =>
         WithConnectionAsync<OrganizationDetailsDto?>(async connection =>
@@ -300,6 +372,20 @@ public sealed class OrganizationService(
             throw new ArgumentException("Organization name must contain at least two characters.");
         if (string.IsNullOrWhiteSpace(dto.Address) || dto.Address.Trim().Length < 3)
             throw new ArgumentException("Organization address must contain at least three characters.");
+    }
+
+    private static void ValidateFiscalYear(FiscalYearRequestDto dto)
+    {
+        ArgumentNullException.ThrowIfNull(dto);
+        if (string.IsNullOrWhiteSpace(dto.DisplayName))
+            throw new ArgumentException("Fiscal year display name is required.");
+        if (dto.StartDate == default || dto.EndDate == default || dto.EndDate < dto.StartDate)
+            throw new ArgumentException("Fiscal year end date must be on or after its start date.");
+        if (string.IsNullOrWhiteSpace(dto.RaPrefix) || string.IsNullOrWhiteSpace(dto.PaPrefix)
+            || string.IsNullOrWhiteSpace(dto.NextRaNumber) || string.IsNullOrWhiteSpace(dto.NextPaNumber))
+            throw new ArgumentException("All fiscal year numbering settings are required.");
+        if (dto.IsActive && dto.IsClosed)
+            throw new ArgumentException("A closed fiscal year cannot be active.");
     }
 
     private static string? GetNullableString(SqlDataReader reader, string column)
