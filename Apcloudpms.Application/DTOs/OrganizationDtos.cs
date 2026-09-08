@@ -119,8 +119,10 @@ public sealed class FiscalYearRequestDto
     public DateOnly EndDate { get; set; }
     [Required, StringLength(50)] public string RaPrefix { get; set; } = string.Empty;
     [Required, StringLength(50)] public string PaPrefix { get; set; } = string.Empty;
-    [Required, StringLength(50)] public string NextRaNumber { get; set; } = string.Empty;
-    [Required, StringLength(50)] public string NextPaNumber { get; set; } = string.Empty;
+    [Required, StringLength(50), RegularExpression(@"^\d+$", ErrorMessage = "Next RA number must contain digits only.")]
+    public string NextRaNumber { get; set; } = string.Empty;
+    [Required, StringLength(50), RegularExpression(@"^\d+$", ErrorMessage = "Next PA number must contain digits only.")]
+    public string NextPaNumber { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public bool IsClosed { get; set; }
 }

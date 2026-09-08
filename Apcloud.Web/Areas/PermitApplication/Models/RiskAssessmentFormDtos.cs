@@ -5,10 +5,10 @@ namespace Apcloud.Web.Areas.PermitApplication.Models;
 public sealed class RiskAssessmentFormDto
 {
     public int? Id { get; set; }
-    [Required, StringLength(50)] public string PreRiskAssessmentNumber { get; set; } = string.Empty;
+    public string? RiskAssessmentNumber { get; set; }
     [Required] public DateOnly IssueDate { get; set; }
-    [Required, StringLength(100)] public string PermitIssuerName { get; set; } = string.Empty;
-    [Required, StringLength(100)] public string PermitReceiverName { get; set; } = string.Empty;
+    [Range(1, int.MaxValue)] public int PermitIssuerUserId { get; set; }
+    [Range(1, int.MaxValue)] public int PermitReceiverUserId { get; set; }
     [Required, StringLength(100)] public string AreaResponsibleName { get; set; } = string.Empty;
     [Required, StringLength(255)] public string LocationOfWork { get; set; } = string.Empty;
     public string? DescriptionOfWork { get; set; }

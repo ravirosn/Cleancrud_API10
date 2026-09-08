@@ -16,12 +16,22 @@ public interface IRiskAssessmentService
         int riskAssessmentId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<RiskAssessmentUserOptionDto>> GetUserOptionsAsync(
+        int currentUserId,
+        CancellationToken cancellationToken = default);
+
     Task<RiskAssessmentWriteResult> CreateAsync(
         RiskAssessmentRequestDto request,
         int userId,
         CancellationToken cancellationToken = default);
 
     Task<RiskAssessmentWriteResult> UpdateAsync(
+        int riskAssessmentId,
+        RiskAssessmentRequestDto request,
+        int userId,
+        CancellationToken cancellationToken = default);
+
+    Task<RiskAssessmentWriteResult> ContinueCreateAsync(
         int riskAssessmentId,
         RiskAssessmentRequestDto request,
         int userId,

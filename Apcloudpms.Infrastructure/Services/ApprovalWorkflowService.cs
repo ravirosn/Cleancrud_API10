@@ -297,10 +297,10 @@ public sealed class ApprovalWorkflowService(
         {
             pendingQuery = pendingQuery.Where(x =>
                 x.PermitApplication.PermitNumber.Contains(search) ||
-                (x.PermitApplication.PreRiskAssessmentNumber != null &&
-                    x.PermitApplication.PreRiskAssessmentNumber.Contains(search)) ||
+                (x.PermitApplication.RiskAssessmentNumber != null &&
+                    x.PermitApplication.RiskAssessmentNumber.Contains(search)) ||
                 (x.PermitApplication.RiskAssessment != null &&
-                    x.PermitApplication.RiskAssessment.PreRiskAssessmentNumber.Contains(search)) ||
+                    x.PermitApplication.RiskAssessment.RiskAssessmentNumber.Contains(search)) ||
                 x.PermitApplication.PermitIssuerName.Contains(search) ||
                 x.PermitApplication.PermitReceiverName.Contains(search) ||
                 x.PermitApplication.PermitTypeListItem.Name.Contains(search) ||
@@ -332,8 +332,8 @@ public sealed class ApprovalWorkflowService(
                     x.Id,
                     x.PermitApplication.RiskAssessmentId,
                     x.PermitApplication.RiskAssessment == null
-                        ? x.PermitApplication.PreRiskAssessmentNumber
-                        : x.PermitApplication.RiskAssessment.PreRiskAssessmentNumber,
+                        ? x.PermitApplication.RiskAssessmentNumber
+                        : x.PermitApplication.RiskAssessment.RiskAssessmentNumber,
                     x.PermitApplication.RiskAssessment == null
                         ? null
                         : x.PermitApplication.RiskAssessment.RiskAssessmentStatusListItem.Name,
@@ -385,7 +385,7 @@ public sealed class ApprovalWorkflowService(
         var result = await GetDecisionHistoryAsync(
             userId, ApprovalState.Approved, query, cancellationToken);
         var data = result.Items.Select(x => new ApprovedPermitDto(
-            x.PreRiskAssessmentNumber,
+            x.RiskAssessmentNumber,
             x.PermitNumber,
             x.IssuedDate,
             x.PermitIssuerName,
@@ -414,7 +414,7 @@ public sealed class ApprovalWorkflowService(
         var result = await GetDecisionHistoryAsync(
             userId, ApprovalState.Rejected, query, cancellationToken);
         var data = result.Items.Select(x => new RejectedPermitDto(
-            x.PreRiskAssessmentNumber,
+            x.RiskAssessmentNumber,
             x.PermitNumber,
             x.IssuedDate,
             x.PermitIssuerName,
@@ -744,7 +744,7 @@ public sealed class ApprovalWorkflowService(
                     "dbo.SpPermitApprovalHistoryGet did not return the paged records.");
 
             var items = new List<PermitDecisionHistoryItem>();
-            var preRiskNumberOrdinal = reader.GetOrdinal("PreRiskAssessmentNumber");
+            var preRiskNumberOrdinal = reader.GetOrdinal("RiskAssessmentNumber");
             var permitNumberOrdinal = reader.GetOrdinal("PermitNumber");
             var issuedDateOrdinal = reader.GetOrdinal("IssuedDate");
             var issuerOrdinal = reader.GetOrdinal("PermitIssuerName");
@@ -1003,7 +1003,7 @@ public sealed class ApprovalWorkflowService(
         long TotalRecords);
 
     private sealed record PermitDecisionHistoryItem(
-        string? PreRiskAssessmentNumber,
+        string? RiskAssessmentNumber,
         string PermitNumber,
         DateOnly IssuedDate,
         string PermitIssuerName,

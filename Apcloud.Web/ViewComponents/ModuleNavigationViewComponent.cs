@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Apcloud.Web.Areas.Portal.Models;
+using Apcloud.Web.Infrastructure;
 using Apcloud.Web.Services;
 using Apcloud.Web.Services.Authentication;
 
@@ -31,7 +32,9 @@ public sealed class ModuleNavigationViewComponent(
         {
             var modules = await apiClient.GetMyModulesAsync(HttpContext.RequestAborted);
             var module = modules.FirstOrDefault(item =>
-                item.Id.Equals(moduleId, StringComparison.OrdinalIgnoreCase));
+                item.Id.Equals(moduleId, StringComparison.OrdinalIgnoreCase) ||
+                (!string.IsNullOrWhiteSpace(item.Code) &&
+                 item.Code.Equals(moduleId, StringComparison.OrdinalIgnoreCase)));
             if (module is null)
             {
                 return View(new ModuleSidebarViewModel
@@ -42,6 +45,7 @@ public sealed class ModuleNavigationViewComponent(
 
             var menus = await apiClient.SelectModuleMenusAsync(
                 module.Id, HttpContext.RequestAborted);
+            HttpContext.Session.SetString(ModuleSessionContext.ActiveModuleIdKey, module.Id);
             PrepareLinks(menus);
             return View(new ModuleSidebarViewModel { Module = module, Menus = menus });
         }

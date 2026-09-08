@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using Apcloud.Contracts.Permissions;
+using Apcloudpms.API.Authorization;
 using Apcloudpms.API.Middleware;
 using Apcloudpms.Application.DTOs;
 using Apcloudpms.Application.Interfaces;
@@ -10,9 +12,11 @@ namespace Apcloudpms.API.Controllers;
 [ApiController]
 [Route("api/permit/applications")]
 [Authorize]
+[RequireMenu(ApplicationPermissions.PermitModule, "PermitApplications", "Index")]
 public sealed class PermitApplicationsController(IPermitApplicationService service) : ControllerBase
 {
     [HttpGet("{id:long}")]
+    [RequirePermission(ApplicationPermissions.PermitApplications.View)]
     [ProducesResponseType<PermitApplicationDetailsDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<PermitApplicationDetailsDto>> GetById(
@@ -26,6 +30,7 @@ public sealed class PermitApplicationsController(IPermitApplicationService servi
     }
 
     [HttpGet]
+    [RequirePermission(ApplicationPermissions.PermitApplications.View)]
     [ProducesResponseType<PermitApplicationPagedResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PermitApplicationPagedResponseDto>> GetCreatedByCurrentUser(
@@ -41,6 +46,7 @@ public sealed class PermitApplicationsController(IPermitApplicationService servi
     }
 
     [HttpPut("{id:long}")]
+    [RequirePermission(ApplicationPermissions.PermitApplications.Edit)]
     [ProducesResponseType<PermitApplicationUpdateResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -71,6 +77,7 @@ public sealed class PermitApplicationsController(IPermitApplicationService servi
     }
 
     [HttpPut("{id:long}/finalize")]
+    [RequirePermission(ApplicationPermissions.PermitApplications.Finalize)]
     [ProducesResponseType<PermitApplicationUpdateResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
@@ -105,6 +112,7 @@ public sealed class PermitApplicationsController(IPermitApplicationService servi
     }
 
     [HttpPatch("{id:long}/completion")]
+    [RequirePermission(ApplicationPermissions.PermitApplications.Complete)]
     [ProducesResponseType<PermitApplicationActionResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -124,6 +132,7 @@ public sealed class PermitApplicationsController(IPermitApplicationService servi
     }
 
     [HttpPatch("{id:long}/cancellation")]
+    [RequirePermission(ApplicationPermissions.PermitApplications.Cancel)]
     [ProducesResponseType<PermitApplicationActionResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

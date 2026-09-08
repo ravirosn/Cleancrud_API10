@@ -1,5 +1,7 @@
 @{
     Layout = "_Layout";
     ViewData["ActiveModuleId"] = ViewContext.RouteData.Values["moduleId"]?.ToString()
+        ?? Apcloud.Web.Infrastructure.ModuleSessionContext.GetModuleIdentifierForArea(
+            ViewContext.RouteData.Values["area"]?.ToString())
         ?? Context.Session.GetString(Apcloud.Web.Infrastructure.ModuleSessionContext.ActiveModuleIdKey);
 }

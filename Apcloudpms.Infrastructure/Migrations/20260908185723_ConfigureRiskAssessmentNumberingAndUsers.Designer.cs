@@ -4,6 +4,7 @@ using Apcloudpms.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Apcloudpms.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260908185723_ConfigureRiskAssessmentNumberingAndUsers")]
+    partial class ConfigureRiskAssessmentNumberingAndUsers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -624,10 +627,10 @@ namespace Apcloudpms.Infrastructure.Migrations
 
                     b.HasKey("FiscalYearId");
 
-                    b.ToTable("FiscalYearSetting", "dbo", t =>
-                        {
-                            t.HasCheckConstraint("CK_FiscalYearSetting_NextNumbersNumeric", "LEN([NextRaNumber]) > 0 AND [NextRaNumber] NOT LIKE '%[^0-9]%' AND LEN([NextPaNumber]) > 0 AND [NextPaNumber] NOT LIKE '%[^0-9]%'");
-                        });
+            b.ToTable("FiscalYearSetting", "dbo", t =>
+                {
+                    t.HasCheckConstraint("CK_FiscalYearSetting_NextNumbersNumeric", "LEN([NextRaNumber]) > 0 AND [NextRaNumber] NOT LIKE '%[^0-9]%' AND LEN([NextPaNumber]) > 0 AND [NextPaNumber] NOT LIKE '%[^0-9]%'");
+                });
                 });
 
             modelBuilder.Entity("Apcloudpms.Domain.Entities.ListItem", b =>
@@ -1295,9 +1298,9 @@ namespace Apcloudpms.Infrastructure.Migrations
                     b.Property<int?>("RiskAssessmentId")
                         .HasColumnType("int");
 
-                    b.Property<string>("RiskAssessmentNumber")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+            b.Property<string>("RiskAssessmentNumber")
+                .HasMaxLength(50)
+                .HasColumnType("nvarchar(50)");
 
                     b.Property<byte[]>("RowVersion")
                         .IsConcurrencyToken()

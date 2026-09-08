@@ -9,6 +9,20 @@ namespace Apcloudpms.Infrastructure.Services;
 
 public sealed class RiskAssessmentService(AppDbContext context) : IRiskAssessmentService
 {
+    public async Task<IReadOnlyList<RiskAssessmentUserOptionDto>> GetUserOptionsAsync(
+        int currentUserId,
+        CancellationToken cancellationToken = default) =>
+        await context.Users
+            .AsNoTracking()
+            .Where(user => user.IsActive)
+            .OrderBy(user => user.DisplayName ?? user.UserName)
+            .ThenBy(user => user.Id)
+            .Select(user => new RiskAssessmentUserOptionDto(
+                user.Id,
+                user.DisplayName ?? user.UserName,
+                user.Id == currentUserId))
+            .ToListAsync(cancellationToken);
+
     public async Task<IReadOnlyList<RiskAssessmentPermitApplicationDto>> GetPermitApplicationsAsync(
         int riskAssessmentId,
         CancellationToken cancellationToken = default) =>
@@ -37,10 +51,12 @@ public sealed class RiskAssessmentService(AppDbContext context) : IRiskAssessmen
             .Where(x => x.Id == riskAssessmentId)
             .Select(x => new RiskAssessmentDetailsDto(
                 x.Id,
-                x.PreRiskAssessmentNumber,
+                x.RiskAssessmentNumber,
                 x.IssueDate,
-                x.PermitIssuerName,
-                x.PermitReceiverName,
+                x.PermitIssuerUserId,
+                x.PermitIssuerUser.DisplayName ?? x.PermitIssuerUser.UserName,
+                x.PermitReceiverUserId,
+                x.PermitReceiverUser.DisplayName ?? x.PermitReceiverUser.UserName,
                 x.AreaResponsibleName,
                 x.LocationOfWork,
                 x.DescriptionOfWork,
@@ -120,7 +136,7 @@ public sealed class RiskAssessmentService(AppDbContext context) : IRiskAssessmen
 
             var items = new List<RiskAssessmentGridItemDto>();
             var idOrdinal = reader.GetOrdinal("Id");
-            var numberOrdinal = reader.GetOrdinal("PreRiskAssessmentNumber");
+            var numberOrdinal = reader.GetOrdinal("RiskAssessmentNumber");
             var issueDateOrdinal = reader.GetOrdinal("IssueDate");
             var issuerOrdinal = reader.GetOrdinal("PermitIssuerName");
             var receiverOrdinal = reader.GetOrdinal("PermitReceiverName");
@@ -192,20 +208,28 @@ public sealed class RiskAssessmentService(AppDbContext context) : IRiskAssessmen
         RiskAssessmentRequestDto request,
         int userId,
         CancellationToken cancellationToken = default) =>
-        ExecuteAsync("dbo.SpRiskAssessmentIns", null, request, userId, cancellationToken);
+        ExecuteAsync("dbo.SpRiskAssessmentIns", null, request, userId, false, cancellationToken);
 
     public Task<RiskAssessmentWriteResult> UpdateAsync(
         int riskAssessmentId,
         RiskAssessmentRequestDto request,
         int userId,
         CancellationToken cancellationToken = default) =>
-        ExecuteAsync("dbo.SpRiskAssessmentUpd", riskAssessmentId, request, userId, cancellationToken);
+        ExecuteAsync("dbo.SpRiskAssessmentUpd", riskAssessmentId, request, userId, false, cancellationToken);
+
+    public Task<RiskAssessmentWriteResult> ContinueCreateAsync(
+        int riskAssessmentId,
+        RiskAssessmentRequestDto request,
+        int userId,
+        CancellationToken cancellationToken = default) =>
+        ExecuteAsync("dbo.SpRiskAssessmentUpd", riskAssessmentId, request, userId, true, cancellationToken);
 
     private async Task<RiskAssessmentWriteResult> ExecuteAsync(
         string procedureName,
         int? riskAssessmentId,
         RiskAssessmentRequestDto request,
         int userId,
+        bool requireCreatedBy,
         CancellationToken cancellationToken)
     {
         var connection = (SqlConnection)context.Database.GetDbConnection();
@@ -220,13 +244,15 @@ public sealed class RiskAssessmentService(AppDbContext context) : IRiskAssessmen
             command.CommandType = CommandType.StoredProcedure;
 
             if (riskAssessmentId.HasValue)
+            {
                 command.Parameters.Add(new SqlParameter("@RiskAssessmentId", SqlDbType.Int)
                     { Value = riskAssessmentId.Value });
+                Add(command, "@RequireCreatedBy", SqlDbType.Bit, requireCreatedBy);
+            }
 
-            Add(command, "@PreRiskAssessmentNumber", SqlDbType.NVarChar, request.PreRiskAssessmentNumber.Trim(), 50);
             Add(command, "@IssueDate", SqlDbType.Date, request.IssueDate.ToDateTime(TimeOnly.MinValue));
-            Add(command, "@PermitIssuerName", SqlDbType.NVarChar, request.PermitIssuerName.Trim(), 100);
-            Add(command, "@PermitReceiverName", SqlDbType.NVarChar, request.PermitReceiverName.Trim(), 100);
+            Add(command, "@PermitIssuerUserId", SqlDbType.Int, request.PermitIssuerUserId);
+            Add(command, "@PermitReceiverUserId", SqlDbType.Int, request.PermitReceiverUserId);
             Add(command, "@AreaResponsibleName", SqlDbType.NVarChar, request.AreaResponsibleName.Trim(), 100);
             Add(command, "@LocationOfWork", SqlDbType.NVarChar, request.LocationOfWork.Trim(), 255);
             Add(command, "@DescriptionOfWork", SqlDbType.NVarChar, Normalize(request.DescriptionOfWork), -1);
@@ -250,6 +276,7 @@ public sealed class RiskAssessmentService(AppDbContext context) : IRiskAssessmen
                 RiskAssessmentWriteOutcome.Success,
                 new RiskAssessmentWriteResponseDto(
                     reader.GetInt32(reader.GetOrdinal("RiskAssessmentId")),
+                    reader.GetString(reader.GetOrdinal("RiskAssessmentNumber")),
                     reader.GetInt32(reader.GetOrdinal("RiskAssessmentStatusListItemId")),
                     reader.GetString(reader.GetOrdinal("Status")),
                     reader.GetDateTime(reader.GetOrdinal("UpdatedAtUtc"))));
@@ -260,7 +287,19 @@ public sealed class RiskAssessmentService(AppDbContext context) : IRiskAssessmen
         }
         catch (SqlException exception) when (exception.Number == 50002)
         {
-            return new RiskAssessmentWriteResult(RiskAssessmentWriteOutcome.NotDraft);
+            return new RiskAssessmentWriteResult(RiskAssessmentWriteOutcome.NotEditable);
+        }
+        catch (SqlException exception) when (exception.Number == 50005)
+        {
+            return new RiskAssessmentWriteResult(RiskAssessmentWriteOutcome.InvalidUsers);
+        }
+        catch (SqlException exception) when (exception.Number is 50003 or 50004)
+        {
+            return new RiskAssessmentWriteResult(RiskAssessmentWriteOutcome.StatusNotConfigured);
+        }
+        catch (SqlException exception) when (exception.Number is 50006 or 50007)
+        {
+            return new RiskAssessmentWriteResult(RiskAssessmentWriteOutcome.NumberingNotConfigured);
         }
         finally
         {

@@ -134,7 +134,7 @@ public sealed record AdminAssignedApproverUserDto(
 public sealed record AdminPendingApprovalDto(
     long PermitApprovalId,
     int? RiskAssessmentId,
-    string? PreRiskAssessmentNumber,
+    string? RiskAssessmentNumber,
     string? RiskAssessmentStatus,
     long PermitApplicationId,
     string PermitNumber,
@@ -159,7 +159,7 @@ public sealed record AdminPendingApprovalPagedResponseDto(
     bool HasNextPage);
 
 public sealed record ApprovedPermitDto(
-    string? PreRiskAssessmentNumber,
+    string? RiskAssessmentNumber,
     string PermitNumber,
     DateOnly IssuedDate,
     string PermitIssuerName,
@@ -170,7 +170,7 @@ public sealed record ApprovedPermitDto(
     string? ApprovalRemarks);
 
 public sealed record RejectedPermitDto(
-    string? PreRiskAssessmentNumber,
+    string? RiskAssessmentNumber,
     string PermitNumber,
     DateOnly IssuedDate,
     string PermitIssuerName,

@@ -16,7 +16,41 @@ public sealed record PermissionDefinition(
 public static class ApplicationPermissions
 {
     public const string OrganizationModule = "ORGANIZATION";
+    public const string PermitModule = "PERMIT";
     public const string PortalModule = "PORTAL";
+
+    public static class PermitDashboard
+    {
+        public const string View = "PermitDashboard.View";
+        public const string Export = "PermitDashboard.Export";
+    }
+
+    public static class PermitApplications
+    {
+        public const string View = "PermitApplication.View";
+        public const string Create = "PermitApplication.Create";
+        public const string Edit = "PermitApplication.Edit";
+        public const string Finalize = "PermitApplication.Finalize";
+        public const string Complete = "PermitApplication.Complete";
+        public const string Cancel = "PermitApplication.Cancel";
+        public const string Print = "PermitApplication.Print";
+    }
+
+    public static class RiskAssessments
+    {
+        public const string View = "RiskAssessment.View";
+        public const string Create = "RiskAssessment.Create";
+        public const string Edit = "RiskAssessment.Edit";
+        public const string Submit = "RiskAssessment.Submit";
+    }
+
+    public static class PermitApprovals
+    {
+        public const string View = "PermitApproval.View";
+        public const string Decide = "PermitApproval.Decide";
+        public const string ViewAssignments = "PermitApproval.ViewAssignments";
+        public const string ManageAlternateApprovers = "PermitApproval.ManageAlternateApprovers";
+    }
 
     public static class Organization
     {
@@ -184,6 +218,23 @@ public static class ApplicationPermissions
         P(PermissionAssignments.Edit, "Edit permission assignments", "Activate or deactivate role permissions.", "Setup", "Permission"),
         P(PermissionAssignments.Manage, "Bulk manage permission assignments", "Replace a role's active permission assignments in one operation.", "Setup", "Permission"),
         P(PermissionAssignments.Delete, "Delete permission assignments", "Revoke permissions from roles.", "Setup", "Permission"),
+        PermitP(PermitDashboard.View, "View permit dashboard", "Open the permit dashboard.", "PermitDashboard"),
+        PermitP(PermitDashboard.Export, "Export permit dashboard", "Export permit dashboard reports.", "PermitDashboard"),
+        PermitP(PermitApplications.View, "View permit applications", "View and search permit applications.", "PermitApplications"),
+        PermitP(PermitApplications.Create, "Create permit applications", "Create permit applications.", "PermitApplications"),
+        PermitP(PermitApplications.Edit, "Edit permit applications", "Edit permit applications while their workflow state permits changes.", "PermitApplications"),
+        PermitP(PermitApplications.Finalize, "Finalize permit applications", "Finalize and submit permit applications.", "PermitApplications"),
+        PermitP(PermitApplications.Complete, "Complete permit applications", "Mark permit work as completed.", "PermitApplications"),
+        PermitP(PermitApplications.Cancel, "Cancel permit applications", "Cancel or close permit applications.", "PermitApplications"),
+        PermitP(PermitApplications.Print, "Print permit applications", "Print permit application records.", "PermitApplications"),
+        PermitP(RiskAssessments.View, "View risk assessments", "View risk assessments and their related permit applications.", "PermitApplications"),
+        PermitP(RiskAssessments.Create, "Create risk assessments", "Create risk assessments.", "PermitApplications"),
+        PermitP(RiskAssessments.Edit, "Edit risk assessments", "Edit draft risk assessments.", "PermitApplications"),
+        PermitP(RiskAssessments.Submit, "Submit risk assessments", "Submit risk assessments into the approval workflow.", "PermitApplications"),
+        PermitP(PermitApprovals.View, "View permit approvals", "View pending and historical permit approvals.", "PermitApprovals"),
+        PermitP(PermitApprovals.Decide, "Decide permit approvals", "Approve or reject assigned permit approvals.", "PermitApprovals"),
+        PermitP(PermitApprovals.ViewAssignments, "View approval assignments", "View pending approval assignments across approvers.", "PermitApprovals"),
+        PermitP(PermitApprovals.ManageAlternateApprovers, "Manage alternate approvers", "Assign alternate users for permit approvals.", "PermitApprovals"),
         new(Portal.View, "Open portal", "Open the application portal.", PortalModule, "Portal", "Index", false),
         new(Portal.SelectModule, "Select portal modules", "Open a module from the portal.", PortalModule, "Portal", "Module", false)
     ];
@@ -191,4 +242,8 @@ public static class ApplicationPermissions
     private static PermissionDefinition P(
         string code, string name, string description, string controller, string action) =>
         new(code, name, description, OrganizationModule, controller, action);
+
+    private static PermissionDefinition PermitP(
+        string code, string name, string description, string controller) =>
+        new(code, name, description, PermitModule, controller, "Index");
 }

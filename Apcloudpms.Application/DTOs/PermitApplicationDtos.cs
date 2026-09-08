@@ -14,7 +14,7 @@ public sealed class PermitApplicationQueryDto
     public string? Search { get; set; }
 
     [RegularExpression(
-        "^(preRiskAssessmentNumber|permitNumber|permitIssuerName|permitReceiverName|permitTypeName|permitStatusName|submittedAtUtc|issueDate)$",
+        "^(riskAssessmentNumber|permitNumber|permitIssuerName|permitReceiverName|permitTypeName|permitStatusName|submittedAtUtc|issueDate)$",
         ErrorMessage = "SortBy is not a supported permit application column.")]
     public string SortBy { get; set; } = "issueDate";
 
@@ -35,7 +35,7 @@ public sealed record UserPermitApplicationDto(
     DateTime? SubmittedAtUtc,
     int? CreatedByUserId,
     string CreatedByUserName,
-    string? PreRiskAssessmentNumber,
+    string? RiskAssessmentNumber,
     int? RiskAssessmentId);
 
 public sealed record PermitApplicationPagedResponseDto(
@@ -74,9 +74,6 @@ public sealed class PermitApplicationUpdateRequestDto
 
     [StringLength(30)]
     public string? PermitReceiverContactNumber { get; set; }
-
-    [StringLength(50)]
-    public string? PreRiskAssessmentNumber { get; set; }
 
     [Required, StringLength(500)]
     public string WorkLocation { get; set; } = string.Empty;
@@ -135,7 +132,7 @@ public sealed record PermitApplicationDetailsDto(
     string? PermitIssuerContactNumber,
     string PermitReceiverName,
     string? PermitReceiverContactNumber,
-    string? PreRiskAssessmentNumber,
+    string? RiskAssessmentNumber,
     string WorkLocation,
     string WorkDescription,
     string? SpecialInstructions,

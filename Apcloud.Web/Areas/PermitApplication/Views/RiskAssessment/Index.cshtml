@@ -1,6 +1,9 @@
+@using Apcloud.Contracts.Permissions
 @{
     ViewData["Title"] = "Risk Assessments";
 }
+
+<span data-permission-scope data-permission-module="@ApplicationPermissions.PermitModule" data-permission-controller="PermitApplications" data-permission-action="Index" hidden></span>
 
 <div class="page-header d-print-none dashboard-header">
     <div class="row g-3 align-items-center">
@@ -10,7 +13,7 @@
             <p class="text-secondary mt-2 mb-0">Review and manage the risk assessments available to your account.</p>
         </div>
         <div class="col-auto ms-auto d-print-none">
-            <button type="button" class="btn btn-primary" data-risk-add>
+            <button type="button" class="btn btn-primary" data-risk-add data-requires-permission="@ApplicationPermissions.RiskAssessments.Create">
                 <svg class="icon"><use href="#icon-plus" /></svg>
                 Add risk assessment
             </button>
@@ -29,7 +32,9 @@
      data-search-alias="search"
      data-row-expand="true"
      data-row-expand-when="hasPermitType"
-     data-row-actions="edit">
+     data-edit-statuses="Draft,Rejected"
+     data-row-actions=""
+     data-permission-actions="edit:@ApplicationPermissions.RiskAssessments.Edit">
     <div class="card-header server-grid-toolbar">
         <div class="server-grid-search" role="search">
             <div class="input-icon">
@@ -64,7 +69,7 @@
         <div class="empty-icon"><svg class="icon"><use href="#icon-search" /></svg></div>
         <p class="empty-title">No risk assessments found</p>
         <p class="empty-subtitle text-secondary">Try changing the search term or add a new risk assessment.</p>
-        <div class="empty-action"><button type="button" class="btn btn-primary" data-risk-add><svg class="icon"><use href="#icon-plus" /></svg>Add risk assessment</button></div>
+        <div class="empty-action"><button type="button" class="btn btn-primary" data-risk-add data-requires-permission="@ApplicationPermissions.RiskAssessments.Create"><svg class="icon"><use href="#icon-plus" /></svg>Add risk assessment</button></div>
     </div>
 
     <div class="d-none" data-grid-content>
@@ -76,7 +81,7 @@
                            data-grid-column value must match the API property and is
                            also the validated server-side sorting key. Reorder or
                            remove a <th> to reorder or hide that column. *@
-                        <th data-grid-column="preRiskAssessmentNumber">Assessment No.</th>
+                        <th data-grid-column="riskAssessmentNumber">Assessment No.</th>
                         <th data-grid-column="issueDate">Issue date</th>
                         <th data-grid-column="permitIssuerName">Issuer</th>
                         <th data-grid-column="permitReceiverName">Receiver</th>
@@ -121,14 +126,14 @@
                     <section data-risk-step-panel="0">
                         <div class="risk-section-heading"><div><h3>Assessment and work details</h3><p>Identify the assessment, define the planned work window, and record the responsible people.</p></div><span class="badge bg-blue-lt">Step 1 of 4</span></div>
                         <div class="row g-3">
-                            <div class="col-md-5"><label class="form-label required" for="riskNumber">Pre-risk assessment number</label><input id="riskNumber" class="form-control" maxlength="50" required data-risk-number /><div class="invalid-feedback">Enter the assessment number.</div></div>
+                            <div class="col-md-5"><label class="form-label" for="riskNumber">Risk assessment number</label><input id="riskNumber" class="form-control" maxlength="50" readonly placeholder="Assigned after the first save" data-risk-number /><div class="form-hint">Generated from the active fiscal year's RA prefix and next number.</div></div>
                             <div class="col-md-3"><label class="form-label required" for="riskIssueDate">Issue date</label><input id="riskIssueDate" type="date" class="form-control" required data-risk-issue-date /><div class="invalid-feedback">Select the issue date.</div></div>
                             <div class="col-md-4"><label class="form-label required" for="riskLocation">Location of work</label><input id="riskLocation" class="form-control" maxlength="255" required data-risk-location /><div class="invalid-feedback">Enter the work location.</div></div>
                             <div class="col-md-6"><label class="form-label" for="riskStart">Planned start</label><input id="riskStart" type="datetime-local" class="form-control" data-risk-start /></div>
                             <div class="col-md-6"><label class="form-label" for="riskEnd">Planned end</label><input id="riskEnd" type="datetime-local" class="form-control" data-risk-end /><div class="invalid-feedback">Planned end must be on or after planned start.</div></div>
                             <div class="col-12"><div class="risk-form-divider"><span>People and work scope</span></div></div>
-                            <div class="col-md-4"><label class="form-label required" for="riskIssuer">Permit issuer</label><input id="riskIssuer" class="form-control" maxlength="100" required data-risk-issuer /><div class="invalid-feedback">Enter the permit issuer.</div></div>
-                            <div class="col-md-4"><label class="form-label required" for="riskReceiver">Permit receiver</label><input id="riskReceiver" class="form-control" maxlength="100" required data-risk-receiver /><div class="invalid-feedback">Enter the permit receiver.</div></div>
+                            <div class="col-md-4"><label class="form-label required" for="riskIssuer">Permit issuer</label><select id="riskIssuer" class="form-select" required data-risk-issuer><option value="">Loading users…</option></select><div class="invalid-feedback">Select the permit issuer.</div></div>
+                            <div class="col-md-4"><label class="form-label required" for="riskReceiver">Permit receiver</label><select id="riskReceiver" class="form-select" required data-risk-receiver><option value="">Loading users…</option></select><div class="invalid-feedback">Select the permit receiver.</div></div>
                             <div class="col-md-4"><label class="form-label required" for="riskResponsible">Area responsible</label><input id="riskResponsible" class="form-control" maxlength="100" required data-risk-responsible /><div class="invalid-feedback">Enter the responsible person or area.</div></div>
                             <div class="col-12"><label class="form-label" for="riskDescription">Description of work</label><textarea id="riskDescription" class="form-control" rows="4" data-risk-description></textarea><div class="form-hint">Describe the activity, equipment, work method, and boundaries.</div></div>
                             <div class="col-12"><label class="form-label" for="riskInstructions">Special instructions</label><textarea id="riskInstructions" class="form-control" rows="3" data-risk-instructions></textarea></div>
@@ -170,8 +175,8 @@
                     <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button>
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-outline-secondary d-none" data-risk-previous>Previous</button>
-                        <button type="button" class="btn btn-primary" data-risk-next>Continue</button>
-                        <button type="submit" class="btn btn-success d-none" data-risk-save><svg class="icon me-1"><use href="#icon-check" /></svg><span data-risk-save-label>Submit</span><span class="d-none" data-risk-saving><span class="spinner-border spinner-border-sm me-2"></span>Submitting…</span></button>
+                        <button type="button" class="btn btn-primary" data-risk-next><span data-risk-next-label>Save &amp; continue</span><span class="d-none" data-risk-next-saving><span class="spinner-border spinner-border-sm me-2"></span>Saving…</span></button>
+                        <button type="submit" class="btn btn-success d-none" data-risk-save data-requires-permission="@ApplicationPermissions.RiskAssessments.Create,@ApplicationPermissions.RiskAssessments.Edit"><svg class="icon me-1"><use href="#icon-check" /></svg><span data-risk-save-label>Submit</span><span class="d-none" data-risk-saving><span class="spinner-border spinner-border-sm me-2"></span>Submitting…</span></button>
                     </div>
                 </div>
             </form>

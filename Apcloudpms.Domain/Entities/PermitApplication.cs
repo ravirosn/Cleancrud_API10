@@ -10,7 +10,7 @@ public class PermitApplication
     public string? PermitIssuerContactNumber { get; set; }
     public string PermitReceiverName { get; set; } = string.Empty;
     public string? PermitReceiverContactNumber { get; set; }
-    public string? PreRiskAssessmentNumber { get; set; }
+    public string? RiskAssessmentNumber { get; set; }
     public string WorkLocation { get; set; } = string.Empty;
     public string WorkDescription { get; set; } = string.Empty;
     public string? SpecialInstructions { get; set; }

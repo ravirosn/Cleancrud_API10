@@ -5,27 +5,34 @@
     .find(([key]) => key.toLowerCase() === name.toLowerCase())?.[1];
 
   document.addEventListener("DOMContentLoaded", async () => {
-    const scope = document.querySelector("[data-permission-scope]");
-    if (!scope || !window.apcloudApi) return;
+    const scopes = [...document.querySelectorAll("[data-permission-scope]")];
+    if (!scopes.length || !window.apcloudApi) return;
 
     const guarded = [...document.querySelectorAll("[data-requires-permission]")];
-    guarded.forEach((element) => element.classList.add("d-none"));
+    guarded.forEach((element) => {
+      element.hidden = true;
+      element.classList.add("d-none");
+    });
 
     const grid = document.querySelector("[data-server-grid][data-permission-actions]");
 
     try {
-      const query = new URLSearchParams({
-        moduleCode: scope.dataset.permissionModule,
-        menuController: scope.dataset.permissionController,
-        menuAction: scope.dataset.permissionAction
-      });
-      const rows = await window.apcloudApi.json(`permissions/me?${query}`);
-      const permissions = new Set(rows.map((row) => property(row, "code")));
+      const responses = await Promise.all(scopes.map((scope) => {
+        const query = new URLSearchParams({
+          moduleCode: scope.dataset.permissionModule,
+          menuController: scope.dataset.permissionController,
+          menuAction: scope.dataset.permissionAction
+        });
+        return window.apcloudApi.json(`permissions/me?${query}`);
+      }));
+      const permissions = new Set(responses.flat().map((row) => property(row, "code")));
 
       guarded.forEach((element) => {
         const required = element.dataset.requiresPermission
           .split(",").map((code) => code.trim()).filter(Boolean);
-        element.classList.toggle("d-none", !required.some((code) => permissions.has(code)));
+        const allowed = required.some((code) => permissions.has(code));
+        element.hidden = !allowed;
+        element.classList.toggle("d-none", !allowed);
       });
 
       if (grid) {

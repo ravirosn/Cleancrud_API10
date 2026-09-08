@@ -1,9 +1,10 @@
 using System.Security.Claims;
+using Apcloud.Contracts.Permissions;
+using Apcloudpms.API.Authorization;
 using Apcloudpms.API.Middleware;
 using Apcloudpms.Application.Common;
 using Apcloudpms.Application.DTOs;
 using Apcloudpms.Application.Interfaces;
-using Apcloudpms.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,10 +15,11 @@ namespace Apcloudpms.API.Controllers;
 [ApiController]
 [Route("api/permit-approvals")]
 [Authorize]
+[RequireMenu(ApplicationPermissions.PermitModule, "PermitApprovals", "Index")]
 public sealed class PermitApprovalsController(IApprovalWorkflowService service) : ControllerBase
 {
     [HttpGet("admin/pending-assignments")]
-    [Authorize(Roles = nameof(ApplicationRole.SuperAdmin) + "," + nameof(ApplicationRole.Admin))]
+    [RequirePermission(ApplicationPermissions.PermitApprovals.ViewAssignments)]
     [ProducesResponseType<AdminPendingApprovalPagedResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<AdminPendingApprovalPagedResponseDto>>
@@ -27,6 +29,7 @@ public sealed class PermitApprovalsController(IApprovalWorkflowService service) 
         Ok(await service.GetAdminPendingAssignmentsAsync(query, cancellationToken));
 
     [HttpGet("pending")]
+    [RequirePermission(ApplicationPermissions.PermitApprovals.View)]
     [ProducesResponseType<PermitApprovalPagedResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<PermitApprovalPagedResponseDto>> Pending(
@@ -39,6 +42,7 @@ public sealed class PermitApprovalsController(IApprovalWorkflowService service) 
     }
 
     [HttpGet("approved")]
+    [RequirePermission(ApplicationPermissions.PermitApprovals.View)]
     [ProducesResponseType<ApprovedPermitPagedResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<ApprovedPermitPagedResponseDto>> Approved(
@@ -51,6 +55,7 @@ public sealed class PermitApprovalsController(IApprovalWorkflowService service) 
     }
 
     [HttpGet("rejected")]
+    [RequirePermission(ApplicationPermissions.PermitApprovals.View)]
     [ProducesResponseType<RejectedPermitPagedResponseDto>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<RejectedPermitPagedResponseDto>> Rejected(
@@ -63,6 +68,7 @@ public sealed class PermitApprovalsController(IApprovalWorkflowService service) 
     }
 
     [HttpPost("{id:long}/decision")]
+    [RequirePermission(ApplicationPermissions.PermitApprovals.Decide)]
     public async Task<ActionResult<ReturnMessageModel>> Decide(
         long id,
         ApprovalDecisionRequestDto request,
@@ -75,7 +81,7 @@ public sealed class PermitApprovalsController(IApprovalWorkflowService service) 
     }
 
     [HttpPut("alternate-users")]
-    [Authorize(Roles = nameof(ApplicationRole.SuperAdmin) + "," + nameof(ApplicationRole.Admin))]
+    [RequirePermission(ApplicationPermissions.PermitApprovals.ManageAlternateApprovers)]
     [ProducesResponseType<IReadOnlyList<AlternateApproverAssignmentDto>>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]

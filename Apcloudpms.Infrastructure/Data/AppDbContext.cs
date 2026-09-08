@@ -324,7 +324,10 @@ public class AppDbContext : DbContext
 
         modelBuilder.Entity<FiscalYearSetting>(entity =>
         {
-            entity.ToTable("FiscalYearSetting", "dbo");
+            entity.ToTable("FiscalYearSetting", "dbo", table =>
+                table.HasCheckConstraint(
+                    "CK_FiscalYearSetting_NextNumbersNumeric",
+                    "LEN([NextRaNumber]) > 0 AND [NextRaNumber] NOT LIKE '%[^0-9]%' AND LEN([NextPaNumber]) > 0 AND [NextPaNumber] NOT LIKE '%[^0-9]%'"));
             entity.HasKey(x => x.FiscalYearId);
             entity.Property(x => x.RaPrefix).HasMaxLength(50).IsRequired();
             entity.Property(x => x.PaPrefix).HasMaxLength(50).IsRequired();
@@ -430,7 +433,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.PermitIssuerContactNumber).HasMaxLength(30);
             entity.Property(x => x.PermitReceiverName).HasMaxLength(200).IsRequired();
             entity.Property(x => x.PermitReceiverContactNumber).HasMaxLength(30);
-            entity.Property(x => x.PreRiskAssessmentNumber).HasMaxLength(50);
+            entity.Property(x => x.RiskAssessmentNumber).HasMaxLength(50);
             entity.Property(x => x.WorkLocation).HasMaxLength(500).IsRequired();
             entity.Property(x => x.WorkDescription).IsRequired();
             entity.Property(x => x.SpecialInstructions);
@@ -496,10 +499,8 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<RiskAssessment>(entity =>
         {
             entity.ToTable("RiskAssessment", "dbo");
-            entity.Property(x => x.PreRiskAssessmentNumber).HasMaxLength(50).IsRequired();
+            entity.Property(x => x.RiskAssessmentNumber).HasMaxLength(50).IsRequired();
             entity.Property(x => x.IssueDate).HasColumnType("date").IsRequired();
-            entity.Property(x => x.PermitIssuerName).HasMaxLength(100).IsRequired();
-            entity.Property(x => x.PermitReceiverName).HasMaxLength(100).IsRequired();
             entity.Property(x => x.AreaResponsibleName).HasMaxLength(100).IsRequired();
             entity.Property(x => x.LocationOfWork).HasMaxLength(255).IsRequired();
             entity.Property(x => x.DescriptionOfWork);
@@ -511,6 +512,9 @@ public class AppDbContext : DbContext
             entity.Property(x => x.CreatedAtUtc).HasPrecision(0).HasDefaultValueSql("SYSUTCDATETIME()");
             entity.Property(x => x.UpdatedAtUtc).HasPrecision(0).HasDefaultValueSql("SYSUTCDATETIME()");
             entity.HasIndex(x => new { x.RiskAssessmentStatusListItemId, x.CreatedAtUtc });
+            entity.HasIndex(x => x.RiskAssessmentNumber).IsUnique();
+            entity.HasIndex(x => x.PermitIssuerUserId);
+            entity.HasIndex(x => x.PermitReceiverUserId);
             entity.HasOne(x => x.RiskAssessmentStatusListItem)
                 .WithMany(x => x.RiskAssessmentStatuses)
                 .HasForeignKey(x => x.RiskAssessmentStatusListItemId)
@@ -519,6 +523,10 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
             entity.HasOne<User>().WithMany().HasForeignKey(x => x.ModifiedBy)
                 .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.PermitIssuerUser).WithMany()
+                .HasForeignKey(x => x.PermitIssuerUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.PermitReceiverUser).WithMany()
+                .HasForeignKey(x => x.PermitReceiverUserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<RiskAssessmentHazardCategory>(entity =>

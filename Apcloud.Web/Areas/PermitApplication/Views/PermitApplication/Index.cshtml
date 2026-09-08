@@ -1,6 +1,9 @@
+@using Apcloud.Contracts.Permissions
 @{
     ViewData["Title"] = "Permit Applications";
 }
+
+<span data-permission-scope data-permission-module="@ApplicationPermissions.PermitModule" data-permission-controller="PermitApplications" data-permission-action="Index" hidden></span>
 
 <div class="page-header d-print-none dashboard-header">
     <div class="row g-3 align-items-center">
@@ -9,7 +12,7 @@
             <p class="text-secondary mt-2 mb-0">Search and manage permit applications without leaving this page.</p>
         </div>
         <div class="col-auto ms-auto d-print-none">
-            <a asp-action="Create" class="btn btn-primary">
+            <a asp-action="Create" class="btn btn-primary" data-requires-permission="@ApplicationPermissions.PermitApplications.Create">
                 <svg class="icon"><use href="#icon-plus" /></svg>
                 Add permit application
             </a>
@@ -26,7 +29,8 @@
      data-page-size="10"
      data-search-param="searchTerm"
      data-search-alias="search"
-     data-row-actions="view,work-completed,close,print">
+     data-row-actions=""
+     data-permission-actions="view:@ApplicationPermissions.PermitApplications.View,work-completed:@ApplicationPermissions.PermitApplications.Complete,close:@ApplicationPermissions.PermitApplications.Cancel,print:@ApplicationPermissions.PermitApplications.Print">
     <div class="card-header server-grid-toolbar">
         <div class="server-grid-search" role="search">
             <div class="input-icon">
@@ -61,7 +65,7 @@
         <div class="empty-icon"><svg class="icon"><use href="#icon-search" /></svg></div>
         <p class="empty-title">No permit applications found</p>
         <p class="empty-subtitle text-secondary">Try changing the search term or add a new permit application.</p>
-        <div class="empty-action"><a asp-action="Create" class="btn btn-primary"><svg class="icon"><use href="#icon-plus" /></svg>Add permit application</a></div>
+        <div class="empty-action"><a asp-action="Create" class="btn btn-primary" data-requires-permission="@ApplicationPermissions.PermitApplications.Create"><svg class="icon"><use href="#icon-plus" /></svg>Add permit application</a></div>
     </div>
 
     <div class="d-none" data-grid-content>
@@ -72,7 +76,7 @@
                         @* The data-grid-column value must match the property name returned by the API.
                            Edit the text inside <th> to rename a heading. Remove or reorder a <th>
                            to hide or reorder that column. Nested properties use dot notation. *@
-                        <th data-grid-column="preRiskAssessmentNumber">Risk Assessment No.</th>
+                        <th data-grid-column="riskAssessmentNumber">Risk Assessment No.</th>
                         <th data-grid-column="permitNumber">Permit No.</th>
                         <th data-grid-column="permitIssuerName">Issuer</th>
                         <th data-grid-column="permitReceiverName">Receiver</th>

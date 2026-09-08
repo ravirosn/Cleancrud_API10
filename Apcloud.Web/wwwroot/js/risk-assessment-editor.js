@@ -33,6 +33,7 @@
     const optionContainers = Object.fromEntries(groupNames.map(name => [name, form.querySelector(`[data-risk-options="${name}"]`)]));
     let currentStep = 0;
     let editingId = null;
+    let creatingWorkflow = false;
     let lookupPromise = null;
 
     const normalizeCode = value => String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
@@ -79,8 +80,8 @@
       .filter(item => item.listItemId > 0);
 
     const payload = () => ({
-      preRiskAssessmentNumber: fields.number.value.trim(), issueDate: fields.issueDate.value,
-      permitIssuerName: fields.issuer.value.trim(), permitReceiverName: fields.receiver.value.trim(),
+      issueDate: fields.issueDate.value,
+      permitIssuerUserId: Number(fields.issuer.value), permitReceiverUserId: Number(fields.receiver.value),
       areaResponsibleName: fields.responsible.value.trim(), locationOfWork: fields.location.value.trim(),
       descriptionOfWork: fields.description.value.trim() || null,
       specialInstructions: fields.instructions.value.trim() || null,
@@ -116,6 +117,8 @@
 
     const selectedNames = name => [...optionContainers[name].querySelectorAll("input:checked")]
       .map(input => input.closest("label")?.querySelector("span")?.textContent?.trim()).filter(Boolean);
+
+    const selectedUserName = select => select.selectedOptions[0]?.textContent?.trim() || "Not selected";
 
     const createReviewSection = (title, entries, className = "") => {
       const section = document.createElement("section");
@@ -247,7 +250,7 @@
           ["Planned end", displayDateTime(fields.end.value)]
         ]),
         createReviewSection("People and work scope", [
-          ["Permit issuer", fields.issuer.value], ["Permit receiver", fields.receiver.value],
+          ["Permit issuer", selectedUserName(fields.issuer)], ["Permit receiver", selectedUserName(fields.receiver)],
           ["Area responsible", fields.responsible.value], ["Description of work", fields.description.value],
           ["Special instructions", fields.instructions.value]
         ]),
@@ -283,7 +286,21 @@
     };
 
     const loadLookups = () => lookupPromise ??= (async () => {
-      const categoriesPromise = window.apcloudApi.json("list-items/categories/ddl");
+      const categoriesPromise = window.apcloudApi.json("risk-assessments/options/categories");
+      const usersPromise = window.apcloudApi.json("risk-assessments/options/users");
+      const users = await usersPromise;
+      [fields.issuer, fields.receiver].forEach(select => {
+        select.replaceChildren();
+        const prompt = document.createElement("option"); prompt.value = ""; prompt.textContent = "Select a user";
+        select.append(prompt);
+        users.forEach(user => {
+          const option = document.createElement("option");
+          option.value = String(property(user, "id"));
+          option.textContent = property(user, "name") || `User ${option.value}`;
+          option.dataset.currentUser = property(user, "isCurrentUser") === true ? "true" : "false";
+          select.append(option);
+        });
+      });
       await Promise.all(groupNames.map(async name => {
         try {
           let categoryName = "PermitType";
@@ -293,7 +310,7 @@
               `${property(item, "code") ?? ""} ${property(item, "name") ?? ""}`))), "name");
           }
           if (!categoryName) return renderOptions(name, []);
-          const items = await window.apcloudApi.json(`list-items/category/${encodeURIComponent(categoryName)}`);
+          const items = await window.apcloudApi.json(`risk-assessments/options/category/${encodeURIComponent(categoryName)}`);
           renderOptions(name, items);
         } catch (error) {
           const label = name === "specialPermits" ? "PermitType options" : "options";
@@ -324,13 +341,13 @@
     const localDateTime = value => value ? String(value).slice(0, 16) : "";
     const populate = record => {
       fields.id.value = property(record, "id") || "";
-      fields.number.value = property(record, "preRiskAssessmentNumber") || "";
+      fields.number.value = property(record, "riskAssessmentNumber") || "";
       fields.issueDate.value = String(property(record, "issueDate") || "").slice(0, 10);
       fields.location.value = property(record, "locationOfWork") || "";
       fields.start.value = localDateTime(property(record, "plannedStartDateTime"));
       fields.end.value = localDateTime(property(record, "plannedEndDateTime"));
-      fields.issuer.value = property(record, "permitIssuerName") || "";
-      fields.receiver.value = property(record, "permitReceiverName") || "";
+      fields.issuer.value = String(property(record, "permitIssuerUserId") || "");
+      fields.receiver.value = String(property(record, "permitReceiverUserId") || "");
       fields.responsible.value = property(record, "areaResponsibleName") || "";
       fields.description.value = property(record, "descriptionOfWork") || "";
       fields.instructions.value = property(record, "specialInstructions") || "";
@@ -341,22 +358,28 @@
 
     const openEditor = async id => {
       editingId = id ? Number(id) : null;
+      creatingWorkflow = !editingId;
       form.reset(); form.classList.remove("was-validated"); errorBox.classList.add("d-none");
       groupNames.forEach(name => optionContainers[name].querySelectorAll("input:checked").forEach(input => input.checked = false));
       fields.issueDate.value = new Date().toISOString().slice(0, 10);
       modalElement.querySelector("[data-risk-mode]").textContent = editingId ? "Edit risk assessment" : "Add risk assessment";
       modalElement.querySelector("[data-risk-title]").textContent = editingId ? "Update draft risk assessment" : "New risk assessment";
-      form.querySelector("[data-risk-save-label]").textContent = "Submit";
+      form.querySelector("[data-risk-save-label]").textContent = "Save & close";
       setStep(0); modal?.show();
       try {
         await loadLookups();
         if (editingId) {
           const record = await window.apcloudApi.json(`risk-assessments/${editingId}`);
-          if (String(property(record, "riskAssessmentStatus") || "").toLowerCase() !== "draft")
-            throw new Error("Only Draft risk assessments can be edited.");
+          const status = String(property(record, "riskAssessmentStatus") || "").toLowerCase();
+          if (status !== "draft" && status !== "rejected")
+            throw new Error("Only Draft or Rejected risk assessments can be edited.");
           populate(record);
+        } else {
+          const currentIssuer = [...fields.issuer.options]
+            .find(option => option.dataset.currentUser === "true");
+          if (currentIssuer) fields.issuer.value = currentIssuer.value;
         }
-        fields.number.focus();
+        fields.issueDate.focus();
       } catch (error) {
         errorBox.textContent = error.message || "The risk assessment form could not be loaded.";
         errorBox.classList.remove("d-none"); saveButton.disabled = true;
@@ -406,10 +429,43 @@
     fields.start.addEventListener("change", validateDates); fields.end.addEventListener("change", validateDates);
     form.addEventListener("input", () => { if (currentStep === panels.length - 1) renderReview(); });
     form.addEventListener("change", () => { if (currentStep === panels.length - 1) renderReview(); });
+    const saveDraft = async () => {
+      const isCreate = !editingId;
+      const url = isCreate
+        ? "risk-assessments"
+        : (creatingWorkflow ? `risk-assessments/${editingId}/creation-progress` : `risk-assessments/${editingId}`);
+      const result = await window.apcloudApi.json(url, {
+        method: isCreate ? "POST" : "PUT",
+        body: payload()
+      });
+      editingId = Number(property(result, "riskAssessmentId")) || editingId;
+      fields.id.value = String(editingId || "");
+      fields.number.value = property(result, "riskAssessmentNumber") || fields.number.value;
+      return result;
+    };
+
     previousButton.addEventListener("click", () => setStep(currentStep - 1));
-    nextButton.addEventListener("click", () => { if (validateStep(currentStep)) setStep(currentStep + 1); });
+    nextButton.addEventListener("click", async () => {
+      if (!validateStep(currentStep)) return;
+      nextButton.disabled = true;
+      errorBox.classList.add("d-none");
+      nextButton.querySelector("[data-risk-next-label]").classList.add("d-none");
+      nextButton.querySelector("[data-risk-next-saving]").classList.remove("d-none");
+      try {
+        await saveDraft();
+        grid?.dispatchEvent(new CustomEvent("server-grid:reload"));
+        setStep(currentStep + 1);
+      } catch (error) {
+        errorBox.textContent = error.message || "The risk assessment could not be saved.";
+        errorBox.classList.remove("d-none");
+      } finally {
+        nextButton.disabled = false;
+        nextButton.querySelector("[data-risk-next-label]").classList.remove("d-none");
+        nextButton.querySelector("[data-risk-next-saving]").classList.add("d-none");
+      }
+    });
     stepButtons.forEach((button, index) => button.addEventListener("click", () => {
-      if (index <= currentStep || validateStep(currentStep)) setStep(index);
+      if (index <= currentStep) setStep(index);
     }));
 
     form.addEventListener("submit", async event => {
@@ -418,13 +474,12 @@
       saveButton.disabled = true; errorBox.classList.add("d-none");
       form.querySelector("[data-risk-save-label]").classList.add("d-none");
       form.querySelector("[data-risk-saving]").classList.remove("d-none");
+      const wasCreating = creatingWorkflow;
       try {
-        await window.apcloudApi.json(editingId ? `risk-assessments/${editingId}` : "risk-assessments", {
-          method: editingId ? "PUT" : "POST", body: payload()
-        });
+        await saveDraft();
         modal?.hide();
         grid?.dispatchEvent(new CustomEvent("server-grid:reload"));
-        notify("success", editingId ? "The draft risk assessment was updated." : "The risk assessment was created as a draft.", "Risk assessment saved");
+        notify("success", wasCreating ? "The risk assessment was created as a draft." : "The draft risk assessment was updated.", "Risk assessment saved");
       } catch (error) {
         errorBox.textContent = error.message || "The risk assessment could not be saved.";
         errorBox.classList.remove("d-none");
@@ -435,7 +490,7 @@
       }
     });
 
-    modalElement.addEventListener("hidden.bs.modal", () => { editingId = null; saveButton.disabled = false; });
+    modalElement.addEventListener("hidden.bs.modal", () => { editingId = null; creatingWorkflow = false; saveButton.disabled = false; });
     const query = new URLSearchParams(window.location.search);
     if (query.get("create") === "true") openEditor();
     else if (/^\d+$/.test(query.get("edit") || "")) openEditor(query.get("edit"));

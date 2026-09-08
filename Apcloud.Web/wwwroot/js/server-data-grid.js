@@ -113,6 +113,10 @@
       this.rowExpand = root.dataset.rowExpand === "true";
       this.rowExpandWhen = root.dataset.rowExpandWhen || "";
       this.rowActions = (root.dataset.rowActions || "").split(",").map((value) => value.trim()).filter(Boolean);
+      this.editStatuses = (root.dataset.editStatuses || "")
+        .split(",")
+        .map((value) => value.trim().toLowerCase())
+        .filter(Boolean);
       this.hiddenColumns = (root.dataset.hiddenColumns || "")
         .split(",")
         .map((value) => value.trim().toLowerCase())
@@ -390,6 +394,12 @@
     }
 
     createActionMenu(item) {
+      const actions = this.rowActions.filter((action) => {
+        if (action !== "edit" || !this.editStatuses.length) return true;
+        const status = findProperty(item.record, ["riskAssessmentStatus", "status"]);
+        return this.editStatuses.includes(String(status || "").trim().toLowerCase());
+      });
+      if (!actions.length) return document.createTextNode("");
       const dropdown = createElement("div", "dropdown");
       const trigger = createElement("button", "btn btn-sm btn-icon btn-ghost-secondary server-grid-actions", "⋯");
       trigger.type = "button";
@@ -398,7 +408,7 @@
       trigger.setAttribute("aria-label", "Row actions");
       const menu = createElement("div", "dropdown-menu dropdown-menu-end");
 
-      this.rowActions.forEach((action) => {
+      actions.forEach((action) => {
         if (action === "edit" && item.id && this.editUrlTemplate) {
           const link = createElement("a", "dropdown-item", this.actionLabel(action));
           link.href = this.editUrlTemplate.replace("{id}", encodeURIComponent(item.id));

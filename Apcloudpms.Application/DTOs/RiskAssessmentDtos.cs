@@ -4,16 +4,13 @@ namespace Apcloudpms.Application.DTOs;
 
 public sealed class RiskAssessmentRequestDto
 {
-    [Required, StringLength(50)]
-    public string PreRiskAssessmentNumber { get; set; } = string.Empty;
-
     public DateOnly IssueDate { get; set; }
 
-    [Required, StringLength(100)]
-    public string PermitIssuerName { get; set; } = string.Empty;
+    [Range(1, int.MaxValue)]
+    public int PermitIssuerUserId { get; set; }
 
-    [Required, StringLength(100)]
-    public string PermitReceiverName { get; set; } = string.Empty;
+    [Range(1, int.MaxValue)]
+    public int PermitReceiverUserId { get; set; }
 
     [Required, StringLength(100)]
     public string AreaResponsibleName { get; set; } = string.Empty;
@@ -49,6 +46,7 @@ public sealed class RiskAssessmentSelectionDto
 
 public sealed record RiskAssessmentWriteResponseDto(
     int RiskAssessmentId,
+    string RiskAssessmentNumber,
     int RiskAssessmentStatusListItemId,
     string Status,
     DateTime UpdatedAtUtc);
@@ -57,7 +55,10 @@ public enum RiskAssessmentWriteOutcome
 {
     Success,
     NotFound,
-    NotDraft
+    NotEditable,
+    InvalidUsers,
+    StatusNotConfigured,
+    NumberingNotConfigured
 }
 
 public sealed record RiskAssessmentWriteResult(
@@ -76,7 +77,7 @@ public sealed class RiskAssessmentQueryDto
     public string? Search { get; set; }
 
     [RegularExpression(
-        "^(preRiskAssessmentNumber|issueDate|permitIssuerName|permitReceiverName|areaResponsibleName|plannedStartDateTime|plannedEndDateTime|riskAssessmentStatus)$",
+        "^(riskAssessmentNumber|issueDate|permitIssuerName|permitReceiverName|areaResponsibleName|plannedStartDateTime|plannedEndDateTime|riskAssessmentStatus)$",
         ErrorMessage = "SortBy is not a supported risk assessment column.")]
     public string SortBy { get; set; } = "issueDate";
 
@@ -86,7 +87,7 @@ public sealed class RiskAssessmentQueryDto
 
 public sealed record RiskAssessmentGridItemDto(
     int Id,
-    string PreRiskAssessmentNumber,
+    string RiskAssessmentNumber,
     DateOnly IssueDate,
     string PermitIssuerName,
     string PermitReceiverName,
@@ -99,9 +100,11 @@ public sealed record RiskAssessmentGridItemDto(
 
 public sealed record RiskAssessmentDetailsDto(
     int Id,
-    string PreRiskAssessmentNumber,
+    string RiskAssessmentNumber,
     DateOnly IssueDate,
+    int PermitIssuerUserId,
     string PermitIssuerName,
+    int PermitReceiverUserId,
     string PermitReceiverName,
     string AreaResponsibleName,
     string LocationOfWork,
@@ -133,6 +136,11 @@ public sealed record RiskAssessmentPermitApplicationDto(
     int PermitStatusListItemId,
     string PermitStatusName,
     int? RiskAssessmentId);
+
+public sealed record RiskAssessmentUserOptionDto(
+    int Id,
+    string Name,
+    bool IsCurrentUser);
 
 public sealed record RiskAssessmentPagedResponseDto(
     IReadOnlyList<RiskAssessmentGridItemDto> Data,

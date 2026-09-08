@@ -384,6 +384,9 @@ public sealed class OrganizationService(
         if (string.IsNullOrWhiteSpace(dto.RaPrefix) || string.IsNullOrWhiteSpace(dto.PaPrefix)
             || string.IsNullOrWhiteSpace(dto.NextRaNumber) || string.IsNullOrWhiteSpace(dto.NextPaNumber))
             throw new ArgumentException("All fiscal year numbering settings are required.");
+        if (!dto.NextRaNumber.All(char.IsDigit) || !dto.NextPaNumber.All(char.IsDigit)
+            || !long.TryParse(dto.NextRaNumber, out _) || !long.TryParse(dto.NextPaNumber, out _))
+            throw new ArgumentException("Next RA and PA numbers must be non-negative whole numbers within the supported range.");
         if (dto.IsActive && dto.IsClosed)
             throw new ArgumentException("A closed fiscal year cannot be active.");
     }

@@ -35,7 +35,7 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
                 x.PermitIssuerContactNumber,
                 x.PermitReceiverName,
                 x.PermitReceiverContactNumber,
-                x.PreRiskAssessmentNumber,
+                x.RiskAssessmentNumber,
                 x.WorkLocation,
                 x.WorkDescription,
                 x.SpecialInstructions,
@@ -83,7 +83,7 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
             permitApplication.PermitIssuerContactNumber,
             permitApplication.PermitReceiverName,
             permitApplication.PermitReceiverContactNumber,
-            permitApplication.PreRiskAssessmentNumber,
+            permitApplication.RiskAssessmentNumber,
             permitApplication.WorkLocation,
             permitApplication.WorkDescription,
             permitApplication.SpecialInstructions,
@@ -162,7 +162,7 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
                     GetNullableDateTime(reader, "SubmittedAtUtc"),
                     GetNullableInt32(reader, "CreatedByUserId"),
                     reader.GetString(reader.GetOrdinal("CreatedByUserName")),
-                    GetNullableString(reader, "PreRiskAssessmentNumber"),
+                    GetNullableString(reader, "RiskAssessmentNumber"),
                     GetNullableInt32(reader, "RiskAssessmentId")));
             }
 
@@ -349,7 +349,7 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
         permitApplication.PermitIssuerContactNumber = Normalize(request.PermitIssuerContactNumber);
         permitApplication.PermitReceiverName = request.PermitReceiverName.Trim();
         permitApplication.PermitReceiverContactNumber = Normalize(request.PermitReceiverContactNumber);
-        permitApplication.PreRiskAssessmentNumber = Normalize(request.PreRiskAssessmentNumber);
+        // Permit and risk-assessment numbers are assigned centrally and are immutable.
         permitApplication.WorkLocation = request.WorkLocation.Trim();
         permitApplication.WorkDescription = request.WorkDescription.Trim();
         permitApplication.SpecialInstructions = Normalize(request.SpecialInstructions);

@@ -1,9 +1,13 @@
+@using Apcloud.Contracts.Permissions
 @{
     ViewData["Title"] = "Permit Dashboard";
     var firstName = (User.Identity?.Name ?? "there")
         .Split(' ', StringSplitOptions.RemoveEmptyEntries)
         .FirstOrDefault() ?? "there";
 }
+
+<span data-permission-scope data-permission-module="@ApplicationPermissions.PermitModule" data-permission-controller="PermitDashboard" data-permission-action="Index" hidden></span>
+<span data-permission-scope data-permission-module="@ApplicationPermissions.PermitModule" data-permission-controller="PermitApplications" data-permission-action="Index" hidden></span>
 
 <div class="page-header d-print-none dashboard-header">
     <div class="row g-3 align-items-center">
@@ -14,11 +18,11 @@
         </div>
         <div class="col-auto ms-auto d-print-none">
             <div class="btn-list">
-                <button type="button" class="btn btn-outline-secondary">
+                <button type="button" class="btn btn-outline-secondary" data-requires-permission="@ApplicationPermissions.PermitDashboard.Export">
                     <svg class="icon"><use href="#icon-download" /></svg>
                     Export report
                 </button>
-                <a asp-area="PermitApplication" asp-controller="PermitApplication" asp-action="Index" class="btn btn-primary">
+                <a asp-area="PermitApplication" asp-controller="PermitApplication" asp-action="Create" class="btn btn-primary" data-requires-permission="@ApplicationPermissions.PermitApplications.Create">
                     <svg class="icon"><use href="#icon-plus" /></svg>
                     New application
                 </a>

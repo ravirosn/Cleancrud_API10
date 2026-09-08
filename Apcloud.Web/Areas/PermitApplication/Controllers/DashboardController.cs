@@ -1,3 +1,5 @@
+using Apcloud.Contracts.Permissions;
+using Apcloud.Web.Authorization;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,6 +12,8 @@ public sealed class DashboardController : Controller
 {
     [HttpGet("")]
     [HttpGet("Index")]
+    [RequireMenu(ApplicationPermissions.PermitModule, "PermitDashboard", "Index")]
+    [RequirePermission(ApplicationPermissions.PermitDashboard.View)]
     public IActionResult Index()
     {
         return View();
