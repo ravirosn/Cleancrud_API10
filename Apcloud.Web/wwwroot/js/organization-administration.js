@@ -281,7 +281,6 @@
       }
     });
 
-    loadOrganization();
-    if (departmentFields) loadBranches().catch(() => {});
+    if (profileElements || branchGrid) loadOrganization();
   });
 })();

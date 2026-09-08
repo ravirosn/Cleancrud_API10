@@ -1,6 +1,7 @@
 using Apcloudpms.Application.DTOs;
 using Apcloudpms.Application.Interfaces;
-using Apcloudpms.Domain.Enums;
+using Apcloudpms.API.Authorization;
+using Apcloud.Contracts.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,13 +9,15 @@ namespace Apcloudpms.API.Controllers;
 
 [ApiController]
 [Route("api/organization")]
-[Authorize(Roles = nameof(ApplicationRole.Admin) + "," + nameof(ApplicationRole.SuperAdmin))]
+[Authorize]
 public sealed class OrganizationController : ControllerBase
 {
     private readonly IOrganizationService _service;
     public OrganizationController(IOrganizationService service) => _service = service;
 
     [HttpGet("current")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "Index")]
+    [RequirePermission(ApplicationPermissions.Organization.View)]
     public async Task<ActionResult<OrganizationDetailsDto>> GetCurrentOrganization(
         CancellationToken cancellationToken = default)
     {
@@ -23,6 +26,8 @@ public sealed class OrganizationController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "Index")]
+    [RequirePermission(ApplicationPermissions.Organization.View)]
     public async Task<ActionResult<OrganizationDetailsDto>> GetOrganization(
         int id, CancellationToken cancellationToken = default)
     {
@@ -31,6 +36,8 @@ public sealed class OrganizationController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "Index")]
+    [RequirePermission(ApplicationPermissions.Organization.Edit)]
     public async Task<ActionResult<OrganizationDetailsDto>> UpdateOrganization(
         int id, OrganizationUpdateRequestDto dto, CancellationToken cancellationToken)
     {
@@ -39,16 +46,22 @@ public sealed class OrganizationController : ControllerBase
     }
 
     [HttpGet("branches")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "OfficeBranches")]
+    [RequirePermission(ApplicationPermissions.OfficeBranches.View)]
     public async Task<ActionResult<OrganizationPagedResponseDto<OfficeBranchDto>>> GetBranches(
         [FromQuery] OrganizationQueryDto query, CancellationToken cancellationToken = default) =>
         Ok(await _service.GetBranchesAsync(query, cancellationToken));
 
     [HttpGet("branches/ddl")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "Departments")]
+    [RequirePermission(ApplicationPermissions.Departments.View)]
     public async Task<ActionResult<IReadOnlyList<DropdownItemDto>>> GetBranchDropdown(
         CancellationToken cancellationToken = default) =>
         Ok(await _service.GetBranchDropdownAsync(cancellationToken));
 
     [HttpGet("branches/{id:int}")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "OfficeBranches")]
+    [RequirePermission(ApplicationPermissions.OfficeBranches.View)]
     public async Task<ActionResult<OfficeBranchDto>> GetBranchById(
         int id, CancellationToken cancellationToken = default)
     {
@@ -57,6 +70,8 @@ public sealed class OrganizationController : ControllerBase
     }
 
     [HttpPost("branches")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "OfficeBranches")]
+    [RequirePermission(ApplicationPermissions.OfficeBranches.Create)]
     public async Task<ActionResult<OfficeBranchDto>> CreateBranch(
         OfficeBranchRequestDto dto, CancellationToken cancellationToken)
     {
@@ -65,6 +80,8 @@ public sealed class OrganizationController : ControllerBase
     }
 
     [HttpPut("branches/{id:int}")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "OfficeBranches")]
+    [RequirePermission(ApplicationPermissions.OfficeBranches.Edit)]
     public async Task<ActionResult<OfficeBranchDto>> UpdateBranch(
         int id, OfficeBranchRequestDto dto, CancellationToken cancellationToken)
     {
@@ -73,20 +90,28 @@ public sealed class OrganizationController : ControllerBase
     }
 
     [HttpDelete("branches/{id:int}")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "OfficeBranches")]
+    [RequirePermission(ApplicationPermissions.OfficeBranches.Delete)]
     public async Task<IActionResult> DeleteBranch(int id, CancellationToken cancellationToken) =>
         await _service.DeleteBranchAsync(id, cancellationToken) ? NoContent() : NotFound();
 
     [HttpGet("departments")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "Departments")]
+    [RequirePermission(ApplicationPermissions.Departments.View)]
     public async Task<ActionResult<OrganizationPagedResponseDto<DepartmentDto>>> GetDepartments(
         [FromQuery] DepartmentQueryDto query, CancellationToken cancellationToken = default) =>
         Ok(await _service.GetDepartmentsAsync(query, cancellationToken));
 
     [HttpGet("departments/ddl")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "Departments")]
+    [RequirePermission(ApplicationPermissions.Departments.View)]
     public async Task<ActionResult<IReadOnlyList<DropdownItemDto>>> GetDepartmentDropdown(
         int? officeBranchId = null, CancellationToken cancellationToken = default) =>
         Ok(await _service.GetDepartmentDropdownAsync(officeBranchId, cancellationToken));
 
     [HttpGet("departments/{id:int}")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "Departments")]
+    [RequirePermission(ApplicationPermissions.Departments.View)]
     public async Task<ActionResult<DepartmentDto>> GetDepartmentById(
         int id, CancellationToken cancellationToken = default)
     {
@@ -95,6 +120,8 @@ public sealed class OrganizationController : ControllerBase
     }
 
     [HttpPost("departments")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "Departments")]
+    [RequirePermission(ApplicationPermissions.Departments.Create)]
     public async Task<ActionResult<DepartmentDto>> CreateDepartment(
         DepartmentRequestDto dto, CancellationToken cancellationToken)
     {
@@ -103,6 +130,8 @@ public sealed class OrganizationController : ControllerBase
     }
 
     [HttpPut("departments/{id:int}")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "Departments")]
+    [RequirePermission(ApplicationPermissions.Departments.Edit)]
     public async Task<ActionResult<DepartmentDto>> UpdateDepartment(
         int id, DepartmentRequestDto dto, CancellationToken cancellationToken)
     {
@@ -111,6 +140,8 @@ public sealed class OrganizationController : ControllerBase
     }
 
     [HttpDelete("departments/{id:int}")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "Departments")]
+    [RequirePermission(ApplicationPermissions.Departments.Delete)]
     public async Task<IActionResult> DeleteDepartment(int id, CancellationToken cancellationToken) =>
         await _service.DeleteDepartmentAsync(id, cancellationToken) ? NoContent() : NotFound();
 

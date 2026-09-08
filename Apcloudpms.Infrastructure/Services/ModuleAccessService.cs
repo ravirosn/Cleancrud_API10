@@ -332,11 +332,26 @@ public sealed class ModuleAccessService : IModuleAccessService
 
         var menus = await _context.ModuleMenus.AsNoTracking()
             .Where(x => x.ApplicationModuleId == moduleId && x.IsActive && (isSuperAdmin ||
-                x.RoleModuleMenus.Any(rmm =>
+                (x.RoleModuleMenus.Any(rmm =>
                     rmm.IsActive && rmm.RoleModule.IsActive &&
                     rmm.RoleModule.Role.IsActive &&
                     rmm.RoleModule.Role.UserRoles.Any(ur =>
-                        ur.UserId == userId && ur.IsActive))))
+                        ur.UserId == userId && ur.IsActive)) &&
+                 (!_context.PermissionPolicies.Any(policy =>
+                      policy.IsActive && policy.RequiresMenuAccess &&
+                      policy.ModuleCode == module.Code &&
+                      policy.MenuController == x.ControllerName &&
+                      policy.MenuAction == x.ActionName &&
+                      policy.Code.EndsWith(".View")) ||
+                  _context.RolePermissions.Any(rolePermission =>
+                      rolePermission.IsActive && rolePermission.Role.IsActive &&
+                      rolePermission.Role.UserRoles.Any(ur =>
+                          ur.UserId == userId && ur.IsActive) &&
+                      rolePermission.PermissionPolicy.IsActive &&
+                      rolePermission.PermissionPolicy.Code.EndsWith(".View") &&
+                      rolePermission.PermissionPolicy.ModuleCode == module.Code &&
+                      rolePermission.PermissionPolicy.MenuController == x.ControllerName &&
+                      rolePermission.PermissionPolicy.MenuAction == x.ActionName)))))
             .OrderBy(x => x.DisplayOrder).ThenBy(x => x.Name)
             .Select(x => new MenuProjection(x.Id, x.ParentMenuId, x.Name, x.ControllerName,
                 x.ActionName, x.QueryUrl, x.Icon, x.DisplayOrder))

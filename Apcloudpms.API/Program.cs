@@ -1,6 +1,7 @@
 using Apcloudpms.API.Middleware;
 using Apcloudpms.API.Authorization;
 using Apcloudpms.API.Services;
+using Apcloudpms.API.Health;
 using Apcloudpms.Application.Interfaces;
 using Apcloudpms.Application.Mappings;
 using Apcloudpms.Application.Validators;
@@ -14,6 +15,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.IdentityModel.JsonWebTokens;
@@ -107,6 +110,12 @@ builder.Services.AddDbContextPool<AppDbContext>(options =>
         maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10),
         errorNumbersToAdd: null)), poolSize: 128);
 
+builder.Services.AddHealthChecks()
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"])
+    .AddCheck<DatabaseHealthCheck>(
+        "database", failureStatus: HealthStatus.Unhealthy,
+        tags: ["ready"], timeout: TimeSpan.FromSeconds(5));
+
 builder.Services.AddScoped<IStudentRepository, StudentRepository>();
 builder.Services.AddScoped<IStudentService, StudentService>();
 builder.Services.AddScoped<IJwtService, JwtService>();
@@ -124,6 +133,11 @@ builder.Services.AddScoped<IProfileImageStorage, ProfileImageStorage>();
 builder.Services.AddScoped<IListItemService, ListItemService>();
 builder.Services.AddScoped<IRoleModuleMenuManagementService, RoleModuleMenuManagementService>();
 builder.Services.AddScoped<IPermissionAssignmentService, PermissionAssignmentService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddSingleton<AuthorizationCacheVersion>();
+builder.Services.AddSingleton<IAuthorizationCacheInvalidator>(services =>
+    services.GetRequiredService<AuthorizationCacheVersion>());
+builder.Services.AddScoped<IAuthorizationAccessCache, AuthorizationAccessCache>();
 builder.Services.AddScoped<IPermitApplicationService, PermitApplicationService>();
 builder.Services.AddScoped<IAuditLogService, AuditLogService>();
 builder.Services.AddScoped<IRiskAssessmentService, RiskAssessmentService>();
@@ -277,5 +291,13 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseMiddleware<EntraUserMiddleware>();
 app.UseAuthorization();
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("live")
+}).AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("ready")
+}).AllowAnonymous();
 app.MapControllers();
 app.Run();

@@ -1,21 +1,253 @@
 (() => {
   "use strict";
+
   document.addEventListener("DOMContentLoaded", () => {
-    const grid=document.querySelector("[data-permission-grid]"), modalElement=document.querySelector("[data-permission-modal]"), form=modalElement?.querySelector("[data-permission-form]");
-    if(!grid||!modalElement||!form||!window.apcloudApi)return;
-    if(modalElement.parentElement!==document.body)document.body.append(modalElement);
-    const ui=window.bootstrap??window.tabler?.bootstrap??window.tabler,modal=ui?.Modal?.getOrCreateInstance(modalElement);
-    const field={role:form.querySelector("[data-permission-role]"),policy:form.querySelector("[data-permission-policy]"),active:form.querySelector("[data-permission-active]")};
-    const prop=(r,n)=>Object.entries(r??{}).find(([k])=>k.localeCompare(n,undefined,{sensitivity:"accent"})===0)?.[1];
-    const opt=(v,t)=>{const o=document.createElement("option");o.value=String(v);o.textContent=t;return o;};
-    const notify=(type,message,title)=>window.apcloudNotifications?.[type]?.(message,title);
-    let rolesLoaded=false,original=null;
-    const loadRoles=async()=>{if(rolesLoaded)return;const rows=await window.apcloudApi.json("permission-assignments/roles");field.role.replaceChildren(opt("","Select role"));rows.forEach(x=>field.role.append(opt(prop(x,"id"),prop(x,"name"))));rolesLoaded=true;};
-    const loadPolicies=async(roleId,selected)=>{field.policy.replaceChildren(opt("",roleId?"Select permission policy":"Select role first"));field.policy.disabled=!roleId;if(!roleId)return;const rows=await window.apcloudApi.json(`permission-assignments/policies?roleId=${encodeURIComponent(roleId)}`);rows.forEach(x=>{const canAssign=prop(x,"canAssign")===true;const o=opt(prop(x,"id"),`${prop(x,"name")} (${prop(x,"code")}) · ${prop(x,"moduleCode")} / ${prop(x,"menuName")}${canAssign?"":" · assign menu first"}`);if((prop(x,"isAssigned")===true||!canAssign)&&String(prop(x,"id"))!==String(selected))o.disabled=true;field.policy.append(o);});field.policy.value=selected?String(selected):"";};
-    const show=async(record=null)=>{try{form.reset();form.classList.remove("was-validated");await loadRoles();const roleId=prop(record,"roleId"),policyId=prop(record,"permissionPolicyId");original=record?{roleId,policyId}:null;field.role.value=roleId?String(roleId):"";await loadPolicies(roleId,policyId);field.role.disabled=!!record;field.policy.disabled=!!record;field.active.checked=record?prop(record,"isActive")!==false:true;form.querySelector("[data-permission-title]").textContent=record?"Edit permission assignment":"Assign permission";form.querySelector("[data-permission-save-label]").textContent=record?"Save changes":"Assign permission";modal?.show();}catch(e){notify("error",e.message,"Unable to open assignment");}};
-    document.querySelectorAll("[data-permission-add]").forEach(b=>b.addEventListener("click",()=>show()));
-    field.role.addEventListener("change",()=>loadPolicies(field.role.value).catch(e=>notify("error",e.message,"Unable to load policies")));
-    grid.addEventListener("server-grid:action",async e=>{const{action,record}=e.detail??{};if(action==="edit")return show(record);if(action!=="delete"||!record)return;if(!confirm(`Deactivate ${prop(record,"permissionCode")} for ${prop(record,"roleName")}?`))return;try{await window.apcloudApi.json(`permission-assignments/${prop(record,"roleId")}/${prop(record,"permissionPolicyId")}`,{method:"DELETE"});notify("success","Permission assignment deactivated.","Assignment updated");grid.dispatchEvent(new CustomEvent("server-grid:reload"));}catch(x){notify("error",x.message,"Unable to deactivate assignment");}});
-    form.addEventListener("submit",async e=>{e.preventDefault();if(!form.checkValidity()){form.classList.add("was-validated");return;}const save=form.querySelector("[data-permission-save]");save.disabled=true;form.querySelector("[data-permission-save-label]").classList.add("d-none");form.querySelector("[data-permission-saving]").classList.remove("d-none");try{const body={roleId:Number(field.role.value),permissionPolicyId:Number(field.policy.value),isActive:field.active.checked};await window.apcloudApi.json(original?`permission-assignments/${original.roleId}/${original.policyId}`:"permission-assignments",{method:original?"PUT":"POST",body});modal?.hide();notify("success","Permission assignment saved.","Assignment saved");grid.dispatchEvent(new CustomEvent("server-grid:reload"));}catch(x){notify("error",x.message,"Unable to save assignment");}finally{save.disabled=false;form.querySelector("[data-permission-save-label]").classList.remove("d-none");form.querySelector("[data-permission-saving]").classList.add("d-none");}});
+    const grid = document.querySelector("[data-permission-grid]");
+    const modalElement = document.querySelector("[data-permission-modal]");
+    const form = modalElement?.querySelector("[data-permission-form]");
+    if (!grid || !modalElement || !form || !window.apcloudApi) return;
+
+    if (modalElement.parentElement !== document.body) document.body.append(modalElement);
+    const bootstrapUi = window.bootstrap ?? window.tabler?.bootstrap ?? window.tabler;
+    const modal = bootstrapUi?.Modal?.getOrCreateInstance(modalElement);
+    const role = form.querySelector("[data-permission-role]");
+    const selector = form.querySelector("[data-permission-selector]");
+    const placeholder = form.querySelector("[data-permission-placeholder]");
+    const loading = form.querySelector("[data-permission-loading]");
+    const search = form.querySelector("[data-permission-search]");
+    const list = form.querySelector("[data-permission-list]");
+    const results = form.querySelector("[data-permission-results]");
+    const count = form.querySelector("[data-permission-count]");
+    const changeSummary = form.querySelector("[data-permission-change-summary]");
+    const save = form.querySelector("[data-permission-save]");
+    const prop = (record, name) => Object.entries(record ?? {})
+      .find(([key]) => key.localeCompare(name, undefined, { sensitivity: "accent" }) === 0)?.[1];
+    const notify = (type, message, title) => window.apcloudNotifications?.[type]?.(message, title);
+
+    let rolesLoaded = false;
+    let policies = [];
+    let selected = new Set();
+    let initiallySelected = new Set();
+    let loadGeneration = 0;
+
+    const createOption = (value, text) => {
+      const option = document.createElement("option");
+      option.value = String(value);
+      option.textContent = text;
+      return option;
+    };
+
+    const loadRoles = async () => {
+      if (rolesLoaded) return;
+      const rows = await window.apcloudApi.json("permission-assignments/roles");
+      role.replaceChildren(createOption("", "Select role"));
+      rows.forEach(item => role.append(createOption(prop(item, "id"), prop(item, "name"))));
+      rolesLoaded = true;
+    };
+
+    const updateSummary = () => {
+      const added = [...selected].filter(id => !initiallySelected.has(id)).length;
+      const removed = [...initiallySelected].filter(id => !selected.has(id)).length;
+      count.textContent = `${selected.size} selected`;
+      changeSummary.textContent = added || removed ? `${added} to add · ${removed} to remove` : "No changes";
+    };
+
+    const matchesSearch = policy => {
+      const term = search.value.trim().toLocaleLowerCase();
+      return !term || [policy.name, policy.code, policy.moduleCode, policy.menuName]
+        .some(value => value.toLocaleLowerCase().includes(term));
+    };
+
+    const renderPolicies = () => {
+      const visible = policies.filter(matchesSearch);
+      list.replaceChildren();
+      results.textContent = `${visible.length} of ${policies.length} policies`;
+
+      if (!visible.length) {
+        const empty = document.createElement("div");
+        empty.className = "p-4 text-center text-secondary";
+        empty.textContent = "No policies match this search.";
+        list.append(empty);
+        updateSummary();
+        return;
+      }
+
+      let currentGroup = "";
+      visible.forEach(policy => {
+        const group = `${policy.moduleCode} · ${policy.menuName}`;
+        if (group !== currentGroup) {
+          currentGroup = group;
+          const heading = document.createElement("div");
+          heading.className = "px-3 py-2 bg-body-tertiary border-bottom fw-semibold small text-uppercase";
+          heading.textContent = group;
+          list.append(heading);
+        }
+
+        const item = document.createElement("label");
+        item.className = "d-flex gap-3 align-items-start px-3 py-2 border-bottom mb-0";
+        item.dataset.permissionPolicyId = String(policy.id);
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.className = "form-check-input mt-1 flex-shrink-0";
+        checkbox.checked = selected.has(policy.id);
+        checkbox.disabled = !policy.canAssign && !policy.isAssigned;
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) selected.add(policy.id);
+          else selected.delete(policy.id);
+          updateSummary();
+        });
+
+        const detail = document.createElement("span");
+        detail.className = "d-block flex-fill";
+        const title = document.createElement("span");
+        title.className = "d-flex flex-wrap align-items-center gap-2";
+        const name = document.createElement("span");
+        name.className = "fw-medium";
+        name.textContent = policy.name;
+        const code = document.createElement("code");
+        code.className = "small";
+        code.textContent = policy.code;
+        title.append(name, code);
+        if (!policy.canAssign) {
+          const unavailable = document.createElement("span");
+          unavailable.className = "badge bg-warning-lt";
+          unavailable.textContent = policy.isAssigned ? "Menu unavailable · clear recommended" : "Menu required";
+          title.append(unavailable);
+        }
+        detail.append(title);
+        item.append(checkbox, detail);
+        list.append(item);
+      });
+      updateSummary();
+    };
+
+    const setLoading = isLoading => {
+      loading.classList.toggle("d-none", !isLoading);
+      placeholder.classList.add("d-none");
+      selector.classList.toggle("d-none", isLoading || !role.value);
+      save.disabled = isLoading || !role.value;
+    };
+
+    const loadPolicies = async roleId => {
+      const generation = ++loadGeneration;
+      policies = [];
+      selected = new Set();
+      initiallySelected = new Set();
+      search.value = "";
+      if (!roleId) {
+        selector.classList.add("d-none");
+        loading.classList.add("d-none");
+        placeholder.classList.remove("d-none");
+        save.disabled = true;
+        updateSummary();
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const rows = await window.apcloudApi.json(
+          `permission-assignments/policies?roleId=${encodeURIComponent(roleId)}`);
+        if (generation !== loadGeneration) return;
+        policies = rows.map(item => ({
+          id: Number(prop(item, "id")),
+          code: String(prop(item, "code") ?? ""),
+          name: String(prop(item, "name") ?? ""),
+          moduleCode: String(prop(item, "moduleCode") ?? ""),
+          menuName: String(prop(item, "menuName") ?? ""),
+          isAssigned: prop(item, "isAssigned") === true,
+          canAssign: prop(item, "canAssign") === true
+        }));
+        selected = new Set(policies.filter(item => item.isAssigned).map(item => item.id));
+        initiallySelected = new Set(selected);
+        setLoading(false);
+        renderPolicies();
+      } catch (error) {
+        if (generation !== loadGeneration) return;
+        selector.classList.add("d-none");
+        loading.classList.add("d-none");
+        placeholder.classList.remove("d-none");
+        placeholder.textContent = "Unable to load policies for this role.";
+        save.disabled = true;
+        notify("error", error.message, "Unable to load policies");
+      }
+    };
+
+    const show = async record => {
+      try {
+        form.reset();
+        form.classList.remove("was-validated");
+        placeholder.textContent = "Select a role to load its permission policies.";
+        await loadRoles();
+        const roleId = prop(record, "roleId");
+        role.value = roleId ? String(roleId) : "";
+        role.disabled = Boolean(record);
+        await loadPolicies(role.value);
+        modal?.show();
+      } catch (error) {
+        notify("error", error.message, "Unable to open permissions");
+      }
+    };
+
+    const setVisible = shouldSelect => {
+      policies.filter(matchesSearch).forEach(policy => {
+        if (!policy.canAssign && !policy.isAssigned) return;
+        if (shouldSelect) selected.add(policy.id);
+        else selected.delete(policy.id);
+      });
+      renderPolicies();
+    };
+
+    document.querySelectorAll("[data-permission-add]").forEach(button =>
+      button.addEventListener("click", () => show()));
+    role.addEventListener("change", () => loadPolicies(role.value));
+    search.addEventListener("input", renderPolicies);
+    form.querySelector("[data-permission-select-visible]").addEventListener("click", () => setVisible(true));
+    form.querySelector("[data-permission-clear-visible]").addEventListener("click", () => setVisible(false));
+    modalElement.addEventListener("hidden.bs.modal", () => {
+      role.disabled = false;
+      ++loadGeneration;
+    });
+
+    grid.addEventListener("server-grid:action", async event => {
+      const { action, record } = event.detail ?? {};
+      if (action === "edit") return show(record);
+      if (action !== "delete" || !record) return;
+      if (!confirm(`Deactivate ${prop(record, "permissionCode")} for ${prop(record, "roleName")}?`)) return;
+      try {
+        await window.apcloudApi.json(
+          `permission-assignments/${prop(record, "roleId")}/${prop(record, "permissionPolicyId")}`,
+          { method: "DELETE" });
+        notify("success", "Permission assignment deactivated.", "Assignment updated");
+        grid.dispatchEvent(new CustomEvent("server-grid:reload"));
+      } catch (error) {
+        notify("error", error.message, "Unable to deactivate assignment");
+      }
+    });
+
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      if (!form.checkValidity() || !role.value) {
+        form.classList.add("was-validated");
+        return;
+      }
+
+      save.disabled = true;
+      form.querySelector("[data-permission-save-label]").classList.add("d-none");
+      form.querySelector("[data-permission-saving]").classList.remove("d-none");
+      try {
+        const response = await window.apcloudApi.json(
+          `permission-assignments/bulk/${encodeURIComponent(role.value)}`,
+          { method: "PUT", body: { permissionPolicyIds: [...selected] } });
+        modal?.hide();
+        notify("success", `${prop(response, "assignedCount") ?? selected.size} active policies saved.`, "Role permissions updated");
+        grid.dispatchEvent(new CustomEvent("server-grid:reload"));
+      } catch (error) {
+        notify("error", error.message, "Unable to save role permissions");
+      } finally {
+        save.disabled = false;
+        form.querySelector("[data-permission-save-label]").classList.remove("d-none");
+        form.querySelector("[data-permission-saving]").classList.add("d-none");
+      }
+    });
   });
 })();

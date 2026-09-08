@@ -1,6 +1,8 @@
+@using Apcloud.Contracts.Permissions
 @{
     ViewData["Title"] = "Role menu assignments";
 }
+<span data-permission-scope data-permission-module="@ApplicationPermissions.OrganizationModule" data-permission-controller="RoleModuleMenu" data-permission-action="Index" hidden></span>
 
 <div class="page-header d-print-none mb-4">
     <div class="row g-3 align-items-center">
@@ -11,7 +13,7 @@
             </p>
         </div>
         <div class="col-auto ms-auto d-print-none">
-            <button type="button" class="btn btn-primary" data-role-menu-add>
+            <button type="button" class="btn btn-primary" data-role-menu-add data-requires-permission="@ApplicationPermissions.RoleModuleMenus.Create">
                 <svg class="icon"><use href="#icon-plus" /></svg>
                 Assign menu
             </button>
@@ -27,7 +29,7 @@
      data-server-sort="true"
      data-default-sort="assignedAtUtc"
      data-default-sort-direction="desc"
-     data-row-actions="edit,delete"
+     data-row-actions="" data-permission-actions="edit:@ApplicationPermissions.RoleModuleMenus.Edit,delete:@ApplicationPermissions.RoleModuleMenus.Delete"
      data-role-menu-grid>
     <div class="card-header server-grid-toolbar">
         <div class="server-grid-search" role="search">
@@ -67,7 +69,7 @@
         <p class="empty-title">No role menu assignments found</p>
         <p class="empty-subtitle text-secondary">Try another search or assign a menu to a role.</p>
         <div class="empty-action">
-            <button type="button" class="btn btn-primary" data-role-menu-add>
+            <button type="button" class="btn btn-primary" data-role-menu-add data-requires-permission="@ApplicationPermissions.RoleModuleMenus.Create">
                 <svg class="icon"><use href="#icon-plus" /></svg>
                 Assign menu
             </button>

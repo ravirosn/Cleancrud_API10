@@ -1,8 +1,7 @@
-using Apcloudpms.Infrastructure.Data;
+using Apcloudpms.Application.Interfaces;
 using Apcloudpms.API.Middleware;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Options;
-using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 
@@ -55,9 +54,9 @@ public sealed class ApiScopeAuthorizationHandler : AuthorizationHandler<ApiScope
 
 public sealed class ModuleAuthorizationHandler : AuthorizationHandler<ModuleRequirement>
 {
-    private readonly AppDbContext _context;
+    private readonly IAuthorizationAccessCache _accessCache;
 
-    public ModuleAuthorizationHandler(AppDbContext context) => _context = context;
+    public ModuleAuthorizationHandler(IAuthorizationAccessCache accessCache) => _accessCache = accessCache;
 
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context, ModuleRequirement requirement)
@@ -73,15 +72,13 @@ public sealed class ModuleAuthorizationHandler : AuthorizationHandler<ModuleRequ
         if (!int.TryParse(localUserId, out var userId))
             return;
 
-        var hasAccess = await _context.ApplicationModules.AsNoTracking().AnyAsync(x =>
-            x.IsActive && x.Code == requirement.ModuleCode &&
-            x.RoleModules.Any(rm => rm.IsActive && rm.Role.IsActive &&
-                rm.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive)));
+        var hasAccess = await _accessCache.HasModuleAccessAsync(
+            userId, requirement.ModuleCode, CancellationToken.None);
         if (hasAccess) context.Succeed(requirement);
     }
 }
 
-public sealed class MenuAuthorizationHandler(AppDbContext context) : AuthorizationHandler<MenuRequirement>
+public sealed class MenuAuthorizationHandler(IAuthorizationAccessCache accessCache) : AuthorizationHandler<MenuRequirement>
 {
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext authorizationContext, MenuRequirement requirement)
@@ -93,17 +90,14 @@ public sealed class MenuAuthorizationHandler(AppDbContext context) : Authorizati
         }
 
         if (!AuthorizationUser.TryGetLocalUserId(authorizationContext.User, out var userId)) return;
-        var hasAccess = await context.RoleModuleMenus.AsNoTracking().AnyAsync(rmm =>
-            rmm.IsActive && rmm.RoleModule.IsActive && rmm.RoleModule.Role.IsActive &&
-            rmm.RoleModule.ApplicationModule.IsActive && rmm.RoleModule.ApplicationModule.Code == requirement.ModuleCode &&
-            rmm.ModuleMenu.IsActive && rmm.ModuleMenu.ControllerName == requirement.Controller &&
-            rmm.ModuleMenu.ActionName == requirement.Action &&
-            rmm.RoleModule.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive));
+        var hasAccess = await accessCache.HasMenuAccessAsync(
+            userId, requirement.ModuleCode, requirement.Controller, requirement.Action,
+            CancellationToken.None);
         if (hasAccess) authorizationContext.Succeed(requirement);
     }
 }
 
-public sealed class PermissionAuthorizationHandler(AppDbContext context) : AuthorizationHandler<PermissionRequirement>
+public sealed class PermissionAuthorizationHandler(IAuthorizationAccessCache accessCache) : AuthorizationHandler<PermissionRequirement>
 {
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext authorizationContext, PermissionRequirement requirement)
@@ -115,14 +109,8 @@ public sealed class PermissionAuthorizationHandler(AppDbContext context) : Autho
         }
 
         if (!AuthorizationUser.TryGetLocalUserId(authorizationContext.User, out var userId)) return;
-        var hasPermission = await context.RolePermissions.AsNoTracking().AnyAsync(rp =>
-            rp.IsActive && rp.PermissionPolicy.IsActive && rp.PermissionPolicy.Code == requirement.PermissionCode &&
-            rp.Role.IsActive && rp.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive) &&
-            rp.Role.RoleModules.Any(rm => rm.IsActive && rm.ApplicationModule.IsActive &&
-                rm.ApplicationModule.Code == rp.PermissionPolicy.ModuleCode &&
-                rm.RoleModuleMenus.Any(rmm => rmm.IsActive && rmm.ModuleMenu.IsActive &&
-                    rmm.ModuleMenu.ControllerName == rp.PermissionPolicy.MenuController &&
-                    rmm.ModuleMenu.ActionName == rp.PermissionPolicy.MenuAction)));
+        var hasPermission = await accessCache.HasPermissionAsync(
+            userId, requirement.PermissionCode, CancellationToken.None);
         if (hasPermission) authorizationContext.Succeed(requirement);
     }
 }

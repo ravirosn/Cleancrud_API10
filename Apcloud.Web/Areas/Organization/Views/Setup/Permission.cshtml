@@ -1,11 +1,13 @@
+@using Apcloud.Contracts.Permissions
 @{ ViewData["Title"] = "Permission assignments"; }
+<span data-permission-scope data-permission-module="@ApplicationPermissions.OrganizationModule" data-permission-controller="Setup" data-permission-action="Permission" hidden></span>
 
 <div class="page-header d-print-none mb-4"><div class="row g-3 align-items-center"><div class="col">
     <div class="page-pretitle">Organization setup</div><h1 class="page-title">Permission assignments</h1>
     <p class="text-secondary mt-2 mb-0">Grant database-defined action permissions to roles. The role must already have access to the policy's module and menu.</p>
-</div><div class="col-auto ms-auto"><button class="btn btn-primary" type="button" data-permission-add><svg class="icon"><use href="#icon-plus" /></svg>Assign permission</button></div></div></div>
+</div><div class="col-auto ms-auto"><button class="btn btn-primary" type="button" data-permission-add data-requires-permission="@ApplicationPermissions.PermissionAssignments.Manage"><svg class="icon"><use href="#icon-plus" /></svg>Manage role permissions</button></div></div></div>
 
-<div class="card server-data-grid" data-server-grid data-permission-grid data-url="permission-assignments?includeInactive=true" data-page-size="10" data-search-param="searchTerm" data-server-sort="true" data-default-sort="assignedAtUtc" data-default-sort-direction="desc" data-row-actions="edit,delete">
+<div class="card server-data-grid" data-server-grid data-permission-grid data-url="permission-assignments?includeInactive=true" data-page-size="10" data-search-param="searchTerm" data-server-sort="true" data-default-sort="assignedAtUtc" data-default-sort-direction="desc" data-row-actions="" data-permission-actions="edit:@ApplicationPermissions.PermissionAssignments.Manage,delete:@ApplicationPermissions.PermissionAssignments.Delete">
  <div class="card-header server-grid-toolbar"><div class="server-grid-search" role="search"><div class="input-icon"><span class="input-icon-addon"><svg class="icon"><use href="#icon-search" /></svg></span><input type="search" class="form-control" data-grid-search placeholder="Search role or permission…" /></div><button class="btn btn-primary" type="button" data-grid-search-button>Search</button><button class="btn btn-outline-secondary" type="button" data-grid-clear>Clear</button></div>
  <div class="d-flex align-items-center gap-2"><label class="text-secondary small text-nowrap" for="permissionPageSize">Rows per page</label><select id="permissionPageSize" class="form-select form-select-sm" data-grid-page-size><option>10</option><option>25</option><option>50</option></select></div></div>
  <div class="server-grid-state" data-grid-loading><span class="spinner-border spinner-border-sm text-primary"></span><span>Loading permission assignments…</span></div>
@@ -16,13 +18,22 @@
  </tr></thead><tbody data-grid-body></tbody></table></div><div class="card-footer server-grid-footer"><p class="m-0 text-secondary" data-grid-summary></p><ul class="pagination m-0 ms-auto" data-grid-pagination></ul></div></div>
 </div>
 
-<div class="modal modal-blur fade" id="permissionEditorModal" tabindex="-1" aria-hidden="true" data-permission-modal><div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content"><form data-permission-form novalidate>
- <div class="modal-header"><h2 class="modal-title" data-permission-title>Assign permission</h2><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
- <div class="modal-body"><div class="alert alert-info py-2">Only policies whose menu is assigned to the selected role can be activated.</div><div class="row g-3">
-  <div class="col-md-6"><label class="form-label required" for="permissionRole">Role</label><select id="permissionRole" class="form-select" required data-permission-role><option value="">Select role</option></select><div class="invalid-feedback">Select a role.</div></div>
-  <div class="col-md-6"><label class="form-label required" for="permissionPolicy">Permission policy</label><select id="permissionPolicy" class="form-select" required disabled data-permission-policy><option value="">Select role first</option></select><div class="invalid-feedback">Select a policy.</div></div>
-  <div class="col-12"><label class="form-check form-switch"><input class="form-check-input" type="checkbox" checked data-permission-active /><span class="form-check-label">Active assignment</span></label></div>
- </div></div><div class="modal-footer"><button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary" data-permission-save><span data-permission-save-label>Assign permission</span><span class="d-none" data-permission-saving><span class="spinner-border spinner-border-sm me-2"></span>Saving…</span></button></div>
+<div class="modal modal-blur fade" id="permissionEditorModal" tabindex="-1" aria-hidden="true" data-permission-modal><div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable"><div class="modal-content"><form data-permission-form novalidate>
+ <div class="modal-header"><div><h2 class="modal-title">Manage role permissions</h2><div class="text-secondary small">Select every policy this role should have. Saving replaces its current active selection.</div></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+ <div class="modal-body"><div class="row g-3">
+  <div class="col-12"><label class="form-label required" for="permissionRole">Role</label><select id="permissionRole" class="form-select" required data-permission-role><option value="">Select role</option></select><div class="invalid-feedback">Select a role.</div></div>
+  <div class="col-12 d-none" data-permission-selector>
+   <div class="d-flex flex-column flex-md-row gap-2 align-items-md-center mb-3">
+    <div class="input-icon flex-fill"><span class="input-icon-addon"><svg class="icon"><use href="#icon-search" /></svg></span><input type="search" class="form-control" placeholder="Search by policy, code, module, or menu" data-permission-search /></div>
+    <div class="btn-list flex-nowrap"><button type="button" class="btn btn-outline-primary" data-permission-select-visible>Select visible</button><button type="button" class="btn btn-outline-secondary" data-permission-clear-visible>Clear visible</button></div>
+   </div>
+   <div class="d-flex justify-content-between align-items-center mb-2"><span class="text-secondary small" data-permission-results></span><span class="badge bg-primary-lt" data-permission-count>0 selected</span></div>
+   <div class="border rounded" style="max-height: 28rem; overflow:auto" data-permission-list></div>
+   <div class="text-secondary small mt-2"><svg class="icon icon-sm me-1"><use href="#icon-info-circle" /></svg>Unavailable policies need their module menu assigned to the role first. Existing unavailable grants can still be cleared.</div>
+  </div>
+  <div class="col-12 py-5 text-center text-secondary" data-permission-placeholder>Select a role to load its permission policies.</div>
+  <div class="col-12 py-5 text-center d-none" data-permission-loading><span class="spinner-border spinner-border-sm text-primary me-2"></span>Loading policies…</div>
+ </div></div><div class="modal-footer"><div class="me-auto text-secondary small" data-permission-change-summary></div><button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary" disabled data-permission-save><span data-permission-save-label>Save role permissions</span><span class="d-none" data-permission-saving><span class="spinner-border spinner-border-sm me-2"></span>Saving…</span></button></div>
 </form></div></div></div>
 
 @section Scripts { <script src="~/js/organization-permission-assignment.js" asp-append-version="true"></script> }

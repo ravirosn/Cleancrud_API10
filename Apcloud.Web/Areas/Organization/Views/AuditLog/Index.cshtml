@@ -1,6 +1,8 @@
+@using Apcloud.Contracts.Permissions
 @{
     ViewData["Title"] = "Audit logs";
 }
+<span data-permission-scope data-permission-module="@ApplicationPermissions.OrganizationModule" data-permission-controller="AuditLog" data-permission-action="Index" hidden></span>
 
 <div class="page-header d-print-none mb-4">
     <div class="row g-3 align-items-center">
@@ -10,7 +12,7 @@
             <p class="text-secondary mt-2 mb-0">Review who changed application data, when it changed, and the values before and after each change.</p>
         </div>
         <div class="col-auto ms-auto">
-            <button type="button" class="btn btn-success" data-audit-export>
+            <button type="button" class="btn btn-success" data-audit-export data-requires-permission="@ApplicationPermissions.AuditLogs.Export">
                 <svg class="icon"><use href="#icon-download" /></svg>
                 <span data-audit-export-label>Export to Excel</span>
                 <span class="d-none" data-audit-export-progress><span class="spinner-border spinner-border-sm me-2"></span>Preparing…</span>

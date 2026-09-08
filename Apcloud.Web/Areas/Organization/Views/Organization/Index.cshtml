@@ -1,6 +1,8 @@
+@using Apcloud.Contracts.Permissions
 @{
     ViewData["Title"] = "Organization";
 }
+<span data-permission-scope data-permission-module="@ApplicationPermissions.OrganizationModule" data-permission-controller="Organization" data-permission-action="Index" hidden></span>
 
 <div class="page-header d-print-none mb-4">
     <div class="row g-3 align-items-center">
@@ -19,7 +21,7 @@
             <div class="text-secondary small">Information used across modules, documents, and administration pages.</div>
         </div>
         <div class="card-actions d-none" data-organization-actions>
-            <button type="button" class="btn btn-outline-primary" data-organization-edit>Edit details</button>
+            <button type="button" class="btn btn-outline-primary" data-organization-edit data-requires-permission="@ApplicationPermissions.Organization.Edit">Edit details</button>
         </div>
     </div>
     <div class="server-grid-state" data-organization-loading>

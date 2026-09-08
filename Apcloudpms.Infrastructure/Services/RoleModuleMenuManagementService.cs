@@ -9,7 +9,8 @@ namespace Apcloudpms.Infrastructure.Services;
 
 public sealed class RoleModuleMenuManagementService(
     AppDbContext context,
-    IAuditContext auditContext) : IRoleModuleMenuManagementService
+    IAuditContext auditContext,
+    IAuthorizationCacheInvalidator authorizationCache) : IRoleModuleMenuManagementService
 {
     public Task<RoleModuleMenuPagedResponseDto> GetAsync(
         RoleModuleMenuQueryDto query, CancellationToken cancellationToken)
@@ -102,11 +103,13 @@ public sealed class RoleModuleMenuManagementService(
             reader.GetBoolean(reader.GetOrdinal("CanAssign"))), cancellationToken);
     }
 
-    public Task<RoleModuleMenuManagementDto> CreateAsync(
+    public async Task<RoleModuleMenuManagementDto> CreateAsync(
         RoleModuleMenuManagementRequestDto request, CancellationToken cancellationToken)
     {
         Validate(request);
-        return ExecuteWriteAsync("dbo.SpRoleModuleMenusAdd", request, cancellationToken);
+        var result = await ExecuteWriteAsync("dbo.SpRoleModuleMenusAdd", request, cancellationToken);
+        authorizationCache.Invalidate();
+        return result;
     }
 
     public async Task<RoleModuleMenuManagementDto?> UpdateAsync(
@@ -116,19 +119,21 @@ public sealed class RoleModuleMenuManagementService(
         Validate(request);
         try
         {
-            return await ExecuteWriteAsync(
+            var result = await ExecuteWriteAsync(
                 "dbo.SpRoleModuleMenusEdit", request, cancellationToken,
                 roleId, moduleId, menuId);
+            authorizationCache.Invalidate();
+            return result;
         }
         catch (KeyNotFoundException) { return null; }
     }
 
-    public Task<bool> DeleteAsync(
+    public async Task<bool> DeleteAsync(
         int roleId, int moduleId, int menuId, CancellationToken cancellationToken)
     {
         if (roleId <= 0 || moduleId <= 0 || menuId <= 0)
             throw new ArgumentException("A valid assignment key is required.");
-        return WithConnectionAsync(async connection =>
+        var changed = await WithConnectionAsync(async connection =>
         {
             await using var command = CreateCommand(connection, "dbo.SpRoleModuleMenusDelete");
             Add(command, "@RoleId", SqlDbType.Int, roleId);
@@ -138,6 +143,8 @@ public sealed class RoleModuleMenuManagementService(
             try { return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken)) == 1; }
             catch (SqlException exception) { throw Translate(exception); }
         }, cancellationToken);
+        if (changed) authorizationCache.Invalidate();
+        return changed;
     }
 
     private Task<IReadOnlyList<T>> ReadOptionsAsync<T>(

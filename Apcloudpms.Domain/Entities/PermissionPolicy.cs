@@ -9,6 +9,7 @@ public sealed class PermissionPolicy
     public string ModuleCode { get; set; } = string.Empty;
     public string MenuController { get; set; } = string.Empty;
     public string MenuAction { get; set; } = string.Empty;
+    public bool RequiresMenuAccess { get; set; } = true;
     public bool IsActive { get; set; } = true;
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
     public int? CreatedByUserId { get; set; }

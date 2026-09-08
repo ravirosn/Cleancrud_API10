@@ -12,6 +12,7 @@
     <meta name="theme-color" content="#206bc4" />
     <meta name="csrf-token" content="@csrfToken" />
     <title>@ViewData["Title"] · Operations Hub</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" asp-append-version="true" />
     <partial name="_ThemeBootstrap" />
     <link rel="stylesheet" href="~/lib/tabler/css/tabler.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -307,6 +308,7 @@
     <script src="~/js/apcloud-api.js" asp-append-version="true"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/server-data-grid.js" asp-append-version="true"></script>
+    <script src="~/js/permission-controls.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.Json;
 using Apcloudpms.Application.DTOs;
 using Apcloudpms.Application.Interfaces;
+using Apcloudpms.Application.Common;
 using Apcloudpms.Infrastructure.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,8 @@ namespace Apcloudpms.Infrastructure.Services;
 public sealed class UserManagementService(
     AppDbContext context,
     IPasswordService passwordService,
-    IAuditContext auditContext) : IUserManagementService
+    IAuditContext auditContext,
+    IAuthorizationCacheInvalidator authorizationCache) : IUserManagementService
 {
     public Task<UserManagementPagedResponseDto> GetUsersAsync(
         UserManagementQueryDto query, CancellationToken cancellationToken)
@@ -74,17 +76,20 @@ public sealed class UserManagementService(
         ValidatePassword(request.Password, required: true);
         var passwordHash = passwordService.HashPassword(request.Password);
 
-        return await ExecuteUserWriteAsync(
+        var result = await ExecuteUserWriteAsync(
             "dbo.SpUsersAdd", null, request.UserName, passwordHash,
             request.DisplayName, request.Email, request.ContactNumber,
             request.OfficeBranchId, request.DepartmentId, request.IsActive,
             cancellationToken);
+        authorizationCache.Invalidate();
+        return result;
     }
 
     public async Task<UserManagementDto?> UpdateUserAsync(
         int id, UserUpdateRequestDto request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
+        await EnsureCanManageUserAsync(id, cancellationToken);
         ValidateOfficeAndDepartment(request.OfficeBranchId, request.DepartmentId);
         ValidatePassword(request.Password, required: false);
         var passwordHash = string.IsNullOrWhiteSpace(request.Password)
@@ -92,11 +97,13 @@ public sealed class UserManagementService(
             : passwordService.HashPassword(request.Password);
         try
         {
-            return await ExecuteUserWriteAsync(
+            var result = await ExecuteUserWriteAsync(
                 "dbo.SpUsersEdit", id, request.UserName, passwordHash,
                 request.DisplayName, request.Email, request.ContactNumber,
                 request.OfficeBranchId, request.DepartmentId, request.IsActive,
                 cancellationToken);
+            authorizationCache.Invalidate();
+            return result;
         }
         catch (KeyNotFoundException)
         {
@@ -104,8 +111,10 @@ public sealed class UserManagementService(
         }
     }
 
-    public Task<bool> DeleteUserAsync(int id, CancellationToken cancellationToken) =>
-        WithConnectionAsync(async connection =>
+    public async Task<bool> DeleteUserAsync(int id, CancellationToken cancellationToken)
+    {
+        await EnsureCanManageUserAsync(id, cancellationToken);
+        var changed = await WithConnectionAsync(async connection =>
         {
             await using var command = CreateCommand(connection, "dbo.SpUsersDelete");
             Add(command, "@Id", SqlDbType.Int, id);
@@ -119,6 +128,9 @@ public sealed class UserManagementService(
                 throw Translate(exception);
             }
         }, cancellationToken);
+        if (changed) authorizationCache.Invalidate();
+        return changed;
+    }
 
     public Task<UserRoleConfigurationDto?> GetUserRolesAsync(
         int id, CancellationToken cancellationToken) =>
@@ -150,6 +162,20 @@ public sealed class UserManagementService(
         if (roleIds.Length != request.RoleIds.Count)
             throw new ArgumentException("Duplicate role IDs are not allowed.");
 
+        var superAdminRoleId = await context.Roles.AsNoTracking()
+            .Where(role => role.NormalizedName == "SUPERADMIN")
+            .Select(role => (int?)role.Id)
+            .SingleOrDefaultAsync(cancellationToken);
+        if (superAdminRoleId.HasValue)
+        {
+            var currentlyAssigned = await context.UserRoles.AsNoTracking().AnyAsync(ur =>
+                ur.UserId == id && ur.RoleId == superAdminRoleId.Value && ur.IsActive,
+                cancellationToken);
+            var requested = roleIds.Contains(superAdminRoleId.Value);
+            if (currentlyAssigned != requested && !await IsActorSuperAdminAsync(cancellationToken))
+                throw new ForbiddenAccessException("Only a SuperAdmin can change SuperAdmin membership.");
+        }
+
         try
         {
             await WithConnectionAsync(async connection =>
@@ -173,8 +199,25 @@ public sealed class UserManagementService(
         {
             return null;
         }
+        authorizationCache.Invalidate();
         return await GetUserRolesAsync(id, cancellationToken);
     }
+
+    private async Task EnsureCanManageUserAsync(int userId, CancellationToken cancellationToken)
+    {
+        var targetIsSuperAdmin = await context.UserRoles.AsNoTracking().AnyAsync(ur =>
+            ur.UserId == userId && ur.IsActive && ur.Role.IsActive &&
+            ur.Role.NormalizedName == "SUPERADMIN", cancellationToken);
+        if (targetIsSuperAdmin && !await IsActorSuperAdminAsync(cancellationToken))
+            throw new ForbiddenAccessException("Only a SuperAdmin can modify a SuperAdmin account.");
+    }
+
+    private Task<bool> IsActorSuperAdminAsync(CancellationToken cancellationToken) =>
+        auditContext.UserId is int actorUserId && actorUserId > 0
+            ? context.UserRoles.AsNoTracking().AnyAsync(ur =>
+                ur.UserId == actorUserId && ur.IsActive && ur.Role.IsActive &&
+                ur.Role.NormalizedName == "SUPERADMIN", cancellationToken)
+            : Task.FromResult(false);
 
     private Task<UserManagementDto> ExecuteUserWriteAsync(
         string procedure, int? id, string userName, string? passwordHash,

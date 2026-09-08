@@ -1,4 +1,5 @@
 using System.Data;
+using System.Text.Json;
 using Apcloudpms.Application.DTOs;
 using Apcloudpms.Application.Interfaces;
 using Apcloudpms.Infrastructure.Data;
@@ -7,7 +8,10 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Apcloudpms.Infrastructure.Services;
 
-public sealed class PermissionAssignmentService(AppDbContext context, IAuditContext auditContext) : IPermissionAssignmentService
+public sealed class PermissionAssignmentService(
+    AppDbContext context,
+    IAuditContext auditContext,
+    IAuthorizationAccessCache accessCache) : IPermissionAssignmentService
 {
     public Task<PermissionAssignmentPagedResponseDto> GetAsync(PermissionAssignmentQueryDto query, CancellationToken cancellationToken) =>
         WithConnectionAsync(async connection =>
@@ -32,27 +36,66 @@ public sealed class PermissionAssignmentService(AppDbContext context, IAuditCont
             r.GetInt32(r.GetOrdinal("Id")),r.GetString(r.GetOrdinal("Code")),r.GetString(r.GetOrdinal("Name")),
             r.GetString(r.GetOrdinal("ModuleCode")),r.GetString(r.GetOrdinal("MenuName")),r.GetBoolean(r.GetOrdinal("IsAssigned")),r.GetBoolean(r.GetOrdinal("CanAssign"))),cancellationToken);
 
-    public Task<PermissionAssignmentDto> CreateAsync(PermissionAssignmentRequestDto request,CancellationToken cancellationToken) => WriteAsync("dbo.SPPermissionAssignmentIns",null,null,request,cancellationToken);
+    public async Task<PermissionAssignmentDto> CreateAsync(PermissionAssignmentRequestDto request,CancellationToken cancellationToken)
+    {
+        var result=await WriteAsync("dbo.SPPermissionAssignmentIns",null,null,request,cancellationToken);
+        accessCache.Invalidate();
+        return result;
+    }
     public async Task<PermissionAssignmentDto?> UpdateAsync(int roleId,int permissionPolicyId,PermissionAssignmentRequestDto request,CancellationToken cancellationToken)
-    { try{return await WriteAsync("dbo.SPPermissionAssignmentUpd",roleId,permissionPolicyId,request,cancellationToken);}catch(KeyNotFoundException){return null;} }
-    public Task<bool> DeleteAsync(int roleId,int permissionPolicyId,CancellationToken cancellationToken) => WithConnectionAsync(async connection=>
-    { await using var c=Command(connection,"dbo.SPPermissionAssignmentDel"); Add(c,"@RoleId",SqlDbType.Int,roleId); Add(c,"@PermissionPolicyId",SqlDbType.Int,permissionPolicyId); Audit(c);
-      try{return Convert.ToInt32(await c.ExecuteScalarAsync(cancellationToken))==1;}catch(SqlException e){throw Translate(e);} },cancellationToken);
-
-    public async Task<IReadOnlyList<string>> GetGrantedCodesAsync(int userId,string moduleCode,string menuController,string menuAction,CancellationToken cancellationToken)
     {
-        if(userId<=0)return [];
-        if(await context.Users.AsNoTracking().AnyAsync(u=>u.Id==userId&&u.UserRoles.Any(ur=>ur.IsActive&&ur.Role.IsActive&&ur.Role.NormalizedName=="SUPERADMIN"),cancellationToken))
-            return await context.PermissionPolicies.AsNoTracking().Where(p=>p.IsActive&&p.ModuleCode==moduleCode&&p.MenuController==menuController&&p.MenuAction==menuAction).Select(p=>p.Code).ToListAsync(cancellationToken);
-        return await context.RolePermissions.AsNoTracking().Where(rp=>rp.IsActive&&rp.PermissionPolicy.IsActive&&rp.PermissionPolicy.ModuleCode==moduleCode&&rp.PermissionPolicy.MenuController==menuController&&rp.PermissionPolicy.MenuAction==menuAction&&rp.Role.IsActive&&rp.Role.UserRoles.Any(ur=>ur.UserId==userId&&ur.IsActive)&&rp.Role.RoleModules.Any(rm=>rm.IsActive&&rm.ApplicationModule.IsActive&&rm.ApplicationModule.Code==moduleCode&&rm.RoleModuleMenus.Any(rmm=>rmm.IsActive&&rmm.ModuleMenu.IsActive&&rmm.ModuleMenu.ControllerName==menuController&&rmm.ModuleMenu.ActionName==menuAction))).Select(rp=>rp.PermissionPolicy.Code).Distinct().ToListAsync(cancellationToken);
+        try
+        {
+            var result=await WriteAsync("dbo.SPPermissionAssignmentUpd",roleId,permissionPolicyId,request,cancellationToken);
+            accessCache.Invalidate();
+            return result;
+        }
+        catch(KeyNotFoundException){return null;}
     }
 
-    public async Task<bool> HasMenuAccessAsync(int userId,string moduleCode,string menuController,string menuAction,CancellationToken cancellationToken)
+    public async Task<BulkPermissionAssignmentResultDto> SetBulkAsync(
+        int roleId, BulkPermissionAssignmentRequestDto request, CancellationToken cancellationToken)
     {
-        if(userId<=0)return false;
-        if(await context.Users.AsNoTracking().AnyAsync(u=>u.Id==userId&&u.UserRoles.Any(ur=>ur.IsActive&&ur.Role.IsActive&&ur.Role.NormalizedName=="SUPERADMIN"),cancellationToken))return true;
-        return await context.RoleModuleMenus.AsNoTracking().AnyAsync(rmm=>rmm.IsActive&&rmm.RoleModule.IsActive&&rmm.RoleModule.ApplicationModule.IsActive&&rmm.RoleModule.ApplicationModule.Code==moduleCode&&rmm.ModuleMenu.IsActive&&rmm.ModuleMenu.ControllerName==menuController&&rmm.ModuleMenu.ActionName==menuAction&&rmm.RoleModule.Role.IsActive&&rmm.RoleModule.Role.UserRoles.Any(ur=>ur.UserId==userId&&ur.IsActive),cancellationToken);
+        ArgumentNullException.ThrowIfNull(request);
+        if(roleId<=0)throw new ArgumentException("Role ID must be greater than zero.");
+        if(request.PermissionPolicyIds.Any(id=>id<=0))
+            throw new ArgumentException("Every permission policy ID must be greater than zero.");
+        var policyIds=request.PermissionPolicyIds.Distinct().ToArray();
+        if(policyIds.Length!=request.PermissionPolicyIds.Count)
+            throw new ArgumentException("Duplicate permission policy IDs are not allowed.");
+
+        var assignedCount=await WithConnectionAsync(async connection=>
+        {
+            await using var command=Command(connection,"dbo.SPPermissionAssignmentsBulkSet");
+            Add(command,"@RoleId",SqlDbType.Int,roleId);
+            Add(command,"@PermissionPolicyIdsJson",SqlDbType.NVarChar,JsonSerializer.Serialize(policyIds),-1);
+            Audit(command);
+            try{return Convert.ToInt32(await command.ExecuteScalarAsync(cancellationToken));}
+            catch(SqlException exception){throw Translate(exception);}
+        },cancellationToken);
+
+        accessCache.Invalidate();
+        var policies=await GetPoliciesAsync(roleId,cancellationToken);
+        return new BulkPermissionAssignmentResultDto(roleId,assignedCount,policies);
     }
+
+    public async Task<bool> DeleteAsync(int roleId,int permissionPolicyId,CancellationToken cancellationToken)
+    {
+        var changed=await WithConnectionAsync(async connection=>
+        { await using var c=Command(connection,"dbo.SPPermissionAssignmentDel"); Add(c,"@RoleId",SqlDbType.Int,roleId); Add(c,"@PermissionPolicyId",SqlDbType.Int,permissionPolicyId); Audit(c);
+          try{return Convert.ToInt32(await c.ExecuteScalarAsync(cancellationToken))==1;}catch(SqlException e){throw Translate(e);} },cancellationToken);
+        if(changed)accessCache.Invalidate();
+        return changed;
+    }
+
+    public Task<IReadOnlyList<string>> GetGrantedCodesAsync(int userId,string moduleCode,string menuController,string menuAction,CancellationToken cancellationToken) =>
+        accessCache.GetGrantedCodesAsync(userId,moduleCode,menuController,menuAction,cancellationToken);
+
+    public Task<bool> HasMenuAccessAsync(int userId,string moduleCode,string menuController,string menuAction,CancellationToken cancellationToken) =>
+        accessCache.HasMenuAccessAsync(userId,moduleCode,menuController,menuAction,cancellationToken);
+
+    public Task<bool> HasPermissionAsync(int userId,string permissionCode,CancellationToken cancellationToken) =>
+        accessCache.HasPermissionAsync(userId,permissionCode,cancellationToken);
 
     private Task<PermissionAssignmentDto> WriteAsync(string procedure,int? originalRoleId,int? originalPolicyId,PermissionAssignmentRequestDto request,CancellationToken token)=>WithConnectionAsync(async connection=>
     { await using var c=Command(connection,procedure); if(originalRoleId.HasValue){Add(c,"@OriginalRoleId",SqlDbType.Int,originalRoleId);Add(c,"@OriginalPermissionPolicyId",SqlDbType.Int,originalPolicyId);}

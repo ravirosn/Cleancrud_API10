@@ -6,6 +6,8 @@ using Apcloud.Web.Infrastructure;
 using Apcloud.Web.Services;
 using Apcloud.Web.Services.Authentication;
 using Apcloud.Web.ViewComponents;
+using Apcloud.Contracts.Permissions;
+using Apcloud.Web.Authorization;
 
 namespace Apcloud.Web.Areas.Portal.Controllers;
 
@@ -15,6 +17,7 @@ public class PortalController(
     ApcloudApiClient apiClient,
     ILogger<PortalController> logger) : Controller
 {
+    [RequirePermission(ApplicationPermissions.Portal.View)]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         try
@@ -35,6 +38,7 @@ public class PortalController(
     }
 
     [HttpGet("/Portal/Modules/{moduleId}")]
+    [RequirePermission(ApplicationPermissions.Portal.SelectModule)]
     public async Task<IActionResult> Module(string moduleId, CancellationToken cancellationToken)
     {
         if (string.IsNullOrWhiteSpace(moduleId) || moduleId.Length > 100 || moduleId.Contains('/'))

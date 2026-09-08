@@ -29,6 +29,15 @@ public sealed class PermissionAssignmentRequestDto
     public bool IsActive { get; set; } = true;
 }
 
+public sealed class BulkPermissionAssignmentRequestDto
+{
+    [Required]
+    public IReadOnlyList<int> PermissionPolicyIds { get; set; } = [];
+}
+
+public sealed record BulkPermissionAssignmentResultDto(
+    int RoleId, int AssignedCount, IReadOnlyList<PermissionPolicyOptionDto> Policies);
+
 public sealed record PermissionRoleOptionDto(int Id, string Name);
 public sealed record PermissionPolicyOptionDto(int Id, string Code, string Name, string ModuleCode, string MenuName, bool IsAssigned, bool CanAssign);
 public sealed record CurrentPermissionDto(string Code);

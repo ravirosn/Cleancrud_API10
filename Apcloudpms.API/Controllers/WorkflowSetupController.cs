@@ -1,5 +1,7 @@
 using Apcloudpms.Application.DTOs;
 using Apcloudpms.Application.Interfaces;
+using Apcloudpms.API.Authorization;
+using Apcloud.Contracts.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,14 +10,17 @@ namespace Apcloudpms.API.Controllers;
 [ApiController]
 [Route("api/workflow-setup")]
 [Authorize]
+[RequireMenu(ApplicationPermissions.OrganizationModule, "Workflow", "Index")]
 public sealed class WorkflowSetupController(IWorkflowSetupService service) : ControllerBase
 {
     [HttpGet]
+    [RequirePermission(ApplicationPermissions.Workflows.View)]
     public async Task<ActionResult<WorkflowSetupPagedResponseDto>> Get(
         [FromQuery] WorkflowSetupQueryDto query, CancellationToken cancellationToken = default) =>
         Ok(await service.GetAsync(query, cancellationToken));
 
     [HttpGet("{id:int}")]
+    [RequirePermission(ApplicationPermissions.Workflows.View)]
     public async Task<ActionResult<WorkflowSetupDetailDto>> GetById(
         int id, CancellationToken cancellationToken = default)
     {
@@ -24,12 +29,14 @@ public sealed class WorkflowSetupController(IWorkflowSetupService service) : Con
     }
 
     [HttpPost]
+    [RequirePermission(ApplicationPermissions.Workflows.Create)]
     public async Task<ActionResult<WorkflowSetupDetailDto>> Create(
         WorkflowSetupRequestDto request, CancellationToken cancellationToken) =>
         StatusCode(StatusCodes.Status201Created,
             await service.CreateAsync(request, cancellationToken));
 
     [HttpPut("{id:int}")]
+    [RequirePermission(ApplicationPermissions.Workflows.Edit)]
     public async Task<ActionResult<WorkflowSetupDetailDto>> Update(
         int id, WorkflowSetupRequestDto request, CancellationToken cancellationToken)
     {
@@ -38,22 +45,27 @@ public sealed class WorkflowSetupController(IWorkflowSetupService service) : Con
     }
 
     [HttpDelete("{id:int}")]
+    [RequirePermission(ApplicationPermissions.Workflows.Delete)]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken) =>
         await service.DeleteAsync(id, cancellationToken) ? NoContent() : NotFound();
 
     [HttpGet("options/modules")]
+    [RequirePermission(ApplicationPermissions.Workflows.View)]
     public async Task<IActionResult> GetModules(CancellationToken cancellationToken) =>
         Ok(await service.GetModulesAsync(cancellationToken));
 
     [HttpGet("options/roles")]
+    [RequirePermission(ApplicationPermissions.Workflows.View)]
     public async Task<IActionResult> GetRoles(CancellationToken cancellationToken) =>
         Ok(await service.GetRolesAsync(cancellationToken));
 
     [HttpGet("options/subject-categories")]
+    [RequirePermission(ApplicationPermissions.Workflows.View)]
     public async Task<IActionResult> GetSubjectCategories(CancellationToken cancellationToken) =>
         Ok(await service.GetSubjectCategoriesAsync(cancellationToken));
 
     [HttpGet("options/subjects")]
+    [RequirePermission(ApplicationPermissions.Workflows.View)]
     public async Task<IActionResult> GetSubjects(
         [FromQuery] string categoryCode, CancellationToken cancellationToken) =>
         Ok(await service.GetSubjectsAsync(categoryCode, cancellationToken));

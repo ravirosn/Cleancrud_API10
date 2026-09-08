@@ -1,6 +1,8 @@
+@using Apcloud.Contracts.Permissions
 @{
     ViewData["Title"] = "Office branches";
 }
+<span data-permission-scope data-permission-module="@ApplicationPermissions.OrganizationModule" data-permission-controller="Organization" data-permission-action="OfficeBranches" hidden></span>
 
 <div class="page-header d-print-none mb-4">
     <div class="row g-3 align-items-center">
@@ -10,7 +12,7 @@
             <p class="text-secondary mt-2 mb-0">Maintain the offices and physical locations belonging to the organization.</p>
         </div>
         <div class="col-auto ms-auto d-print-none">
-            <button type="button" class="btn btn-primary" data-branch-add>
+            <button type="button" class="btn btn-primary" data-branch-add data-requires-permission="@ApplicationPermissions.OfficeBranches.Create">
                 <svg class="icon"><use href="#icon-plus" /></svg>
                 Add office branch
             </button>
@@ -21,7 +23,7 @@
 <div class="card server-data-grid" data-server-grid data-branch-grid
      data-url="organization/branches?includeInactive=true" data-page-size="10"
      data-search-param="search" data-server-sort="true" data-default-sort="name"
-     data-default-sort-direction="asc" data-row-actions="edit,delete">
+     data-default-sort-direction="asc" data-row-actions="" data-permission-actions="edit:@ApplicationPermissions.OfficeBranches.Edit,delete:@ApplicationPermissions.OfficeBranches.Delete">
     <div class="card-header server-grid-toolbar">
         <div class="server-grid-search" role="search">
             <div class="input-icon">
@@ -51,7 +53,7 @@
         <div class="empty-icon"><svg class="icon"><use href="#icon-search" /></svg></div>
         <p class="empty-title">No office branches found</p>
         <p class="empty-subtitle text-secondary">Try another search term or add an office branch.</p>
-        <div class="empty-action"><button type="button" class="btn btn-primary" data-branch-add><svg class="icon"><use href="#icon-plus" /></svg>Add office branch</button></div>
+        <div class="empty-action"><button type="button" class="btn btn-primary" data-branch-add data-requires-permission="@ApplicationPermissions.OfficeBranches.Create"><svg class="icon"><use href="#icon-plus" /></svg>Add office branch</button></div>
     </div>
     <div class="d-none" data-grid-content>
         <div class="table-responsive server-grid-scroll organization-grid-scroll">

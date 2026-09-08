@@ -1,6 +1,8 @@
+@using Apcloud.Contracts.Permissions
 @{
     ViewData["Title"] = "Approval workflows";
 }
+<span data-permission-scope data-permission-module="@ApplicationPermissions.OrganizationModule" data-permission-controller="Workflow" data-permission-action="Index" hidden></span>
 
 <style>
     [data-workflow-modal] .modal-dialog {
@@ -52,7 +54,7 @@
             </p>
         </div>
         <div class="col-auto ms-auto">
-            <button type="button" class="btn btn-primary" data-workflow-add>
+            <button type="button" class="btn btn-primary" data-workflow-add data-requires-permission="@ApplicationPermissions.Workflows.Create">
                 <svg class="icon"><use href="#icon-plus" /></svg> Add workflow
             </button>
         </div>
@@ -63,7 +65,7 @@
      data-url="workflow-setup?includeInactive=false" data-page-size="10"
      data-search-param="searchTerm" data-server-sort="true"
      data-default-sort="updatedAtUtc" data-default-sort-direction="desc"
-     data-row-actions="edit,delete" data-workflow-grid>
+     data-row-actions="" data-permission-actions="edit:@ApplicationPermissions.Workflows.Edit,delete:@ApplicationPermissions.Workflows.Delete" data-workflow-grid>
     <div class="card-header server-grid-toolbar">
         <div class="server-grid-search" role="search">
             <div class="input-icon">

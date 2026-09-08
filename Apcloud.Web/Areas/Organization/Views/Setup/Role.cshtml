@@ -1,6 +1,8 @@
+@using Apcloud.Contracts.Permissions
 @{
     ViewData["Title"] = "Roles";
 }
+<span data-permission-scope data-permission-module="@ApplicationPermissions.OrganizationModule" data-permission-controller="Setup" data-permission-action="Role" hidden></span>
 
     <div class="page-header d-print-none mb-4">
         <div class="row g-3 align-items-center">
@@ -16,7 +18,7 @@
                    asp-area="Organization" asp-controller="RoleModuleMenu" asp-action="Index">
                     Menu assignments
                 </a>
-                <button type="button" class="btn btn-primary" data-role-add>
+                <button type="button" class="btn btn-primary" data-role-add data-requires-permission="@ApplicationPermissions.Roles.Create">
                     <svg class="icon"><use href="#icon-plus" /></svg>
                     Add role
                 </button>
@@ -29,7 +31,7 @@
          data-url="roles?includeInactive=false"
          data-page-size="10"
          data-search-param="searchTerm"
-         data-row-actions="edit,delete"
+         data-row-actions="" data-permission-actions="edit:@ApplicationPermissions.Roles.Edit,delete:@ApplicationPermissions.Roles.Delete"
          data-role-grid>
         <div class="card-header server-grid-toolbar">
             <div class="server-grid-search" role="search">
@@ -79,7 +81,7 @@
                 Try another search term or add a new role.
             </p>
             <div class="empty-action">
-                <button type="button" class="btn btn-primary" data-role-add>
+                <button type="button" class="btn btn-primary" data-role-add data-requires-permission="@ApplicationPermissions.Roles.Create">
                     <svg class="icon"><use href="#icon-plus" /></svg>
                     Add role
                 </button>

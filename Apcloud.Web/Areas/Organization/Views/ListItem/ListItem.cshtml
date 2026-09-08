@@ -1,20 +1,22 @@
+@using Apcloud.Contracts.Permissions
 @{
     ViewData["Title"] = "List items";
 }
+<span data-permission-scope data-permission-module="@ApplicationPermissions.OrganizationModule" data-permission-controller="ListItem" data-permission-action="ListItem" hidden></span>
 
 <div class="page-header d-print-none mb-4">
     <div class="row g-3 align-items-center">
         <div class="col"><h1 class="page-title">List items</h1><p class="text-secondary mt-2 mb-0">Manage configurable values within list-item categories.</p></div>
         <div class="col-auto ms-auto d-flex gap-2">
             <a class="btn btn-outline-secondary" asp-action="Index">Manage categories</a>
-            <button type="button" class="btn btn-primary" data-item-add><svg class="icon"><use href="#icon-plus" /></svg>Add list item</button>
+            <button type="button" class="btn btn-primary" data-item-add data-requires-permission="@ApplicationPermissions.ListItems.Create"><svg class="icon"><use href="#icon-plus" /></svg>Add list item</button>
         </div>
     </div>
 </div>
 
 <div class="card server-data-grid" data-server-grid data-item-grid
      data-url="list-items?includeInactive=false" data-page-size="10" data-search-param="searchTerm"
-     data-server-sort="true" data-default-sort="createdAtUtc" data-default-sort-direction="desc" data-row-actions="edit,delete">
+     data-server-sort="true" data-default-sort="createdAtUtc" data-default-sort-direction="desc" data-row-actions="" data-permission-actions="edit:@ApplicationPermissions.ListItems.Edit,delete:@ApplicationPermissions.ListItems.Delete">
     <div class="card-header server-grid-toolbar">
         <div class="server-grid-search" role="search">
             <div class="input-icon">

@@ -1,6 +1,8 @@
+@using Apcloud.Contracts.Permissions
 @{
     ViewData["Title"] = "Users";
 }
+<span data-permission-scope data-permission-module="@ApplicationPermissions.OrganizationModule" data-permission-controller="User" data-permission-action="Index" hidden></span>
 
 <div class="page-header d-print-none mb-4">
     <div class="row g-3 align-items-center">
@@ -9,7 +11,7 @@
             <p class="text-secondary mt-2 mb-0">Manage users, departments, account status, and role assignments.</p>
         </div>
         <div class="col-auto ms-auto">
-            <button type="button" class="btn btn-primary" data-user-add>
+            <button type="button" class="btn btn-primary" data-user-add data-requires-permission="@ApplicationPermissions.Users.Create">
                 <svg class="icon"><use href="#icon-plus" /></svg> Add user
             </button>
         </div>
@@ -20,7 +22,7 @@
      data-url="users?includeInactive=false" data-page-size="10"
      data-search-param="searchTerm" data-server-sort="true"
      data-default-sort="createdAtUtc" data-default-sort-direction="desc"
-     data-row-actions="assign-roles,edit,delete">
+     data-row-actions="" data-permission-actions="assign-roles:@ApplicationPermissions.Users.AssignRoles,edit:@ApplicationPermissions.Users.Edit,delete:@ApplicationPermissions.Users.Delete">
     <div class="card-header server-grid-toolbar">
         <div class="server-grid-search" role="search">
             <div class="input-icon">

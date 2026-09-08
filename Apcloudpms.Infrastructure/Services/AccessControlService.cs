@@ -1,6 +1,7 @@
 using System.Data;
 using Apcloudpms.Application.DTOs;
 using Apcloudpms.Application.Interfaces;
+using Apcloudpms.Application.Common;
 using Apcloudpms.Domain.Entities;
 using Apcloudpms.Infrastructure.Data;
 using Microsoft.Data.SqlClient;
@@ -11,7 +12,12 @@ namespace Apcloudpms.Infrastructure.Services;
 public sealed class AccessControlService : IAccessControlService
 {
     private readonly AppDbContext _context;
-    public AccessControlService(AppDbContext context) => _context = context;
+    private readonly IAuditContext _auditContext;
+    public AccessControlService(AppDbContext context, IAuditContext auditContext)
+    {
+        _context = context;
+        _auditContext = auditContext;
+    }
 
     public async Task<RolePagedResponseDto> GetRolesAsync(
         RoleQueryDto query, CancellationToken cancellationToken)
@@ -78,6 +84,8 @@ public sealed class AccessControlService : IAccessControlService
         ArgumentNullException.ThrowIfNull(dto);
         var name = dto.Name.Trim();
         var normalizedName = name.ToUpperInvariant();
+        if (normalizedName == "SUPERADMIN")
+            throw new ArgumentException("SuperAdmin is a reserved system role.");
         if (await _context.Roles.AnyAsync(x => x.NormalizedName == normalizedName, cancellationToken))
             throw new ArgumentException("A role with this name already exists.");
 
@@ -110,6 +118,8 @@ public sealed class AccessControlService : IAccessControlService
             .ThenInclude(x => x.ApplicationModule)
             .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
         if (role is null) return null;
+        if (role.NormalizedName == "SUPERADMIN")
+            throw new ArgumentException("The SuperAdmin role cannot be modified.");
         var name = dto.Name.Trim();
         var normalizedName = name.ToUpperInvariant();
         if (await _context.Roles.AnyAsync(
@@ -155,8 +165,8 @@ public sealed class AccessControlService : IAccessControlService
         var role = await _context.Roles.SingleOrDefaultAsync(
             x => x.Id == id, cancellationToken);
         if (role is null) return false;
-        if (role.NormalizedName == "ADMIN")
-            throw new ArgumentException("The Admin role cannot be deleted.");
+        if (role.NormalizedName is "ADMIN" or "SUPERADMIN")
+            throw new ArgumentException($"The {role.Name} role cannot be deleted.");
 
         role.IsActive = false;
         await _context.SaveChangesAsync(cancellationToken);
@@ -169,6 +179,8 @@ public sealed class AccessControlService : IAccessControlService
         if (!await _context.Users.AnyAsync(x => x.Id == dto.UserId, cancellationToken)) return false;
         var role = await _context.Roles.SingleOrDefaultAsync(x => x.Id == dto.RoleId, cancellationToken);
         if (role is null) return false;
+        if (role.NormalizedName == "SUPERADMIN" && !await IsActorSuperAdminAsync(cancellationToken))
+            throw new ForbiddenAccessException("Only a SuperAdmin can change SuperAdmin membership.");
         if (dto.IsActive && !role.IsActive)
             throw new ArgumentException("An inactive role cannot be assigned as active.");
 
@@ -197,6 +209,13 @@ public sealed class AccessControlService : IAccessControlService
 
     private static string? NormalizeOptional(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private Task<bool> IsActorSuperAdminAsync(CancellationToken cancellationToken) =>
+        _auditContext.UserId is int actorUserId && actorUserId > 0
+            ? _context.UserRoles.AsNoTracking().AnyAsync(ur =>
+                ur.UserId == actorUserId && ur.IsActive && ur.Role.IsActive &&
+                ur.Role.NormalizedName == "SUPERADMIN", cancellationToken)
+            : Task.FromResult(false);
 
     private async Task<HashSet<int>> ValidateModuleIdsAsync(
         IReadOnlyList<int>? requestedModuleIds, CancellationToken cancellationToken)

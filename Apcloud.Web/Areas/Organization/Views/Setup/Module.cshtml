@@ -1,13 +1,15 @@
+@using Apcloud.Contracts.Permissions
 @{
     ViewData["Title"] = "Modules";
 }
+<span data-permission-scope data-permission-module="@ApplicationPermissions.OrganizationModule" data-permission-controller="Setup" data-permission-action="Module" hidden></span>
 
     <div class="page-header d-print-none mb-4">
         <div class="row g-3 align-items-center">
             <div class="col">
                 <h1 class="page-title">Modules</h1>
                 <p class="text-secondary mt-2 mb-0">
-                    Search, add, edit, and deactivate application modules.
+                    Search, edit and deactivate application modules.
                 </p>
             </div>
         </div>
@@ -18,7 +20,7 @@
          data-url="modules?includeInactive=false"
          data-page-size="10"
          data-search-param="searchTerm"
-         data-row-actions="edit,delete"
+         data-row-actions="" data-permission-actions="edit:@ApplicationPermissions.Modules.Edit,delete:@ApplicationPermissions.Modules.Delete"
          data-module-grid>
         <div class="card-header server-grid-toolbar">
             <div class="server-grid-search" role="search">
@@ -68,7 +70,7 @@
                 Try another search term or add a new module.
             </p>
             <div class="empty-action">
-                <button type="button" class="btn btn-primary" data-module-add>
+                <button type="button" class="btn btn-primary" data-module-add data-requires-permission="@ApplicationPermissions.Modules.Create">
                     <svg class="icon"><use href="#icon-plus" /></svg>
                     Add module
                 </button>
@@ -168,4 +170,3 @@
 @section Scripts {
     <script src="~/js/organization-module.js" asp-append-version="true"></script>
 }
-

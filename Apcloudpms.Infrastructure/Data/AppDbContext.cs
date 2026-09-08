@@ -7,10 +7,15 @@ namespace Apcloudpms.Infrastructure.Data;
 public class AppDbContext : DbContext
 {
     private readonly IAuditContext _auditContext;
+    private readonly IAuthorizationCacheInvalidator _authorizationCache;
 
-    public AppDbContext(DbContextOptions<AppDbContext> options, IAuditContext auditContext) : base(options)
+    public AppDbContext(
+        DbContextOptions<AppDbContext> options,
+        IAuditContext auditContext,
+        IAuthorizationCacheInvalidator authorizationCache) : base(options)
     {
         _auditContext = auditContext;
+        _authorizationCache = authorizationCache;
     }
 
     public DbSet<Student> Students => Set<Student>();
@@ -58,17 +63,28 @@ public class AppDbContext : DbContext
 
     public override int SaveChanges(bool acceptAllChangesOnSuccess)
     {
+        var invalidateAuthorization = HasAuthorizationChanges();
         AddAuditLogs();
-        return base.SaveChanges(acceptAllChangesOnSuccess);
+        var result = base.SaveChanges(acceptAllChangesOnSuccess);
+        if (invalidateAuthorization) _authorizationCache.Invalidate();
+        return result;
     }
 
-    public override Task<int> SaveChangesAsync(
+    public override async Task<int> SaveChangesAsync(
         bool acceptAllChangesOnSuccess,
         CancellationToken cancellationToken = default)
     {
+        var invalidateAuthorization = HasAuthorizationChanges();
         AddAuditLogs();
-        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        var result = await base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+        if (invalidateAuthorization) _authorizationCache.Invalidate();
+        return result;
     }
+
+    private bool HasAuthorizationChanges() => ChangeTracker.Entries().Any(entry =>
+        entry.State is EntityState.Added or EntityState.Modified or EntityState.Deleted &&
+        entry.Entity is User or Role or UserRole or RoleModule or RoleModuleMenu or
+            PermissionPolicy or ApplicationModule or ModuleMenu);
 
     private void AddAuditLogs()
     {
@@ -202,6 +218,7 @@ public class AppDbContext : DbContext
             entity.Property(x => x.ModuleCode).HasMaxLength(30).IsRequired();
             entity.Property(x => x.MenuController).HasMaxLength(100).IsRequired();
             entity.Property(x => x.MenuAction).HasMaxLength(100).IsRequired();
+            entity.Property(x => x.RequiresMenuAccess).HasDefaultValue(true);
             entity.Property(x => x.CreatedAtUtc).HasPrecision(0);
             entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
             entity.Property(x => x.RowVersion).IsRowVersion();

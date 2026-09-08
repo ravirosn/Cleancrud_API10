@@ -26,15 +26,20 @@ namespace Apcloudpms.API.Middleware
             catch (Exception ex)
             {
                 context.Response.ContentType = "application/json";
-                context.Response.StatusCode = ex is ArgumentException
-                    ? StatusCodes.Status400BadRequest
-                    : StatusCodes.Status500InternalServerError;
+                context.Response.StatusCode = ex switch
+                {
+                    ForbiddenAccessException => StatusCodes.Status403Forbidden,
+                    ArgumentException => StatusCodes.Status400BadRequest,
+                    _ => StatusCodes.Status500InternalServerError
+                };
                 var response = new ApiResponse<object>
                 {
                     Success = false,
-                    Message = ex is ArgumentException
-                        ? ex.Message
-                        : "An unexpected server error occurred.",
+                    Message = ex switch
+                    {
+                        ForbiddenAccessException or ArgumentException => ex.Message,
+                        _ => "An unexpected server error occurred."
+                    },
                     Data = null
                 };
 

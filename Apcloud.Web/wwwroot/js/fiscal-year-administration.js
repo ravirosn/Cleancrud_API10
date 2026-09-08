@@ -24,18 +24,21 @@
     let editingId = null;
     const permissions = new Set();
     const permissionCode = {
-      create: "FiscalYear.Create", edit: "FiscalYear.Edit", close: "FiscalYear.Close", delete: "FiscalYear.Delete"
+      create: grid.dataset.permissionCreate, edit: grid.dataset.permissionEdit,
+      close: grid.dataset.permissionClose, delete: grid.dataset.permissionDelete
     };
 
     const loadPermissions = async () => {
-      const rows = await window.apcloudApi.json("permissions/me?moduleCode=ORGANIZATION&menuController=Organization&menuAction=FiscalYears");
+      const query = new URLSearchParams({ moduleCode: grid.dataset.permissionModule,
+        menuController: grid.dataset.permissionController, menuAction: grid.dataset.permissionAction });
+      const rows = await window.apcloudApi.json(`permissions/me?${query}`);
       rows.forEach((row) => permissions.add(property(row, "code")));
       document.querySelectorAll("[data-fiscal-year-add]").forEach((button) =>
         button.classList.toggle("d-none", !permissions.has(permissionCode.create)));
       const actions = [];
       if (permissions.has(permissionCode.edit) || permissions.has(permissionCode.close)) actions.push("edit");
       if (permissions.has(permissionCode.delete)) actions.push("delete");
-      grid.dispatchEvent(new CustomEvent("server-grid:set-actions", { detail: { actions } }));
+      grid.dispatchEvent(new CustomEvent("server-grid:set-actions", { detail: { actions, reload: false } }));
     };
 
     const showEditor = (record = null) => {
@@ -114,7 +117,7 @@
     });
 
     loadPermissions().catch(() => {
-      grid.dispatchEvent(new CustomEvent("server-grid:set-actions", { detail: { actions: [] } }));
+      grid.dispatchEvent(new CustomEvent("server-grid:set-actions", { detail: { actions: [], reload: false } }));
     });
   });
 })();

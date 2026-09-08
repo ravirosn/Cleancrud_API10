@@ -1,7 +1,8 @@
 using Apcloudpms.Application.DTOs;
 using Apcloudpms.Application.Interfaces;
 using Apcloudpms.API.Services;
-using Apcloudpms.Domain.Enums;
+using Apcloudpms.API.Authorization;
+using Apcloud.Contracts.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -9,16 +10,19 @@ namespace Apcloudpms.API.Controllers;
 
 [ApiController]
 [Route("api/audit-logs")]
-[Authorize(Roles = nameof(ApplicationRole.Admin) + "," + nameof(ApplicationRole.SuperAdmin))]
+[Authorize]
+[RequireMenu(ApplicationPermissions.OrganizationModule, "AuditLog", "Index")]
 public sealed class AuditLogsController(IAuditLogService service) : ControllerBase
 {
     [HttpGet("filter-options")]
+    [RequirePermission(ApplicationPermissions.AuditLogs.View)]
     [ProducesResponseType<AuditLogFilterOptionsDto>(StatusCodes.Status200OK)]
     public async Task<ActionResult<AuditLogFilterOptionsDto>> GetFilterOptions(
         CancellationToken cancellationToken) =>
         Ok(await service.GetFilterOptionsAsync(cancellationToken));
 
     [HttpGet]
+    [RequirePermission(ApplicationPermissions.AuditLogs.View)]
     [ProducesResponseType<AuditLogPagedResponseDto>(StatusCodes.Status200OK)]
     public async Task<ActionResult<AuditLogPagedResponseDto>> GetPaged(
         [FromQuery] AuditLogQueryDto query,
@@ -29,6 +33,7 @@ public sealed class AuditLogsController(IAuditLogService service) : ControllerBa
     }
 
     [HttpGet("export")]
+    [RequirePermission(ApplicationPermissions.AuditLogs.Export)]
     [Produces("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")]
     public async Task<IActionResult> Export(
         [FromQuery] AuditLogQueryDto query,

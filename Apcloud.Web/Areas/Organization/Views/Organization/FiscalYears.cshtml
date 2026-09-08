@@ -1,3 +1,4 @@
+@using Apcloud.Contracts.Permissions
 @{
     ViewData["Title"] = "Fiscal years";
 }
@@ -24,7 +25,13 @@
 <div class="card server-data-grid" data-server-grid data-fiscal-year-grid
      data-url="organization/fiscal-years?includeInactive=true" data-page-size="10"
      data-search-param="search" data-server-sort="true" data-default-sort="startDate"
-     data-default-sort-direction="desc" data-row-actions="">
+     data-default-sort-direction="desc" data-row-actions=""
+     data-permission-module="@ApplicationPermissions.OrganizationModule"
+     data-permission-controller="Organization" data-permission-action="FiscalYears"
+     data-permission-create="@ApplicationPermissions.FiscalYears.Create"
+     data-permission-edit="@ApplicationPermissions.FiscalYears.Edit"
+     data-permission-close="@ApplicationPermissions.FiscalYears.Close"
+     data-permission-delete="@ApplicationPermissions.FiscalYears.Delete">
     <div class="card-header server-grid-toolbar">
         <div class="server-grid-search" role="search">
             <div class="input-icon">

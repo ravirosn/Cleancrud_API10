@@ -1,7 +1,7 @@
 using Apcloudpms.API.Authorization;
 using Apcloudpms.Application.DTOs;
 using Apcloudpms.Application.Interfaces;
-using Apcloudpms.Application.Permissions;
+using Apcloud.Contracts.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -10,17 +10,17 @@ namespace Apcloudpms.API.Controllers;
 [ApiController]
 [Route("api/organization/fiscal-years")]
 [Authorize]
-[RequireMenu(FiscalYearPermissions.ModuleCode, FiscalYearPermissions.MenuController, FiscalYearPermissions.MenuAction)]
+[RequireMenu(ApplicationPermissions.OrganizationModule, "Organization", "FiscalYears")]
 public sealed class FiscalYearManagementController(IOrganizationService service) : ControllerBase
 {
     [HttpGet]
-    [RequirePermission(FiscalYearPermissions.View)]
+    [RequirePermission(ApplicationPermissions.FiscalYears.View)]
     public async Task<ActionResult<OrganizationPagedResponseDto<FiscalYearDto>>> Get(
         [FromQuery] FiscalYearQueryDto query, CancellationToken cancellationToken = default) =>
         Ok(await service.GetFiscalYearsAsync(query, cancellationToken));
 
     [HttpGet("{id:int}")]
-    [RequirePermission(FiscalYearPermissions.View)]
+    [RequirePermission(ApplicationPermissions.FiscalYears.View)]
     public async Task<ActionResult<FiscalYearDto>> GetById(int id, CancellationToken cancellationToken = default)
     {
         var result = await service.GetFiscalYearByIdAsync(id, cancellationToken);
@@ -28,7 +28,7 @@ public sealed class FiscalYearManagementController(IOrganizationService service)
     }
 
     [HttpPost]
-    [RequirePermission(FiscalYearPermissions.Create)]
+    [RequirePermission(ApplicationPermissions.FiscalYears.Create)]
     public async Task<ActionResult<FiscalYearDto>> Create(FiscalYearRequestDto dto, CancellationToken cancellationToken)
     {
         dto.IsClosed = false;
@@ -37,7 +37,7 @@ public sealed class FiscalYearManagementController(IOrganizationService service)
     }
 
     [HttpPut("{id:int}")]
-    [RequirePermission(FiscalYearPermissions.Edit)]
+    [RequirePermission(ApplicationPermissions.FiscalYears.Edit)]
     public async Task<ActionResult<FiscalYearDto>> Update(int id, FiscalYearRequestDto dto, CancellationToken cancellationToken)
     {
         if (dto.IsClosed) return BadRequest("Use the close endpoint to close a fiscal year.");
@@ -46,7 +46,7 @@ public sealed class FiscalYearManagementController(IOrganizationService service)
     }
 
     [HttpPost("{id:int}/close")]
-    [RequirePermission(FiscalYearPermissions.Close)]
+    [RequirePermission(ApplicationPermissions.FiscalYears.Close)]
     public async Task<ActionResult<FiscalYearDto>> Close(int id, FiscalYearRequestDto dto, CancellationToken cancellationToken)
     {
         dto.IsActive = false;
@@ -56,7 +56,7 @@ public sealed class FiscalYearManagementController(IOrganizationService service)
     }
 
     [HttpDelete("{id:int}")]
-    [RequirePermission(FiscalYearPermissions.Delete)]
+    [RequirePermission(ApplicationPermissions.FiscalYears.Delete)]
     public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken) =>
         await service.DeleteFiscalYearAsync(id, cancellationToken) ? NoContent() : NotFound();
 }

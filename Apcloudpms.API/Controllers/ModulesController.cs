@@ -1,5 +1,7 @@
 using Apcloudpms.Application.DTOs;
 using Apcloudpms.Application.Interfaces;
+using Apcloudpms.API.Authorization;
+using Apcloud.Contracts.Permissions;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,6 +10,7 @@ namespace Apcloudpms.API.Controllers;
 [ApiController]
 [Route("api/modules")]
 [Authorize]
+[RequireMenu(ApplicationPermissions.OrganizationModule, "Setup", "Module")]
 public sealed class ModulesController : ControllerBase
 {
     private readonly IModuleAccessService _service;
@@ -15,12 +18,14 @@ public sealed class ModulesController : ControllerBase
     public ModulesController(IModuleAccessService service) => _service = service;
 
     [HttpGet]
+    [RequirePermission(ApplicationPermissions.Modules.View)]
     public async Task<ActionResult<ApplicationModulePagedResponseDto>> GetModules(
         [FromQuery] ApplicationModuleQueryDto query,
         CancellationToken cancellationToken = default) =>
         Ok(await _service.GetModulesAsync(query, cancellationToken));
 
     [HttpPost]
+    [RequirePermission(ApplicationPermissions.Modules.Create)]
     public async Task<ActionResult<ApplicationModuleDto>> CreateModule(
         ApplicationModuleRequestDto dto, CancellationToken cancellationToken)
     {
@@ -29,6 +34,7 @@ public sealed class ModulesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [RequirePermission(ApplicationPermissions.Modules.Edit)]
     public async Task<ActionResult<ApplicationModuleDto>> UpdateModule(
         int id, ApplicationModuleRequestDto dto, CancellationToken cancellationToken)
     {
@@ -37,6 +43,7 @@ public sealed class ModulesController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [RequirePermission(ApplicationPermissions.Modules.Delete)]
     public async Task<IActionResult> DeleteModule(
         int id, CancellationToken cancellationToken)
     {
@@ -45,6 +52,7 @@ public sealed class ModulesController : ControllerBase
     }
 
     [HttpGet("{id:int}/configuration")]
+    [RequirePermission(ApplicationPermissions.Modules.View)]
     public async Task<ActionResult<ApplicationModuleConfigurationDto>> GetModuleConfiguration(
         int id, CancellationToken cancellationToken = default)
     {
@@ -53,6 +61,7 @@ public sealed class ModulesController : ControllerBase
     }
 
     [HttpPut("{id:int}/roles")]
+    [RequirePermission(ApplicationPermissions.Modules.Configure)]
     public async Task<ActionResult<ApplicationModuleConfigurationDto>> SetModuleRoles(
         int id, RoleModuleAssignmentRequestDto dto, CancellationToken cancellationToken)
     {
@@ -61,6 +70,7 @@ public sealed class ModulesController : ControllerBase
     }
 
     [HttpPut("{id:int}/configuration")]
+    [RequirePermission(ApplicationPermissions.Modules.Configure)]
     public async Task<ActionResult<ApplicationModuleConfigurationDto>> UpdateModuleConfiguration(
         int id, ApplicationModuleConfigurationRequestDto dto,
         CancellationToken cancellationToken)
@@ -70,12 +80,14 @@ public sealed class ModulesController : ControllerBase
     }
 
     [HttpGet("{moduleId:int}/menus")]
+    [RequirePermission(ApplicationPermissions.Modules.View)]
     public async Task<ActionResult<IReadOnlyList<ModuleMenuDto>>> GetMenus(
         int moduleId, bool includeInactive = false,
         CancellationToken cancellationToken = default) =>
         Ok(await _service.GetMenusAsync(moduleId, includeInactive, cancellationToken));
 
     [HttpPost("{moduleId:int}/menus")]
+    [RequirePermission(ApplicationPermissions.Modules.Create)]
     public async Task<ActionResult<ModuleMenuDto>> CreateMenu(
         int moduleId, ModuleMenuRequestDto dto, CancellationToken cancellationToken)
     {
@@ -86,6 +98,7 @@ public sealed class ModulesController : ControllerBase
     }
 
     [HttpPut("{moduleId:int}/menus/{menuId:int}")]
+    [RequirePermission(ApplicationPermissions.Modules.Edit)]
     public async Task<ActionResult<ModuleMenuDto>> UpdateMenu(
         int moduleId, int menuId, ModuleMenuRequestDto dto,
         CancellationToken cancellationToken)
@@ -95,6 +108,7 @@ public sealed class ModulesController : ControllerBase
     }
 
     [HttpGet("{moduleId:int}/roles/{roleId:int}/menus")]
+    [RequirePermission(ApplicationPermissions.Modules.View)]
     public async Task<ActionResult<RoleModuleMenuConfigurationDto>> GetRoleModuleMenus(
         int moduleId, int roleId, CancellationToken cancellationToken = default)
     {
@@ -104,6 +118,7 @@ public sealed class ModulesController : ControllerBase
     }
 
     [HttpPut("{moduleId:int}/roles/{roleId:int}/menus")]
+    [RequirePermission(ApplicationPermissions.Modules.Configure)]
     public async Task<ActionResult<RoleModuleMenuConfigurationDto>> SetRoleModuleMenus(
         int moduleId, int roleId, RoleModuleMenuAssignmentRequestDto dto,
         CancellationToken cancellationToken)

@@ -118,6 +118,15 @@ public sealed class ApcloudApiClient(
         return document.RootElement.TryGetProperty("hasAccess",out var value)&&value.ValueKind==JsonValueKind.True;
     }
 
+    public async Task<bool> HasPermissionAsync(string permissionCode,CancellationToken cancellationToken=default)
+    {
+        var path=$"api/permissions/check?permissionCode={Uri.EscapeDataString(permissionCode)}";
+        using var response=await httpClient.GetAsync(path,cancellationToken);
+        if(!response.IsSuccessStatusCode)return false;
+        using var document=await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken),cancellationToken:cancellationToken);
+        return document.RootElement.TryGetProperty("hasPermission",out var value)&&value.ValueKind==JsonValueKind.True;
+    }
+
     public async Task<IReadOnlyList<AssignedModuleViewModel>> GetMyModulesAsync(
         CancellationToken cancellationToken = default)
     {

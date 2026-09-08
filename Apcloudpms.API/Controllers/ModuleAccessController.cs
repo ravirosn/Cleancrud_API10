@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Apcloudpms.API.Middleware;
+using Apcloudpms.API.Authorization;
+using Apcloud.Contracts.Permissions;
 
 namespace Apcloudpms.API.Controllers;
 
@@ -18,6 +20,7 @@ public sealed class ModuleAccessController : ControllerBase
     public ModuleAccessController(IModuleAccessService service) => _service = service;
 
     [HttpGet("my-modules")]
+    [RequirePermission(ApplicationPermissions.Portal.View)]
     public async Task<ActionResult<IReadOnlyList<ApplicationModuleDto>>> GetMyModules(
         CancellationToken cancellationToken)
     {
@@ -26,6 +29,7 @@ public sealed class ModuleAccessController : ControllerBase
     }
 
     [HttpPost("select")]
+    [RequirePermission(ApplicationPermissions.Portal.SelectModule)]
     public async Task<ActionResult<ModuleNavigationDto>> SelectModule(
         ModuleSelectionRequestDto dto, CancellationToken cancellationToken)
     {

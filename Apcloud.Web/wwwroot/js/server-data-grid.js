@@ -133,6 +133,7 @@
         sortDirection: root.dataset.defaultSortDirection === "asc" ? "asc" : "desc"
       };
       this.abortController = null;
+      this.lastRender = null;
       this.searchTimer = null;
       this.elements = {
         search: root.querySelector("[data-grid-search]"),
@@ -212,7 +213,11 @@
         this.rowActions = Array.isArray(actions)
           ? actions.map((value) => String(value).trim()).filter(Boolean)
           : [];
-        if (event.detail?.reload !== false) this.load();
+        if (event.detail?.reload === true) {
+          this.load();
+        } else if (this.lastRender) {
+          this.render(this.lastRender.records, this.lastRender.paging);
+        }
       });
       this.elements.head?.addEventListener("click", (event) => {
         const button = event.target.closest("[data-grid-sort]");
@@ -230,7 +235,8 @@
 
     async load() {
       this.abortController?.abort();
-      this.abortController = new AbortController();
+      const abortController = new AbortController();
+      this.abortController = abortController;
       this.showState("loading");
       this.root.setAttribute("aria-busy", "true");
 
@@ -251,7 +257,7 @@
       }
 
       try {
-        const payload = await window.apcloudApi.json(`${this.url}${separator}${query}`, { signal: this.abortController.signal });
+        const payload = await window.apcloudApi.json(`${this.url}${separator}${query}`, { signal: abortController.signal });
         const records = findItems(payload);
         const pageNumber = metadataNumber(payload, ["pageNumber", "currentPage", "page"], this.state.pageNumber);
         const pageSize = metadataNumber(payload, ["pageSize", "limit", "perPage"], this.state.pageSize);
@@ -259,7 +265,9 @@
         const totalPages = metadataNumber(payload, ["totalPages", "pageCount"], totalCount ? Math.ceil(totalCount / pageSize) : 0);
 
         this.state.pageNumber = Math.max(1, pageNumber);
-        this.render(records, { pageNumber: this.state.pageNumber, pageSize, totalCount, totalPages });
+        const paging = { pageNumber: this.state.pageNumber, pageSize, totalCount, totalPages };
+        this.lastRender = { records, paging };
+        this.render(records, paging);
         this.showState(records.length ? "content" : "empty");
       } catch (error) {
         if (error.name === "AbortError") return;
@@ -267,7 +275,10 @@
         if (message) message.textContent = error.message || "The data could not be loaded.";
         this.showState("error");
       } finally {
-        this.root.removeAttribute("aria-busy");
+        if (this.abortController === abortController) {
+          this.abortController = null;
+          this.root.removeAttribute("aria-busy");
+        }
       }
     }
 

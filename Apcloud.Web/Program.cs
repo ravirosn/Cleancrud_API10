@@ -1,11 +1,14 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Identity.Web;
 using Apcloud.Web.Infrastructure;
 using Apcloud.Web.Services;
 using Apcloud.Web.Services.Authentication;
+using Apcloud.Web.Health;
 using System.IO.Compression;
 using System.Net;
 
@@ -92,6 +95,12 @@ builder.Services
                                  DecompressionMethods.Deflate
     })
     .AddHttpMessageHandler<ApiBearerTokenHandler>();
+builder.Services.AddHttpClient("ApiHealth", ConfigureApiClient);
+builder.Services.AddHealthChecks()
+    .AddCheck("self", () => HealthCheckResult.Healthy(), tags: ["live"])
+    .AddCheck<ApiReadinessHealthCheck>(
+        "api", failureStatus: HealthStatus.Unhealthy,
+        tags: ["ready"], timeout: TimeSpan.FromSeconds(5));
 
 var entraConfiguration = builder.Configuration
     .GetSection(MicrosoftEntraOptions.SectionName)
@@ -212,6 +221,15 @@ app.UseSession();
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHealthChecks("/health/live", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("live")
+}).AllowAnonymous();
+app.MapHealthChecks("/health/ready", new HealthCheckOptions
+{
+    Predicate = registration => registration.Tags.Contains("ready")
+}).AllowAnonymous();
 
 app.MapStaticAssets();
 
