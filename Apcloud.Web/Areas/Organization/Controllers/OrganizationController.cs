@@ -5,7 +5,7 @@ using Apcloud.Web.Authorization;
 namespace Apcloud.Web.Areas.Organization.Controllers;
 
 [Area("Organization")]
-[Authorize(Roles = "Admin,SuperAdmin")]
+[Authorize]
 [Route("Organization/Organization")]
 public sealed class OrganizationController : Controller
 {

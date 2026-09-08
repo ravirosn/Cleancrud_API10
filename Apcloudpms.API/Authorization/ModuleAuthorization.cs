@@ -13,6 +13,26 @@ public sealed record MenuRequirement(string ModuleCode, string Controller, strin
 public sealed record PermissionRequirement(string PermissionCode) : IAuthorizationRequirement;
 public sealed record ApiScopeRequirement(string Scope) : IAuthorizationRequirement;
 
+/// <summary>
+/// SuperAdmin is the application break-glass role and is not constrained by
+/// module, menu, action, scope, or legacy role-specific authorization policies.
+/// Authentication is still required before this handler can grant the bypass.
+/// </summary>
+public sealed class SuperAdminAuthorizationHandler : IAuthorizationHandler
+{
+    public Task HandleAsync(AuthorizationHandlerContext context)
+    {
+        if (context.User.Identity?.IsAuthenticated == true &&
+            AuthorizationUser.IsSuperAdmin(context.User))
+        {
+            foreach (var requirement in context.PendingRequirements.ToArray())
+                context.Succeed(requirement);
+        }
+
+        return Task.CompletedTask;
+    }
+}
+
 public sealed class ApiScopeAuthorizationHandler : AuthorizationHandler<ApiScopeRequirement>
 {
     protected override Task HandleRequirementAsync(
@@ -42,6 +62,12 @@ public sealed class ModuleAuthorizationHandler : AuthorizationHandler<ModuleRequ
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext context, ModuleRequirement requirement)
     {
+        if (AuthorizationUser.IsSuperAdmin(context.User))
+        {
+            context.Succeed(requirement);
+            return;
+        }
+
         var localUserId = context.User.FindFirstValue(EntraUserMiddleware.LocalUserIdClaim)
             ?? context.User.FindFirstValue(JwtRegisteredClaimNames.Sub);
         if (!int.TryParse(localUserId, out var userId))
@@ -60,7 +86,7 @@ public sealed class MenuAuthorizationHandler(AppDbContext context) : Authorizati
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext authorizationContext, MenuRequirement requirement)
     {
-        if (authorizationContext.User.IsInRole("SuperAdmin"))
+        if (AuthorizationUser.IsSuperAdmin(authorizationContext.User))
         {
             authorizationContext.Succeed(requirement);
             return;
@@ -82,7 +108,7 @@ public sealed class PermissionAuthorizationHandler(AppDbContext context) : Autho
     protected override async Task HandleRequirementAsync(
         AuthorizationHandlerContext authorizationContext, PermissionRequirement requirement)
     {
-        if (authorizationContext.User.IsInRole("SuperAdmin"))
+        if (AuthorizationUser.IsSuperAdmin(authorizationContext.User))
         {
             authorizationContext.Succeed(requirement);
             return;
@@ -103,6 +129,9 @@ public sealed class PermissionAuthorizationHandler(AppDbContext context) : Autho
 
 internal static class AuthorizationUser
 {
+    public static bool IsSuperAdmin(ClaimsPrincipal principal) =>
+        principal.IsInRole("SuperAdmin");
+
     public static bool TryGetLocalUserId(ClaimsPrincipal principal, out int userId) =>
         int.TryParse(principal.FindFirstValue(EntraUserMiddleware.LocalUserIdClaim)
             ?? principal.FindFirstValue(JwtRegisteredClaimNames.Sub), out userId) && userId > 0;

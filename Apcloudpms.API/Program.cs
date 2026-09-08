@@ -235,6 +235,7 @@ builder.Services.AddAuthorization(options =>
         .Build();
 });
 builder.Services.AddSingleton<IAuthorizationPolicyProvider, ModulePolicyProvider>();
+builder.Services.AddSingleton<IAuthorizationHandler, SuperAdminAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, ModuleAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, MenuAuthorizationHandler>();
 builder.Services.AddScoped<IAuthorizationHandler, PermissionAuthorizationHandler>();

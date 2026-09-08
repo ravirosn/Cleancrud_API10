@@ -304,35 +304,39 @@ public sealed class ModuleAccessService : IModuleAccessService
     }
 
     public async Task<IReadOnlyList<ApplicationModuleDto>> GetAssignedModulesAsync(
-        int userId, CancellationToken cancellationToken) =>
-        await _context.ApplicationModules.AsNoTracking()
-            .Where(x => x.IsActive && x.RoleModules.Any(rm =>
+        int userId, CancellationToken cancellationToken)
+    {
+        var isSuperAdmin = await IsSuperAdminAsync(userId, cancellationToken);
+        return await _context.ApplicationModules.AsNoTracking()
+            .Where(x => x.IsActive && (isSuperAdmin || x.RoleModules.Any(rm =>
                 rm.IsActive && rm.Role.IsActive &&
-                rm.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive)))
+                rm.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive))))
             .OrderBy(x => x.DisplayOrder).ThenBy(x => x.Name)
             .Select(x => new ApplicationModuleDto(x.Id, x.Code, x.Name,
                 x.Description, x.Icon, x.DisplayOrder, x.IsActive))
             .ToListAsync(cancellationToken);
+    }
 
     public async Task<ModuleNavigationDto?> SelectModuleAsync(
         int userId, int moduleId, CancellationToken cancellationToken)
     {
+        var isSuperAdmin = await IsSuperAdminAsync(userId, cancellationToken);
         var module = await _context.ApplicationModules.AsNoTracking()
-            .Where(x => x.Id == moduleId && x.IsActive && x.RoleModules.Any(rm =>
+            .Where(x => x.Id == moduleId && x.IsActive && (isSuperAdmin || x.RoleModules.Any(rm =>
                 rm.IsActive && rm.Role.IsActive &&
-                rm.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive)))
+                rm.Role.UserRoles.Any(ur => ur.UserId == userId && ur.IsActive))))
             .Select(x => new ApplicationModuleDto(x.Id, x.Code, x.Name,
                 x.Description, x.Icon, x.DisplayOrder, x.IsActive))
             .SingleOrDefaultAsync(cancellationToken);
         if (module is null) return null;
 
         var menus = await _context.ModuleMenus.AsNoTracking()
-            .Where(x => x.ApplicationModuleId == moduleId && x.IsActive &&
+            .Where(x => x.ApplicationModuleId == moduleId && x.IsActive && (isSuperAdmin ||
                 x.RoleModuleMenus.Any(rmm =>
                     rmm.IsActive && rmm.RoleModule.IsActive &&
                     rmm.RoleModule.Role.IsActive &&
                     rmm.RoleModule.Role.UserRoles.Any(ur =>
-                        ur.UserId == userId && ur.IsActive)))
+                        ur.UserId == userId && ur.IsActive))))
             .OrderBy(x => x.DisplayOrder).ThenBy(x => x.Name)
             .Select(x => new MenuProjection(x.Id, x.ParentMenuId, x.Name, x.ControllerName,
                 x.ActionName, x.QueryUrl, x.Icon, x.DisplayOrder))
@@ -361,6 +365,11 @@ public sealed class ModuleAccessService : IModuleAccessService
             .Select(Build).ToList();
         return new ModuleNavigationDto(module, navigation);
     }
+
+    private Task<bool> IsSuperAdminAsync(int userId, CancellationToken cancellationToken) =>
+        _context.UserRoles.AsNoTracking().AnyAsync(ur =>
+            ur.UserId == userId && ur.IsActive && ur.Role.IsActive &&
+            ur.Role.NormalizedName == "SUPERADMIN", cancellationToken);
 
     private async Task ValidateMenuAsync(int moduleId, int? menuId,
         ModuleMenuRequestDto dto, CancellationToken cancellationToken)
