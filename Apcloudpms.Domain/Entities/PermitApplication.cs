@@ -6,6 +6,8 @@ public class PermitApplication
     public int? RiskAssessmentId { get; set; }
     public string PermitNumber { get; set; } = string.Empty;
     public DateOnly IssueDate { get; set; }
+    public DateTime? PlannedStartDateTime { get; set; }
+    public DateTime? PlannedEndDateTime { get; set; }
     public int PermitIssuerId { get; set; }
     public string? PermitIssuerContactNumber { get; set; }
     public int PermitReceiverId { get; set; }

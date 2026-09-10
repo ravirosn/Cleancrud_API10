@@ -8,6 +8,10 @@ public interface IPermitApplicationService
         long permitApplicationId,
         CancellationToken cancellationToken = default);
 
+    Task<PermitApplicationDetailsDto?> GetPreviewAsync(
+        long permitApplicationId,
+        CancellationToken cancellationToken = default);
+
     Task<PermitApplicationPagedResponseDto> GetByCreatedUserAsync(
         int userId,
         PermitApplicationQueryDto query,

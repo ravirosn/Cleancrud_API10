@@ -429,6 +429,8 @@ public class AppDbContext : DbContext
             entity.ToTable("PermitApplication", "dbo");
             entity.Property(x => x.PermitNumber).HasMaxLength(50).IsRequired();
             entity.Property(x => x.IssueDate).HasColumnType("date").IsRequired();
+            entity.Property(x => x.PlannedStartDateTime).HasPrecision(0);
+            entity.Property(x => x.PlannedEndDateTime).HasPrecision(0);
             entity.Property(x => x.PermitIssuerContactNumber).HasMaxLength(30);
             entity.Property(x => x.PermitReceiverContactNumber).HasMaxLength(30);
             entity.Property(x => x.RiskAssessmentNumber).HasMaxLength(50);

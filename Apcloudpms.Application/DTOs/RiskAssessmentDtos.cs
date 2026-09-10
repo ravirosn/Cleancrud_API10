@@ -134,14 +134,17 @@ public sealed record RiskAssessmentPermitApplicationDto(
     int PermitReceiverId,
     string PermitReceiverName,
     int PermitTypeListItemId,
+    string PermitTypeSystemName,
     string PermitTypeName,
     int PermitStatusListItemId,
+    string PermitStatusSystemName,
     string PermitStatusName,
     int? RiskAssessmentId);
 
 public sealed record RiskAssessmentUserOptionDto(
     int Id,
     string Name,
+    string? ContactNumber,
     bool IsCurrentUser);
 
 public sealed record RiskAssessmentPagedResponseDto(

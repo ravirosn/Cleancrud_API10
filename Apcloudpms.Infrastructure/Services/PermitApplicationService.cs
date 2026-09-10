@@ -4,6 +4,7 @@ using Apcloudpms.Application.Interfaces;
 using Apcloudpms.Infrastructure.Data;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace Apcloudpms.Infrastructure.Services;
 
@@ -31,12 +32,14 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
                 x.RiskAssessmentId,
                 x.PermitNumber,
                 x.IssueDate,
+                x.PlannedStartDateTime,
+                x.PlannedEndDateTime,
                 x.PermitIssuerId,
                 PermitIssuerName = x.PermitIssuer.DisplayName ?? x.PermitIssuer.UserName,
-                x.PermitIssuerContactNumber,
+                PermitIssuerContactNumber = x.PermitIssuer.ContactNumber,
                 x.PermitReceiverId,
                 PermitReceiverName = x.PermitReceiver.DisplayName ?? x.PermitReceiver.UserName,
-                x.PermitReceiverContactNumber,
+                PermitReceiverContactNumber = x.PermitReceiver.ContactNumber,
                 x.RiskAssessmentNumber,
                 x.WorkLocation,
                 x.WorkDescription,
@@ -81,6 +84,8 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
             permitApplication.RiskAssessmentId,
             permitApplication.PermitNumber,
             permitApplication.IssueDate,
+            permitApplication.PlannedStartDateTime,
+            permitApplication.PlannedEndDateTime,
             permitApplication.PermitIssuerId,
             permitApplication.PermitIssuerName,
             permitApplication.PermitIssuerContactNumber,
@@ -113,6 +118,89 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
             inspectionPriorToCommencement,
             worksOnWall,
             workingInConfinedSpace);
+    }
+
+    public async Task<PermitApplicationDetailsDto?> GetPreviewAsync(
+        long permitApplicationId,
+        CancellationToken cancellationToken = default)
+    {
+        var connection = (SqlConnection)context.Database.GetDbConnection();
+        var shouldCloseConnection = connection.State == ConnectionState.Closed;
+        if (shouldCloseConnection)
+            await context.Database.OpenConnectionAsync(cancellationToken);
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = "dbo.SpPermitApplicationPreviewGet";
+            command.CommandType = CommandType.StoredProcedure;
+            Add(command, "@PermitApplicationId", SqlDbType.BigInt, permitApplicationId);
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            if (!await reader.ReadAsync(cancellationToken))
+                return null;
+
+            var values = new
+            {
+                Id = reader.GetInt64(reader.GetOrdinal("Id")),
+                RiskAssessmentId = GetNullableInt32(reader, "RiskAssessmentId"),
+                PermitNumber = reader.GetString(reader.GetOrdinal("PermitNumber")),
+                IssueDate = DateOnly.FromDateTime(reader.GetDateTime(reader.GetOrdinal("IssueDate"))),
+                PlannedStartDateTime = GetNullableDateTime(reader, "PlannedStartDateTime"),
+                PlannedEndDateTime = GetNullableDateTime(reader, "PlannedEndDateTime"),
+                PermitIssuerId = reader.GetInt32(reader.GetOrdinal("PermitIssuerId")),
+                PermitIssuerName = reader.GetString(reader.GetOrdinal("PermitIssuerName")),
+                PermitIssuerContactNumber = GetNullableString(reader, "PermitIssuerContactNumber"),
+                PermitReceiverId = reader.GetInt32(reader.GetOrdinal("PermitReceiverId")),
+                PermitReceiverName = reader.GetString(reader.GetOrdinal("PermitReceiverName")),
+                PermitReceiverContactNumber = GetNullableString(reader, "PermitReceiverContactNumber"),
+                RiskAssessmentNumber = GetNullableString(reader, "RiskAssessmentNumber"),
+                WorkLocation = reader.GetString(reader.GetOrdinal("WorkLocation")),
+                WorkDescription = reader.GetString(reader.GetOrdinal("WorkDescription")),
+                SpecialInstructions = GetNullableString(reader, "SpecialInstructions"),
+                WorkHeightBelowSurface = GetNullableString(reader, "WorkHeightBelowSurface"),
+                PermitTypeListItemId = reader.GetInt32(reader.GetOrdinal("PermitTypeListItemId")),
+                PermitTypeSystemName = reader.GetString(reader.GetOrdinal("PermitTypeSystemName")),
+                PermitTypeName = reader.GetString(reader.GetOrdinal("PermitTypeName")),
+                PermitStatusListItemId = reader.GetInt32(reader.GetOrdinal("PermitStatusListItemId")),
+                PermitStatusSystemName = reader.GetString(reader.GetOrdinal("PermitStatusSystemName")),
+                PermitStatusName = reader.GetString(reader.GetOrdinal("PermitStatusName")),
+                SubmittedAtUtc = GetNullableDateTime(reader, "SubmittedAtUtc"),
+                CreatedByUserId = GetNullableInt32(reader, "CreatedByUserId"),
+                UpdatedByUserId = GetNullableInt32(reader, "UpdatedByUserId"),
+                CreatedAtUtc = reader.GetDateTime(reader.GetOrdinal("CreatedAtUtc")),
+                UpdatedAtUtc = GetNullableDateTime(reader, "UpdatedAtUtc"),
+                CompletionOfWorks = GetNullableString(reader, "CompletionOfWorks"),
+                CompletionApprovedBy = GetNullableInt32(reader, "CompletionApprovedBy"),
+                CompletionDate = GetNullableDateTime(reader, "CompletionDate"),
+                CompletionRemarks = GetNullableString(reader, "CompletionRemarks"),
+                CancelledBy = GetNullableInt32(reader, "CancelledBy"),
+                CancelledDate = GetNullableDateTime(reader, "CancelledDate"),
+                CancelledRemarks = GetNullableString(reader, "CancelledRemarks")
+            };
+
+            var inspections = await ReadPreviewSelectionsAsync(reader, cancellationToken);
+            var wallWorks = await ReadPreviewSelectionsAsync(reader, cancellationToken);
+            var confinedSpaces = await ReadPreviewSelectionsAsync(reader, cancellationToken);
+
+            return new PermitApplicationDetailsDto(
+                values.Id, values.RiskAssessmentId, values.PermitNumber, values.IssueDate,
+                values.PlannedStartDateTime, values.PlannedEndDateTime,
+                values.PermitIssuerId, values.PermitIssuerName, values.PermitIssuerContactNumber,
+                values.PermitReceiverId, values.PermitReceiverName, values.PermitReceiverContactNumber,
+                values.RiskAssessmentNumber, values.WorkLocation, values.WorkDescription,
+                values.SpecialInstructions, values.WorkHeightBelowSurface, values.PermitTypeListItemId,
+                values.PermitTypeSystemName, values.PermitTypeName, values.PermitStatusListItemId,
+                values.PermitStatusSystemName, values.PermitStatusName, values.SubmittedAtUtc,
+                values.CreatedByUserId, values.UpdatedByUserId, values.CreatedAtUtc, values.UpdatedAtUtc,
+                values.CompletionOfWorks, values.CompletionApprovedBy, values.CompletionDate,
+                values.CompletionRemarks, values.CancelledBy, values.CancelledDate, values.CancelledRemarks,
+                inspections, wallWorks, confinedSpaces);
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+                await context.Database.CloseConnectionAsync();
+        }
     }
 
     public async Task<PermitApplicationPagedResponseDto> GetByCreatedUserAsync(
@@ -269,41 +357,6 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        var permitApplication = await context.PermitApplications
-            .Include(x => x.PermitTypeListItem)
-            .Include(x => x.PermitStatusListItem)
-            .Include(x => x.InspectionsPriorToComm)
-            .Include(x => x.WallWorks)
-            .Include(x => x.ConfinedSpaces)
-            .SingleOrDefaultAsync(x => x.Id == permitApplicationId, cancellationToken);
-
-        if (permitApplication is null)
-            return new PermitApplicationUpdateResult(PermitApplicationUpdateOutcome.NotFound);
-
-        if (finalizeForApproval
-            && permitApplication.PermitStatusListItem.Code != PermitDraftStatus)
-        {
-            return new PermitApplicationUpdateResult(
-                PermitApplicationUpdateOutcome.NotEditable,
-                Message: "Only a permit application in PERMIT_DRAFT status can be finalized for approval.");
-        }
-
-        if (!finalizeForApproval
-            && permitApplication.PermitStatusListItem.Code is not PermitDraftStatus
-                and not PermitRejectedStatus)
-        {
-            return new PermitApplicationUpdateResult(
-                PermitApplicationUpdateOutcome.NotEditable,
-                Message: "This permit application cannot be edited because its status is not Draft or Rejected.");
-        }
-
-        if (permitApplication.PermitTypeListItem.Code != HotWorkPermitType)
-        {
-            return new PermitApplicationUpdateResult(
-                PermitApplicationUpdateOutcome.UnsupportedPermitType,
-                Message: $"Editing permit type '{permitApplication.PermitTypeListItem.Name}' is not supported yet.");
-        }
-
         if (request.IssueDate == default)
         {
             return new PermitApplicationUpdateResult(
@@ -311,23 +364,14 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
                 Message: "IssueDate is required.");
         }
 
-        var validUserCount = await context.Users
-            .Where(x => x.IsActive &&
-                (x.Id == request.PermitIssuerId || x.Id == request.PermitReceiverId))
-            .Select(x => x.Id)
-            .Distinct()
-            .CountAsync(cancellationToken);
-        var requiredUserCount = request.PermitIssuerId == request.PermitReceiverId ? 1 : 2;
-        if (validUserCount != requiredUserCount)
+        if (request.PlannedStartDateTime.HasValue
+            && request.PlannedEndDateTime.HasValue
+            && request.PlannedEndDateTime < request.PlannedStartDateTime)
         {
             return new PermitApplicationUpdateResult(
-                PermitApplicationUpdateOutcome.InvalidUsers,
-                Message: "Issuer and receiver must be active users.");
+                PermitApplicationUpdateOutcome.InvalidSelections,
+                Message: "Planned end date/time must be on or after planned start date/time.");
         }
-
-        var inspections = GetSelectedIds(request.InspectionPriorToCommencement);
-        var wallWorks = GetSelectedIds(request.WorksOnWall);
-        var confinedSpaces = GetSelectedIds(request.WorkingInConfinedSpace);
 
         if (HasDuplicateIds(request.InspectionPriorToCommencement)
             || HasDuplicateIds(request.WorksOnWall)
@@ -338,65 +382,86 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
                 Message: "A list item may only appear once in each selection collection.");
         }
 
-        var selectionValidation = await ValidateHotWorkSelectionsAsync(
-            inspections, wallWorks, confinedSpaces, cancellationToken);
-        if (selectionValidation is not null)
+        await using var transaction = await context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
-            return new PermitApplicationUpdateResult(
-                PermitApplicationUpdateOutcome.InvalidSelections,
-                Message: selectionValidation);
-        }
+            var connection = (SqlConnection)context.Database.GetDbConnection();
+            await using var command = connection.CreateCommand();
+            command.Transaction = (SqlTransaction)transaction.GetDbTransaction();
+            command.CommandText = "dbo.SpPermitApplicationUpd";
+            command.CommandType = CommandType.StoredProcedure;
+            Add(command, "@PermitApplicationId", SqlDbType.BigInt, permitApplicationId);
+            Add(command, "@IssueDate", SqlDbType.Date, request.IssueDate.ToDateTime(TimeOnly.MinValue));
+            Add(command, "@PlannedStartDateTime", SqlDbType.DateTime2, request.PlannedStartDateTime);
+            Add(command, "@PlannedEndDateTime", SqlDbType.DateTime2, request.PlannedEndDateTime);
+            Add(command, "@PermitIssuerId", SqlDbType.Int, request.PermitIssuerId);
+            Add(command, "@PermitIssuerContactNumber", SqlDbType.NVarChar, Normalize(request.PermitIssuerContactNumber), 30);
+            Add(command, "@PermitReceiverId", SqlDbType.Int, request.PermitReceiverId);
+            Add(command, "@PermitReceiverContactNumber", SqlDbType.NVarChar, Normalize(request.PermitReceiverContactNumber), 30);
+            Add(command, "@WorkLocation", SqlDbType.NVarChar, request.WorkLocation.Trim(), 500);
+            Add(command, "@WorkDescription", SqlDbType.NVarChar, request.WorkDescription.Trim(), -1);
+            Add(command, "@SpecialInstructions", SqlDbType.NVarChar, Normalize(request.SpecialInstructions), -1);
+            Add(command, "@WorkHeightBelowSurface", SqlDbType.NVarChar, Normalize(request.WorkHeightBelowSurface), 200);
+            Add(command, "@CompletionOfWorks", SqlDbType.NVarChar, Normalize(request.CompletionOfWorks), 500);
+            Add(command, "@UpdatedByUserId", SqlDbType.Int, userId);
+            Add(command, "@FinalizeForApproval", SqlDbType.Bit, finalizeForApproval);
 
-        int? finalizedStatusId = null;
-        if (finalizeForApproval)
-        {
-            finalizedStatusId = await context.ListItems
-                .Where(x => x.IsActive
-                    && x.Code == FinalizedForApprovalStatus
-                    && x.ListItemCategory.Code == PermitStatusCategory)
-                .Select(x => (int?)x.Id)
-                .SingleOrDefaultAsync(cancellationToken);
-            if (!finalizedStatusId.HasValue)
+            long savedId;
+            int statusId;
+            string statusCode;
+            string permitTypeCode;
+            DateTime updatedAtUtc;
+            await using (var reader = await command.ExecuteReaderAsync(cancellationToken))
             {
-                return new PermitApplicationUpdateResult(
-                    PermitApplicationUpdateOutcome.StatusNotConfigured,
-                    Message: "The active FINALIZED_FOR_APPROVAL permit status is not configured.");
+                if (!await reader.ReadAsync(cancellationToken))
+                    throw new InvalidOperationException("dbo.SpPermitApplicationUpd did not return the updated permit.");
+                savedId = reader.GetInt64(reader.GetOrdinal("PermitApplicationId"));
+                statusId = reader.GetInt32(reader.GetOrdinal("PermitStatusListItemId"));
+                statusCode = reader.GetString(reader.GetOrdinal("PermitStatusSystemName"));
+                permitTypeCode = reader.GetString(reader.GetOrdinal("PermitTypeSystemName"));
+                updatedAtUtc = reader.GetDateTime(reader.GetOrdinal("UpdatedAtUtc"));
             }
+
+            if (permitTypeCode != HotWorkPermitType)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+                return new PermitApplicationUpdateResult(
+                    PermitApplicationUpdateOutcome.UnsupportedPermitType,
+                    Message: $"Editing permit type '{permitTypeCode}' is not supported yet.");
+            }
+
+            await using var extensionCommand = connection.CreateCommand();
+            extensionCommand.Transaction = (SqlTransaction)transaction.GetDbTransaction();
+            extensionCommand.CommandText = "dbo.SpPermitApplicationHotWorkUpd";
+            extensionCommand.CommandType = CommandType.StoredProcedure;
+            Add(extensionCommand, "@PermitApplicationId", SqlDbType.BigInt, permitApplicationId);
+            AddSelections(extensionCommand, "@InspectionPriorToCommencement", request.InspectionPriorToCommencement);
+            AddSelections(extensionCommand, "@WorksOnWall", request.WorksOnWall);
+            AddSelections(extensionCommand, "@WorkingInConfinedSpace", request.WorkingInConfinedSpace);
+            await extensionCommand.ExecuteNonQueryAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            return new PermitApplicationUpdateResult(
+                PermitApplicationUpdateOutcome.Success,
+                new PermitApplicationUpdateResponseDto(savedId, statusId, statusCode, updatedAtUtc));
         }
-
-        permitApplication.IssueDate = request.IssueDate;
-        permitApplication.PermitIssuerId = request.PermitIssuerId;
-        permitApplication.PermitIssuerContactNumber = Normalize(request.PermitIssuerContactNumber);
-        permitApplication.PermitReceiverId = request.PermitReceiverId;
-        permitApplication.PermitReceiverContactNumber = Normalize(request.PermitReceiverContactNumber);
-        // Permit and risk-assessment numbers are assigned centrally and are immutable.
-        permitApplication.WorkLocation = request.WorkLocation.Trim();
-        permitApplication.WorkDescription = request.WorkDescription.Trim();
-        permitApplication.SpecialInstructions = Normalize(request.SpecialInstructions);
-        permitApplication.WorkHeightBelowSurface = Normalize(request.WorkHeightBelowSurface);
-        permitApplication.CompletionOfWorks = Normalize(request.CompletionOfWorks);
-
-        SynchronizeInspections(permitApplication, inspections);
-        SynchronizeWallWorks(permitApplication, wallWorks);
-        SynchronizeConfinedSpaces(permitApplication, confinedSpaces);
-
-        if (finalizedStatusId.HasValue)
-            permitApplication.PermitStatusListItemId = finalizedStatusId.Value;
-
-        var updatedAtUtc = DateTime.UtcNow;
-        permitApplication.UpdatedByUserId = userId;
-        permitApplication.UpdatedAtUtc = updatedAtUtc;
-        await context.SaveChangesAsync(cancellationToken);
-
-        return new PermitApplicationUpdateResult(
-            PermitApplicationUpdateOutcome.Success,
-            new PermitApplicationUpdateResponseDto(
-                permitApplication.Id,
-                permitApplication.PermitStatusListItemId,
-                finalizeForApproval
-                    ? FinalizedForApprovalStatus
-                    : permitApplication.PermitStatusListItem.Code,
-                updatedAtUtc));
+        catch (SqlException exception)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            PermitApplicationUpdateResult? result = exception.Number switch
+            {
+                50001 => new(PermitApplicationUpdateOutcome.NotFound),
+                50002 => new(PermitApplicationUpdateOutcome.NotEditable, Message: exception.Message),
+                50003 => new(PermitApplicationUpdateOutcome.UnsupportedPermitType, Message: exception.Message),
+                50004 => new(PermitApplicationUpdateOutcome.InvalidSelections, Message: exception.Message),
+                50005 => new(PermitApplicationUpdateOutcome.InvalidUsers, Message: exception.Message),
+                50006 => new(PermitApplicationUpdateOutcome.StatusNotConfigured, Message: exception.Message),
+                50007 => new(PermitApplicationUpdateOutcome.InvalidSelections, Message: exception.Message),
+                _ => null
+            };
+            if (result is null) throw;
+            return result;
+        }
     }
 
     private Task<List<HotWorkSelection>> GetHotWorkSelectionsAsync(
@@ -585,6 +650,44 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
         if (size.HasValue)
             parameter.Size = size.Value;
         command.Parameters.Add(parameter);
+    }
+
+    private static void AddSelections(
+        SqlCommand command,
+        string name,
+        IEnumerable<PermitApplicationUpdateSelectionDto>? selections)
+    {
+        var table = new DataTable();
+        table.Columns.Add("ListItemId", typeof(int));
+        table.Columns.Add("IsSelected", typeof(bool));
+        foreach (var selection in selections ?? [])
+            table.Rows.Add(selection.ListItemId, selection.IsSelected);
+
+        command.Parameters.Add(new SqlParameter(name, SqlDbType.Structured)
+        {
+            TypeName = "dbo.RiskAssessmentSelectionTableType",
+            Value = table
+        });
+    }
+
+    private static async Task<IReadOnlyList<PermitApplicationListItemSelectionDto>>
+        ReadPreviewSelectionsAsync(SqlDataReader reader, CancellationToken cancellationToken)
+    {
+        if (!await reader.NextResultAsync(cancellationToken))
+            throw new InvalidOperationException("The permit preview procedure returned incomplete selection data.");
+
+        var result = new List<PermitApplicationListItemSelectionDto>();
+        while (await reader.ReadAsync(cancellationToken))
+        {
+            result.Add(new PermitApplicationListItemSelectionDto(
+                reader.GetInt32(reader.GetOrdinal("ListItemId")),
+                reader.GetString(reader.GetOrdinal("SystemName")),
+                reader.GetString(reader.GetOrdinal("Name")),
+                GetNullableString(reader, "Description"),
+                reader.GetInt32(reader.GetOrdinal("DisplayOrder")),
+                reader.GetBoolean(reader.GetOrdinal("IsSelected"))));
+        }
+        return result;
     }
 
     private static string? Normalize(string? value) =>

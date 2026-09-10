@@ -20,6 +20,7 @@ public sealed class RiskAssessmentService(AppDbContext context) : IRiskAssessmen
             .Select(user => new RiskAssessmentUserOptionDto(
                 user.Id,
                 user.DisplayName ?? user.UserName,
+                user.ContactNumber,
                 user.Id == currentUserId))
             .ToListAsync(cancellationToken);
 
@@ -39,8 +40,10 @@ public sealed class RiskAssessmentService(AppDbContext context) : IRiskAssessmen
                 x.PermitReceiverId,
                 x.PermitReceiver.DisplayName ?? x.PermitReceiver.UserName,
                 x.PermitTypeListItemId,
+                x.PermitTypeListItem.Code,
                 x.PermitTypeListItem.Name,
                 x.PermitStatusListItemId,
+                x.PermitStatusListItem.Code,
                 x.PermitStatusListItem.Name,
                 x.RiskAssessmentId))
             .ToListAsync(cancellationToken);

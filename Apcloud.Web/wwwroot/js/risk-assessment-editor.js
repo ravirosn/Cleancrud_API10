@@ -5,12 +5,16 @@
     if (!window.apcloudApi) return;
     const modalElement = document.querySelector("[data-risk-modal]");
     const form = modalElement?.querySelector("[data-risk-form]");
+    const permitModalElement = document.querySelector("[data-permit-editor-modal]");
+    const permitForm = permitModalElement?.querySelector("[data-permit-editor-form]");
     const grid = document.querySelector("[data-server-grid]");
     if (!modalElement || !form) return;
     if (modalElement.parentElement !== document.body) document.body.append(modalElement);
+    if (permitModalElement && permitModalElement.parentElement !== document.body) document.body.append(permitModalElement);
 
     const ui = window.bootstrap ?? window.tabler?.bootstrap ?? window.tabler;
     const modal = ui?.Modal?.getOrCreateInstance(modalElement);
+    const permitModal = permitModalElement ? ui?.Modal?.getOrCreateInstance(permitModalElement) : null;
     const property = (record, name) => Object.entries(record ?? {})
       .find(([key]) => key.localeCompare(name, undefined, { sensitivity: "accent" }) === 0)?.[1];
     const notify = (type, message, title) => window.apcloudNotifications?.[type]?.(message, title);
@@ -35,6 +39,25 @@
     let editingId = null;
     let creatingWorkflow = false;
     let lookupPromise = null;
+    let activePermitRiskId = null;
+    let activePermitContainer = null;
+    let permitPreviewMode = false;
+    let permitUsersById = new Map();
+
+    const permitFields = permitForm ? {
+      id: permitForm.querySelector("[data-permit-id]"), number: permitForm.querySelector("[data-permit-number]"),
+      type: permitForm.querySelector("[data-permit-type]"), status: permitForm.querySelector("[data-permit-status]"),
+      issueDate: permitForm.querySelector("[data-permit-issue-date]"), issuer: permitForm.querySelector("[data-permit-issuer]"),
+      plannedStart: permitForm.querySelector("[data-permit-planned-start]"), plannedEnd: permitForm.querySelector("[data-permit-planned-end]"),
+      issuerContact: permitForm.querySelector("[data-permit-issuer-contact]"), receiver: permitForm.querySelector("[data-permit-receiver]"),
+      receiverContact: permitForm.querySelector("[data-permit-receiver-contact]"), riskNumber: permitForm.querySelector("[data-permit-risk-number]"),
+      workLocation: permitForm.querySelector("[data-permit-work-location]"), workDescription: permitForm.querySelector("[data-permit-work-description]"),
+      specialInstructions: permitForm.querySelector("[data-permit-special-instructions]"), workHeight: permitForm.querySelector("[data-permit-work-height]"),
+      completion: permitForm.querySelector("[data-permit-completion]")
+    } : null;
+    const permitOptionNames = ["inspectionPriorToCommencement", "worksOnWall", "workingInConfinedSpace"];
+    const permitOptionContainers = permitForm ? Object.fromEntries(permitOptionNames.map(name =>
+      [name, permitForm.querySelector(`[data-permit-options="${name}"]`)])) : {};
 
     const normalizeCode = value => String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
     const categoryMatchers = {
@@ -155,6 +178,160 @@
       return cell;
     };
 
+    const populatePermitUsers = (users, selectedIssuerId, selectedReceiverId, issuerName, receiverName) => {
+      permitUsersById = new Map(users.map(user => [String(property(user, "id")), user]));
+      [[permitFields.issuer, selectedIssuerId, issuerName], [permitFields.receiver, selectedReceiverId, receiverName]].forEach(([select, selectedId, selectedName]) => {
+        select.replaceChildren(new Option("Select a user", ""));
+        users.forEach(user => select.add(new Option(property(user, "name"), String(property(user, "id")))));
+        if (selectedId && ![...select.options].some(option => option.value === String(selectedId)))
+          select.add(new Option(selectedName || `User ${selectedId}`, String(selectedId)));
+      });
+      permitFields.issuer.value = String(selectedIssuerId ?? "");
+      permitFields.receiver.value = String(selectedReceiverId ?? "");
+      permitFields.issuerContact.value = property(permitUsersById.get(permitFields.issuer.value), "contactNumber") ?? "";
+      permitFields.receiverContact.value = property(permitUsersById.get(permitFields.receiver.value), "contactNumber") ?? "";
+    };
+
+    const renderPermitOptions = (name, items, preview) => {
+      const container = permitOptionContainers[name];
+      container.replaceChildren();
+      if (!items?.length) {
+        const empty = document.createElement("p"); empty.className = "text-secondary small mb-0";
+        empty.textContent = "No list items are configured for this category."; container.append(empty); return;
+      }
+      items.forEach(item => {
+        const label = document.createElement("label"); label.className = "permit-extension-option";
+        const checkbox = document.createElement("input"); checkbox.type = "checkbox"; checkbox.className = "form-check-input";
+        checkbox.value = property(item, "listItemId"); checkbox.checked = Boolean(property(item, "isSelected"));
+        checkbox.disabled = preview;
+        const copy = document.createElement("span");
+        const title = document.createElement("strong"); title.textContent = property(item, "name") || "List item";
+        copy.append(title);
+        label.classList.toggle("is-selected", checkbox.checked); checkbox.addEventListener("change", () =>
+          label.classList.toggle("is-selected", checkbox.checked));
+        label.append(checkbox, copy); container.append(label);
+      });
+    };
+
+    permitFields?.issuer.addEventListener("change", () => {
+      permitFields.issuerContact.value = property(permitUsersById.get(permitFields.issuer.value), "contactNumber") ?? "";
+    });
+    permitFields?.receiver.addEventListener("change", () => {
+      permitFields.receiverContact.value = property(permitUsersById.get(permitFields.receiver.value), "contactNumber") ?? "";
+    });
+
+    const permitSelections = name => [...permitOptionContainers[name].querySelectorAll('input[type="checkbox"]')]
+      .map(input => ({ listItemId: Number(input.value), isSelected: input.checked }));
+
+    const setPermitPreviewMode = preview => {
+      permitPreviewMode = preview;
+      permitForm.querySelectorAll("input:not([type=hidden]), select, textarea").forEach(control => {
+        if (!control.hasAttribute("readonly")) control.disabled = preview;
+      });
+      permitForm.querySelector("[data-permit-save]").classList.toggle("d-none", preview);
+      permitForm.querySelector("[data-permit-finalize]").classList.toggle("d-none", preview);
+      permitForm.querySelector("[data-permit-print]").classList.toggle("d-none", !preview);
+      permitForm.querySelector("[data-permit-editor-mode]").textContent = preview ? "Preview permit application" : "Edit permit application";
+    };
+
+    const printPermitPreview = () => {
+      document.body.classList.add("permit-preview-printing");
+      window.addEventListener("afterprint", () => document.body.classList.remove("permit-preview-printing"), { once: true });
+      window.requestAnimationFrame(() => window.requestAnimationFrame(() => window.print()));
+    };
+
+    const openPermitApplication = async (permitId, preview = false, printAfterOpen = false) => {
+      if (!permitForm || !permitFields || !permitModal) return;
+      permitForm.reset(); permitForm.querySelector("[data-permit-editor-error]").classList.add("d-none");
+      setPermitPreviewMode(preview);
+      permitModal.show();
+      try {
+        const [details, users] = await Promise.all([
+          window.apcloudApi.json(`permit/applications/${encodeURIComponent(permitId)}${printAfterOpen ? "/print-preview" : preview ? "/preview" : ""}`),
+          window.apcloudApi.json("risk-assessments/options/users")
+        ]);
+        const typeCode = String(property(details, "permitTypeSystemName") ?? "").toUpperCase();
+        if (!preview && typeCode !== "HOT_WORK") throw new Error(`Editing permit type '${typeCode || "Unknown"}' is not supported yet.`);
+        permitFields.id.value = property(details, "id");
+        permitFields.number.value = property(details, "permitNumber") ?? "";
+        permitFields.type.value = property(details, "permitTypeName") ?? typeCode;
+        permitFields.status.value = property(details, "permitStatusName") ?? "";
+        permitFields.issueDate.value = String(property(details, "issueDate") ?? "").slice(0, 10);
+        permitFields.plannedStart.value = String(property(details, "plannedStartDateTime") ?? "").slice(0, 16);
+        permitFields.plannedEnd.value = String(property(details, "plannedEndDateTime") ?? "").slice(0, 16);
+        populatePermitUsers(users, property(details, "permitIssuerId"), property(details, "permitReceiverId"),
+          property(details, "permitIssuerName"), property(details, "permitReceiverName"));
+        permitFields.riskNumber.value = property(details, "riskAssessmentNumber") ?? "";
+        permitFields.workLocation.value = property(details, "workLocation") ?? "";
+        permitFields.workDescription.value = property(details, "workDescription") ?? "";
+        permitFields.specialInstructions.value = property(details, "specialInstructions") ?? "";
+        permitFields.workHeight.value = property(details, "workHeightBelowSurface") ?? "";
+        permitFields.completion.value = property(details, "completionOfWorks") ?? "";
+        permitForm.querySelector("[data-permit-editor-title]").textContent = property(details, "permitNumber") || "Permit application";
+        permitForm.querySelector("[data-permit-print-title]").textContent = `Permit application ${property(details, "permitNumber") || ""}`;
+        const isHotWork = typeCode === "HOT_WORK";
+        permitForm.querySelector("[data-permit-hot-work]").classList.toggle("d-none", !isHotWork);
+        permitForm.querySelector("[data-permit-unsupported-preview]").classList.toggle("d-none", isHotWork);
+        if (isHotWork) permitOptionNames.forEach(name => renderPermitOptions(name, property(details, name) ?? [], preview));
+        setPermitPreviewMode(preview);
+        if (printAfterOpen) window.setTimeout(printPermitPreview, 350);
+      } catch (error) {
+        const box = permitForm.querySelector("[data-permit-editor-error]");
+        box.textContent = error.message || "The permit application could not be loaded."; box.classList.remove("d-none");
+        permitForm.querySelector("[data-permit-save]").classList.add("d-none");
+        permitForm.querySelector("[data-permit-finalize]").classList.add("d-none");
+      }
+    };
+
+    const savePermitApplication = async finalize => {
+      permitFields.plannedEnd.setCustomValidity(permitFields.plannedStart.value && permitFields.plannedEnd.value
+        && permitFields.plannedEnd.value < permitFields.plannedStart.value
+        ? "Planned end date/time must be on or after planned start date/time." : "");
+      if (permitPreviewMode || !permitForm.reportValidity()) return;
+      const saveButton = permitForm.querySelector("[data-permit-save]");
+      const finalizeButton = permitForm.querySelector("[data-permit-finalize]");
+      const activeButton = finalize ? finalizeButton : saveButton;
+      const errorBox = permitForm.querySelector("[data-permit-editor-error]");
+      saveButton.disabled = true; finalizeButton.disabled = true; errorBox.classList.add("d-none");
+      activeButton.querySelector(finalize ? "[data-permit-finalize-label]" : "[data-permit-save-label]").classList.add("d-none");
+      activeButton.querySelector(finalize ? "[data-permit-finalizing]" : "[data-permit-saving]").classList.remove("d-none");
+      try {
+        await window.apcloudApi.json(`permit/applications/${encodeURIComponent(permitFields.id.value)}${finalize ? "/finalize" : ""}`, {
+          method: "PUT",
+          body: {
+            issueDate: permitFields.issueDate.value, permitIssuerId: Number(permitFields.issuer.value),
+            plannedStartDateTime: permitFields.plannedStart.value || null,
+            plannedEndDateTime: permitFields.plannedEnd.value || null,
+            permitIssuerContactNumber: permitFields.issuerContact.value || null,
+            permitReceiverId: Number(permitFields.receiver.value), permitReceiverContactNumber: permitFields.receiverContact.value || null,
+            workLocation: permitFields.workLocation.value, workDescription: permitFields.workDescription.value,
+            specialInstructions: permitFields.specialInstructions.value || null,
+            workHeightBelowSurface: permitFields.workHeight.value || null, completionOfWorks: permitFields.completion.value || null,
+            inspectionPriorToCommencement: permitSelections("inspectionPriorToCommencement"),
+            worksOnWall: permitSelections("worksOnWall"), workingInConfinedSpace: permitSelections("workingInConfinedSpace")
+          }
+        });
+        permitModal.hide();
+        if (activePermitRiskId && activePermitContainer) loadPermitApplications(activePermitRiskId, activePermitContainer);
+        notify("success", finalize
+          ? "The permit application was updated and finalized for approval."
+          : "The permit application details and HOT_WORK controls were saved without changing its status.",
+          finalize ? "Permit finalized" : "Draft saved");
+      } catch (error) {
+        errorBox.textContent = error.message || "The permit application could not be saved."; errorBox.classList.remove("d-none");
+      } finally {
+        saveButton.disabled = false; finalizeButton.disabled = false;
+        activeButton.querySelector(finalize ? "[data-permit-finalize-label]" : "[data-permit-save-label]").classList.remove("d-none");
+        activeButton.querySelector(finalize ? "[data-permit-finalizing]" : "[data-permit-saving]").classList.add("d-none");
+      }
+    };
+    permitForm?.addEventListener("submit", event => {
+      event.preventDefault();
+      savePermitApplication(false);
+    });
+    permitForm?.querySelector("[data-permit-finalize]")?.addEventListener("click", () => savePermitApplication(true));
+    permitForm?.querySelector("[data-permit-print]")?.addEventListener("click", printPermitPreview);
+
     const renderPermitApplications = (container, permits) => {
       container.replaceChildren();
       const panel = document.createElement("div"); panel.className = "risk-related-permits";
@@ -204,8 +381,22 @@
         const menu = document.createElement("div"); menu.className = "dropdown-menu";
         ["Preview", "Edit", "Finalize", "Print"].forEach(action => {
           const item = document.createElement("button"); item.type = "button"; item.className = "dropdown-item";
-          item.textContent = action; item.disabled = true;
-          item.title = `${action} will be implemented in the next permit-application step.`;
+          item.textContent = action;
+          const permitId = property(permit, "id");
+          const isHotWork = String(property(permit, "permitTypeSystemName") ?? "").toUpperCase() === "HOT_WORK";
+          const statusCode = String(property(permit, "permitStatusSystemName") ?? "").toUpperCase();
+          const isEditable = statusCode === "PERMIT_DRAFT" || statusCode === "PERMIT_REJECTED" || statusCode === "FINALIZED_FOR_APPROVAL";
+          if (action === "Preview") item.addEventListener("click", () => openPermitApplication(permitId, true));
+          else if (action === "Print") item.addEventListener("click", () => openPermitApplication(permitId, true, true));
+          else if (action === "Edit") {
+            item.disabled = !isHotWork || !isEditable;
+            item.title = !isHotWork ? "A type-specific form will be added later."
+              : isEditable ? "Edit this HOT_WORK permit application." : "This permit status cannot be edited.";
+            if (isHotWork && isEditable) item.addEventListener("click", () => openPermitApplication(permitId));
+          } else {
+            item.disabled = true;
+            item.title = "Finalize remains unchanged and will be enabled in its workflow step.";
+          }
           menu.append(item);
         });
         dropdown.append(trigger, menu); actionCell.append(dropdown); row.append(actionCell); body.append(row);
@@ -214,6 +405,8 @@
     };
 
     const loadPermitApplications = async (riskAssessmentId, container) => {
+      activePermitRiskId = riskAssessmentId;
+      activePermitContainer = container;
       container.replaceChildren();
       const loading = document.createElement("div"); loading.className = "risk-related-permits-loading";
       const spinner = document.createElement("span"); spinner.className = "spinner-border spinner-border-sm text-primary";

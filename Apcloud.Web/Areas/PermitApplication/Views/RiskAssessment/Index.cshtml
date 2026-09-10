@@ -184,6 +184,80 @@
     </div>
 </div>
 
+<div class="modal modal-blur fade" id="permitApplicationEditorModal" tabindex="-1"
+     aria-labelledby="permitApplicationEditorTitle" aria-hidden="true" data-permit-editor-modal>
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form data-permit-editor-form novalidate>
+                <div class="modal-header">
+                    <div>
+                        <div class="text-secondary small" data-permit-editor-mode>Edit permit application</div>
+                        <h2 class="modal-title" id="permitApplicationEditorTitle" data-permit-editor-title>Permit application</h2>
+                    </div>
+                    <button type="button" class="btn-close d-print-none" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body permit-editor-body">
+                    <div class="alert alert-danger d-none d-print-none" role="alert" data-permit-editor-error></div>
+                    <div class="permit-print-heading d-none d-print-block">
+                        <h1 data-permit-print-title>Permit application</h1>
+                        <p>Permit application preview</p>
+                    </div>
+                    <input type="hidden" data-permit-id />
+                    <div class="row g-3">
+                        <div class="col-md-3"><label class="form-label">Risk assessment number</label><input class="form-control" readonly data-permit-risk-number /></div>
+                        <div class="col-md-3"><label class="form-label">Permit number</label><input class="form-control" readonly data-permit-number /></div>
+                        <div class="col-md-3"><label class="form-label">Permit type</label><input class="form-control" readonly data-permit-type /></div>
+                        <div class="col-md-3"><label class="form-label">Permit status</label><input class="form-control" readonly data-permit-status /></div>
+                        <div class="col-md-4"><label class="form-label required">Issue date</label><input type="date" class="form-control" required data-permit-issue-date /></div>
+                        <div class="col-md-4"><label class="form-label">Planned start date/time</label><input type="datetime-local" class="form-control" data-permit-planned-start /></div>
+                        <div class="col-md-4"><label class="form-label">Planned end date/time</label><input type="datetime-local" class="form-control" data-permit-planned-end /></div>
+                        <div class="col-md-4"><label class="form-label required">Permit issuer</label><select class="form-select" required data-permit-issuer><option value="">Loading users…</option></select></div>
+                        <div class="col-md-4"><label class="form-label">Issuer contact</label><input class="form-control" readonly data-permit-issuer-contact /></div>
+                        <div class="col-md-4"><label class="form-label required">Permit receiver</label><select class="form-select" required data-permit-receiver><option value="">Loading users…</option></select></div>
+                        <div class="col-md-4"><label class="form-label">Receiver contact</label><input class="form-control" readonly data-permit-receiver-contact /></div>
+                        <div class="col-12"><label class="form-label required">Work location</label><input class="form-control" maxlength="500" required data-permit-work-location /></div>
+                        <div class="col-12"><label class="form-label required">Work description</label><textarea class="form-control" rows="3" required data-permit-work-description></textarea></div>
+                        <div class="col-md-6"><label class="form-label">Special instructions</label><textarea class="form-control" rows="3" data-permit-special-instructions></textarea></div>
+                        <div class="col-md-6"><label class="form-label">Work height below surface</label><input class="form-control" maxlength="200" data-permit-work-height /></div>
+                        <div class="col-12"><label class="form-label">Completion of works</label><textarea class="form-control" rows="2" maxlength="500" data-permit-completion></textarea></div>
+                    </div>
+
+                    <section class="mt-4" data-permit-hot-work>
+                        <div class="permit-extension-heading">
+                            <div><h3>HOT_WORK controls</h3><p>Selections are saved in the HOT_WORK permit extension tables.</p></div>
+                            <span class="badge bg-orange-lt">HOT_WORK</span>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-lg-4"><div class="permit-extension-card"><h4>Inspection prior to commencement</h4><div data-permit-options="inspectionPriorToCommencement"></div></div></div>
+                            <div class="col-lg-4"><div class="permit-extension-card"><h4>Works on wall</h4><div data-permit-options="worksOnWall"></div></div></div>
+                            <div class="col-lg-4"><div class="permit-extension-card"><h4>Working in confined space</h4><div data-permit-options="workingInConfinedSpace"></div></div></div>
+                        </div>
+                    </section>
+                    <div class="alert alert-info mt-4 d-none" data-permit-unsupported-preview>
+                        A type-specific editor has not yet been configured for this permit type. Common details are shown in preview mode.
+                    </div>
+                </div>
+                <div class="modal-footer d-print-none justify-content-between">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-outline-primary d-none" data-permit-print data-requires-permission="@ApplicationPermissions.PermitApplications.Print">
+                        <svg class="icon"><use href="#icon-printer" /></svg> Print / Save PDF
+                    </button>
+                        <button type="submit" class="btn btn-outline-primary" data-permit-save data-requires-permission="@ApplicationPermissions.PermitApplications.Edit">
+                        <span data-permit-save-label>Save draft</span>
+                        <span class="d-none" data-permit-saving><span class="spinner-border spinner-border-sm me-2"></span>Saving…</span>
+                    </button>
+                        <button type="button" class="btn btn-primary" data-permit-finalize data-requires-permission="@ApplicationPermissions.PermitApplications.Finalize">
+                        <span data-permit-finalize-label>Finalize</span>
+                        <span class="d-none" data-permit-finalizing><span class="spinner-border spinner-border-sm me-2"></span>Finalizing…</span>
+                    </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @section Scripts {
     <script src="~/js/risk-assessment-editor.js" asp-append-version="true"></script>
 }

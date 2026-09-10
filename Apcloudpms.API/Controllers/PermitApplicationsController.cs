@@ -29,6 +29,34 @@ public sealed class PermitApplicationsController(IPermitApplicationService servi
             : Ok(permitApplication);
     }
 
+    [HttpGet("{id:long}/preview")]
+    [RequirePermission(ApplicationPermissions.PermitApplications.View)]
+    [ProducesResponseType<PermitApplicationDetailsDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PermitApplicationDetailsDto>> Preview(
+        long id,
+        CancellationToken cancellationToken)
+    {
+        var permitApplication = await service.GetPreviewAsync(id, cancellationToken);
+        return permitApplication is null
+            ? NotFound(new { message = "Permit application was not found." })
+            : Ok(permitApplication);
+    }
+
+    [HttpGet("{id:long}/print-preview")]
+    [RequirePermission(ApplicationPermissions.PermitApplications.Print)]
+    [ProducesResponseType<PermitApplicationDetailsDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<PermitApplicationDetailsDto>> PrintPreview(
+        long id,
+        CancellationToken cancellationToken)
+    {
+        var permitApplication = await service.GetPreviewAsync(id, cancellationToken);
+        return permitApplication is null
+            ? NotFound(new { message = "Permit application was not found." })
+            : Ok(permitApplication);
+    }
+
     [HttpGet]
     [RequirePermission(ApplicationPermissions.PermitApplications.View)]
     [ProducesResponseType<PermitApplicationPagedResponseDto>(StatusCodes.Status200OK)]

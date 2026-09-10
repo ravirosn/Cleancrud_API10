@@ -4,6 +4,7 @@ using Apcloudpms.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Apcloudpms.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260910182241_AddPermitApplicationEditorProcedures")]
+    partial class AddPermitApplicationEditorProcedures
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1287,14 +1290,6 @@ namespace Apcloudpms.Infrastructure.Migrations
 
                     b.Property<int>("PermitTypeListItemId")
                         .HasColumnType("int");
-
-                    b.Property<DateTime?>("PlannedEndDateTime")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
-
-                    b.Property<DateTime?>("PlannedStartDateTime")
-                        .HasPrecision(0)
-                        .HasColumnType("datetime2(0)");
 
                     b.Property<int?>("RiskAssessmentId")
                         .HasColumnType("int");

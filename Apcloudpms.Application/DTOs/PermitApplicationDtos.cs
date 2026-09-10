@@ -65,6 +65,10 @@ public sealed class PermitApplicationUpdateRequestDto
 {
     public DateOnly IssueDate { get; set; }
 
+    public DateTime? PlannedStartDateTime { get; set; }
+
+    public DateTime? PlannedEndDateTime { get; set; }
+
     [Range(1, int.MaxValue)]
     public int PermitIssuerId { get; set; }
 
@@ -131,6 +135,8 @@ public sealed record PermitApplicationDetailsDto(
     int? RiskAssessmentId,
     string PermitNumber,
     DateOnly IssueDate,
+    DateTime? PlannedStartDateTime,
+    DateTime? PlannedEndDateTime,
     int PermitIssuerId,
     string PermitIssuerName,
     string? PermitIssuerContactNumber,

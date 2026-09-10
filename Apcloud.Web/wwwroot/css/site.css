@@ -1398,6 +1398,52 @@ a.menu-tree-link:hover { color: var(--tblr-primary); text-decoration: none; bord
 .risk-permit-actions { font-size: 1.25rem; font-weight: 750; line-height: 1; letter-spacing: .08em; }
 .risk-permit-action-dropdown, .risk-permit-action-dropdown .dropdown-menu { z-index: 1085; }
 .risk-related-permits-loading, .risk-related-permits-empty { display: flex; min-height: 5.5rem; padding: 1rem; align-items: center; justify-content: center; gap: .65rem; color: var(--tblr-secondary); font-size: .72rem; }
+[data-permit-editor-modal] .modal-content { max-height: calc(100vh - 2rem); overflow: hidden; }
+[data-permit-editor-form] { display: flex; min-height: 0; flex: 1 1 auto; flex-direction: column; overflow: hidden; }
+[data-permit-editor-modal] .modal-header, [data-permit-editor-modal] .modal-footer { flex: 0 0 auto; }
+.permit-editor-body { min-height: 0; flex: 1 1 auto; overflow-y: auto; overscroll-behavior: contain; }
+.permit-extension-heading { display: flex; margin-bottom: 1rem; padding-top: 1rem; align-items: flex-start; justify-content: space-between; gap: 1rem; border-top: 1px solid var(--tblr-border-color); }
+.permit-extension-heading h3 { margin: 0; font-size: .9rem; }
+.permit-extension-heading p { margin: .25rem 0 0; color: var(--tblr-secondary); font-size: .7rem; }
+.permit-extension-card { height: 100%; padding: .9rem; border: 1px solid var(--tblr-border-color); border-radius: var(--tblr-border-radius-lg); background: var(--tblr-bg-surface-secondary); }
+.permit-extension-card h4 { margin: 0 0 .75rem; font-size: .76rem; }
+.permit-extension-option { display: flex; margin-bottom: .5rem; padding: .6rem; align-items: flex-start; gap: .6rem; border: 1px solid var(--tblr-border-color); border-radius: var(--tblr-border-radius); background: var(--tblr-bg-surface); cursor: pointer; }
+.permit-extension-option:last-child { margin-bottom: 0; }
+.permit-extension-option.is-selected { border-color: color-mix(in srgb, var(--tblr-primary), transparent 40%); background: rgba(var(--tblr-primary-rgb), .07); }
+.permit-extension-option span { display: flex; min-width: 0; flex-direction: column; }
+.permit-extension-option strong { font-size: .7rem; font-weight: 650; }
+
+@media print {
+  html,
+  body,
+  body.modal-open,
+  body.permit-preview-printing { height: auto !important; min-height: 0 !important; overflow: visible !important; }
+  body.permit-preview-printing > *:not([data-permit-editor-modal]) { display: none !important; }
+  body.permit-preview-printing [data-permit-editor-modal],
+  body.permit-preview-printing [data-permit-editor-modal] .modal-dialog,
+  body.permit-preview-printing [data-permit-editor-modal] .modal-content,
+  body.permit-preview-printing [data-permit-editor-form],
+  body.permit-preview-printing [data-permit-editor-modal] .modal-body {
+    position: static !important;
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    transform: none !important;
+  }
+  body.permit-preview-printing [data-permit-editor-modal] { width: auto !important; color: #111; background: #fff; }
+  body.permit-preview-printing [data-permit-editor-modal] .modal-dialog { width: 100%; max-width: none; margin: 0 !important; }
+  body.permit-preview-printing [data-permit-editor-modal] .modal-content { border: 0; box-shadow: none; }
+  body.permit-preview-printing [data-permit-editor-modal] .modal-body { padding: 0; overscroll-behavior: auto; }
+  body.permit-preview-printing [data-permit-editor-modal] .form-control,
+  body.permit-preview-printing [data-permit-editor-modal] .form-select { padding: .15rem 0; color: #111; border: 0; background: transparent; opacity: 1; }
+  body.permit-preview-printing .permit-extension-option:not(.is-selected) { display: none; }
+  body.permit-preview-printing .permit-extension-card { break-inside: avoid; border-color: #bbb; background: #fff; }
+  body.permit-preview-printing [data-permit-hot-work],
+  body.permit-preview-printing .permit-extension-heading { break-before: auto; break-inside: auto; }
+  body.permit-preview-printing .permit-print-heading { margin-bottom: 1rem; }
+}
 
 @media (max-width: 767.98px) {
   .risk-list-toolbar { align-items: stretch; flex-direction: column; }
