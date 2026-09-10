@@ -31,9 +31,11 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
                 x.RiskAssessmentId,
                 x.PermitNumber,
                 x.IssueDate,
-                x.PermitIssuerName,
+                x.PermitIssuerId,
+                PermitIssuerName = x.PermitIssuer.DisplayName ?? x.PermitIssuer.UserName,
                 x.PermitIssuerContactNumber,
-                x.PermitReceiverName,
+                x.PermitReceiverId,
+                PermitReceiverName = x.PermitReceiver.DisplayName ?? x.PermitReceiver.UserName,
                 x.PermitReceiverContactNumber,
                 x.RiskAssessmentNumber,
                 x.WorkLocation,
@@ -79,8 +81,10 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
             permitApplication.RiskAssessmentId,
             permitApplication.PermitNumber,
             permitApplication.IssueDate,
+            permitApplication.PermitIssuerId,
             permitApplication.PermitIssuerName,
             permitApplication.PermitIssuerContactNumber,
+            permitApplication.PermitReceiverId,
             permitApplication.PermitReceiverName,
             permitApplication.PermitReceiverContactNumber,
             permitApplication.RiskAssessmentNumber,
@@ -153,7 +157,9 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
                     reader.GetInt64(reader.GetOrdinal("Id")),
                     reader.GetString(reader.GetOrdinal("PermitNumber")),
                     DateOnly.FromDateTime(reader.GetDateTime(reader.GetOrdinal("IssueDate"))),
+                    reader.GetInt32(reader.GetOrdinal("PermitIssuerId")),
                     reader.GetString(reader.GetOrdinal("PermitIssuerName")),
+                    reader.GetInt32(reader.GetOrdinal("PermitReceiverId")),
                     reader.GetString(reader.GetOrdinal("PermitReceiverName")),
                     reader.GetInt32(reader.GetOrdinal("PermitTypeListItemId")),
                     reader.GetString(reader.GetOrdinal("PermitTypeName")),
@@ -305,6 +311,20 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
                 Message: "IssueDate is required.");
         }
 
+        var validUserCount = await context.Users
+            .Where(x => x.IsActive &&
+                (x.Id == request.PermitIssuerId || x.Id == request.PermitReceiverId))
+            .Select(x => x.Id)
+            .Distinct()
+            .CountAsync(cancellationToken);
+        var requiredUserCount = request.PermitIssuerId == request.PermitReceiverId ? 1 : 2;
+        if (validUserCount != requiredUserCount)
+        {
+            return new PermitApplicationUpdateResult(
+                PermitApplicationUpdateOutcome.InvalidUsers,
+                Message: "Issuer and receiver must be active users.");
+        }
+
         var inspections = GetSelectedIds(request.InspectionPriorToCommencement);
         var wallWorks = GetSelectedIds(request.WorksOnWall);
         var confinedSpaces = GetSelectedIds(request.WorkingInConfinedSpace);
@@ -345,9 +365,9 @@ public sealed class PermitApplicationService(AppDbContext context) : IPermitAppl
         }
 
         permitApplication.IssueDate = request.IssueDate;
-        permitApplication.PermitIssuerName = request.PermitIssuerName.Trim();
+        permitApplication.PermitIssuerId = request.PermitIssuerId;
         permitApplication.PermitIssuerContactNumber = Normalize(request.PermitIssuerContactNumber);
-        permitApplication.PermitReceiverName = request.PermitReceiverName.Trim();
+        permitApplication.PermitReceiverId = request.PermitReceiverId;
         permitApplication.PermitReceiverContactNumber = Normalize(request.PermitReceiverContactNumber);
         // Permit and risk-assessment numbers are assigned centrally and are immutable.
         permitApplication.WorkLocation = request.WorkLocation.Trim();

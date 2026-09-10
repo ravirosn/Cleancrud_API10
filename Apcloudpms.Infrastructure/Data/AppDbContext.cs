@@ -429,9 +429,7 @@ public class AppDbContext : DbContext
             entity.ToTable("PermitApplication", "dbo");
             entity.Property(x => x.PermitNumber).HasMaxLength(50).IsRequired();
             entity.Property(x => x.IssueDate).HasColumnType("date").IsRequired();
-            entity.Property(x => x.PermitIssuerName).HasMaxLength(200).IsRequired();
             entity.Property(x => x.PermitIssuerContactNumber).HasMaxLength(30);
-            entity.Property(x => x.PermitReceiverName).HasMaxLength(200).IsRequired();
             entity.Property(x => x.PermitReceiverContactNumber).HasMaxLength(30);
             entity.Property(x => x.RiskAssessmentNumber).HasMaxLength(50);
             entity.Property(x => x.WorkLocation).HasMaxLength(500).IsRequired();
@@ -449,12 +447,18 @@ public class AppDbContext : DbContext
             entity.Property(x => x.RowVersion).IsRowVersion();
             entity.HasIndex(x => x.PermitNumber).IsUnique();
             entity.HasIndex(x => new { x.PermitStatusListItemId, x.CreatedAtUtc });
+            entity.HasIndex(x => x.PermitIssuerId);
+            entity.HasIndex(x => x.PermitReceiverId);
             entity.HasOne(x => x.PermitTypeListItem).WithMany(x => x.PermitTypeApplications)
                 .HasForeignKey(x => x.PermitTypeListItemId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.PermitStatusListItem).WithMany(x => x.PermitStatusApplications)
                 .HasForeignKey(x => x.PermitStatusListItemId).OnDelete(DeleteBehavior.Restrict);
             entity.HasOne(x => x.RiskAssessment).WithMany(x => x.PermitApplications)
                 .HasForeignKey(x => x.RiskAssessmentId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.PermitIssuer).WithMany()
+                .HasForeignKey(x => x.PermitIssuerId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.PermitReceiver).WithMany()
+                .HasForeignKey(x => x.PermitReceiverId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<PermitApplicationInspectionPriorToComm>(entity =>

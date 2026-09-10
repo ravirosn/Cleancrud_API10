@@ -301,8 +301,10 @@ public sealed class ApprovalWorkflowService(
                     x.PermitApplication.RiskAssessmentNumber.Contains(search)) ||
                 (x.PermitApplication.RiskAssessment != null &&
                     x.PermitApplication.RiskAssessment.RiskAssessmentNumber.Contains(search)) ||
-                x.PermitApplication.PermitIssuerName.Contains(search) ||
-                x.PermitApplication.PermitReceiverName.Contains(search) ||
+                ((x.PermitApplication.PermitIssuer.DisplayName ??
+                    x.PermitApplication.PermitIssuer.UserName).Contains(search)) ||
+                ((x.PermitApplication.PermitReceiver.DisplayName ??
+                    x.PermitApplication.PermitReceiver.UserName).Contains(search)) ||
                 x.PermitApplication.PermitTypeListItem.Name.Contains(search) ||
                 x.PermitApplication.PermitStatusListItem.Name.Contains(search) ||
                 x.PrimaryApproverRole.Name.Contains(search) ||

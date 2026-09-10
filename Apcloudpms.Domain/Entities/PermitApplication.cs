@@ -6,9 +6,9 @@ public class PermitApplication
     public int? RiskAssessmentId { get; set; }
     public string PermitNumber { get; set; } = string.Empty;
     public DateOnly IssueDate { get; set; }
-    public string PermitIssuerName { get; set; } = string.Empty;
+    public int PermitIssuerId { get; set; }
     public string? PermitIssuerContactNumber { get; set; }
-    public string PermitReceiverName { get; set; } = string.Empty;
+    public int PermitReceiverId { get; set; }
     public string? PermitReceiverContactNumber { get; set; }
     public string? RiskAssessmentNumber { get; set; }
     public string WorkLocation { get; set; } = string.Empty;
@@ -33,6 +33,8 @@ public class PermitApplication
 
     public ListItem PermitTypeListItem { get; set; } = null!;
     public ListItem PermitStatusListItem { get; set; } = null!;
+    public User PermitIssuer { get; set; } = null!;
+    public User PermitReceiver { get; set; } = null!;
     public RiskAssessment? RiskAssessment { get; set; }
     public ICollection<PermitApproval> Approvals { get; set; } = new List<PermitApproval>();
     public ICollection<PermitApplicationInspectionPriorToComm> InspectionsPriorToComm { get; set; } =

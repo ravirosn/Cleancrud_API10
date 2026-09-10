@@ -26,7 +26,9 @@ public sealed record UserPermitApplicationDto(
     long Id,
     string PermitNumber,
     DateOnly IssueDate,
+    int PermitIssuerId,
     string PermitIssuerName,
+    int PermitReceiverId,
     string PermitReceiverName,
     int PermitTypeListItemId,
     string PermitTypeName,
@@ -63,14 +65,14 @@ public sealed class PermitApplicationUpdateRequestDto
 {
     public DateOnly IssueDate { get; set; }
 
-    [Required, StringLength(200)]
-    public string PermitIssuerName { get; set; } = string.Empty;
+    [Range(1, int.MaxValue)]
+    public int PermitIssuerId { get; set; }
 
     [StringLength(30)]
     public string? PermitIssuerContactNumber { get; set; }
 
-    [Required, StringLength(200)]
-    public string PermitReceiverName { get; set; } = string.Empty;
+    [Range(1, int.MaxValue)]
+    public int PermitReceiverId { get; set; }
 
     [StringLength(30)]
     public string? PermitReceiverContactNumber { get; set; }
@@ -115,6 +117,7 @@ public enum PermitApplicationUpdateOutcome
     NotEditable,
     UnsupportedPermitType,
     InvalidSelections,
+    InvalidUsers,
     StatusNotConfigured
 }
 
@@ -128,8 +131,10 @@ public sealed record PermitApplicationDetailsDto(
     int? RiskAssessmentId,
     string PermitNumber,
     DateOnly IssueDate,
+    int PermitIssuerId,
     string PermitIssuerName,
     string? PermitIssuerContactNumber,
+    int PermitReceiverId,
     string PermitReceiverName,
     string? PermitReceiverContactNumber,
     string? RiskAssessmentNumber,

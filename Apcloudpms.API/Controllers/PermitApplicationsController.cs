@@ -72,6 +72,8 @@ public sealed class PermitApplicationsController(IPermitApplicationService servi
                 Conflict(new { message = result.Message }),
             PermitApplicationUpdateOutcome.InvalidSelections =>
                 BadRequest(new { message = result.Message }),
+            PermitApplicationUpdateOutcome.InvalidUsers =>
+                BadRequest(new { message = result.Message }),
             _ => StatusCode(StatusCodes.Status500InternalServerError)
         };
     }
@@ -104,6 +106,8 @@ public sealed class PermitApplicationsController(IPermitApplicationService servi
             PermitApplicationUpdateOutcome.UnsupportedPermitType =>
                 Conflict(new { message = result.Message }),
             PermitApplicationUpdateOutcome.InvalidSelections =>
+                BadRequest(new { message = result.Message }),
+            PermitApplicationUpdateOutcome.InvalidUsers =>
                 BadRequest(new { message = result.Message }),
             PermitApplicationUpdateOutcome.StatusNotConfigured =>
                 Problem(result.Message, statusCode: StatusCodes.Status500InternalServerError),
