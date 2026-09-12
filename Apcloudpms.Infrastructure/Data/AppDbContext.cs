@@ -46,6 +46,7 @@ public class AppDbContext : DbContext
         Set<PermitApplicationWallWorks>();
     public DbSet<PermitApplicationConfinedSpace> PermitApplicationConfinedSpaces =>
         Set<PermitApplicationConfinedSpace>();
+    public DbSet<PermitApplicationGuideline> PermitApplicationGuidelines => Set<PermitApplicationGuideline>();
     public DbSet<RiskAssessment> RiskAssessments => Set<RiskAssessment>();
     public DbSet<RiskAssessmentHazardCategory> RiskAssessmentHazardCategories =>
         Set<RiskAssessmentHazardCategory>();
@@ -500,6 +501,26 @@ public class AppDbContext : DbContext
                 .WithMany(x => x.PermitApplicationConfinedSpaces)
                 .HasForeignKey(x => x.WorkingInConfinedSpaceListItemId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<PermitApplicationGuideline>(entity =>
+        {
+            entity.ToTable("PermitApplicationGuidelines", "dbo");
+            entity.Property(x => x.Guidelines).HasColumnType("nvarchar(max)").IsRequired();
+            entity.Property(x => x.CreatedAtUtc).HasPrecision(0).HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(x => x.UpdatedAtUtc).HasPrecision(0);
+            entity.Property(x => x.RowVersion).IsRowVersion();
+            entity.HasIndex(x => x.PermitTypeListItemId);
+            entity.HasIndex(x => x.PermitTypeListItemId)
+                .IsUnique()
+                .HasDatabaseName("UX_PermitApplicationGuidelines_ActivePermitType")
+                .HasFilter("[IsActive] = 1");
+            entity.HasOne(x => x.PermitTypeListItem).WithMany(x => x.PermitApplicationGuidelines)
+                .HasForeignKey(x => x.PermitTypeListItemId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.CreatedByUser).WithMany()
+                .HasForeignKey(x => x.CreatedByUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(x => x.UpdatedByUser).WithMany()
+                .HasForeignKey(x => x.UpdatedByUserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<RiskAssessment>(entity =>

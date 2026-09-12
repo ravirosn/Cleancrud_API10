@@ -24,4 +24,8 @@ public sealed class SetupController : Controller
     [RequireMenu(ApplicationPermissions.OrganizationModule, "Setup", "Permission")]
     [RequirePermission(ApplicationPermissions.PermissionAssignments.View)]
     public IActionResult Permission() => View();
+
+    [HttpGet("PermitApplicationGuidelines")]
+    [RequirePermission(ApplicationPermissions.PermitApplicationGuidelines.View)]
+    public IActionResult PermitApplicationGuidelines() => View();
 }

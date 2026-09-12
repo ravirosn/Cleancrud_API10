@@ -1,6 +1,8 @@
 @using Apcloud.Contracts.Permissions
+@inject IConfiguration Configuration
 @{
     ViewData["Title"] = "Risk Assessments";
+    var modalLoadingOverlayEnabled = Configuration.GetValue("Ui:ModalLoadingOverlay:Enabled", true);
 }
 
 <span data-permission-scope data-permission-module="@ApplicationPermissions.PermitModule" data-permission-controller="PermitApplications" data-permission-action="Index" hidden></span>
@@ -111,6 +113,16 @@
                         <div class="text-secondary small mb-1" data-risk-mode>Add risk assessment</div>
                         <h2 class="modal-title" id="riskAssessmentEditorTitle" data-risk-title>New risk assessment</h2>
                     </div>
+                    <div class="risk-modal-header-meta ms-auto">
+                        <div class="risk-modal-header-value">
+                            <span>Risk assessment number</span>
+                            <strong data-risk-header-number>Not assigned</strong>
+                        </div>
+                        <div class="risk-modal-header-value">
+                            <span>Status</span>
+                            <strong><span class="badge bg-blue-lt" data-risk-header-status>Draft</span></strong>
+                        </div>
+                    </div>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="risk-stepper" aria-label="Risk assessment form progress">
@@ -120,6 +132,13 @@
                     <button type="button" class="risk-step" data-risk-step-button="3"><span>4</span><strong>Final verification</strong><small>Review before submitting</small></button>
                 </div>
                 <div class="modal-body risk-editor-body">
+                    @if (modalLoadingOverlayEnabled)
+                    {
+                        <div class="modal-body-loading-overlay d-none d-print-none" role="status" aria-live="polite" data-risk-loading-overlay>
+                            <span class="spinner-border text-primary" aria-hidden="true"></span>
+                            <strong>Loading risk assessment&hellip;</strong>
+                        </div>
+                    }
                     <div class="alert alert-danger d-none" role="alert" data-risk-error></div>
                     <input type="hidden" data-risk-id />
 
@@ -168,7 +187,7 @@
 
                     <section class="d-none risk-verification-panel" data-risk-step-panel="3">
                         <div class="risk-section-heading"><div><h3>Final verification</h3><p>Review all assessment information carefully before submitting the form.</p></div><span class="badge bg-blue-lt">Step 4 of 4</span></div>
-                        <div class="risk-review-card" data-risk-review></div>
+                        <div data-risk-review></div>
                     </section>
                 </div>
                 <div class="modal-footer justify-content-between">
@@ -197,6 +216,13 @@
                     <button type="button" class="btn-close d-print-none" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body permit-editor-body">
+                    @if (modalLoadingOverlayEnabled)
+                    {
+                        <div class="modal-body-loading-overlay d-none d-print-none" role="status" aria-live="polite" data-permit-loading-overlay>
+                            <span class="spinner-border text-primary" aria-hidden="true"></span>
+                            <strong>Loading permit application&hellip;</strong>
+                        </div>
+                    }
                     <div class="alert alert-danger d-none d-print-none" role="alert" data-permit-editor-error></div>
                     <div class="permit-print-heading d-none d-print-block">
                         <h1 data-permit-print-title>Permit application</h1>
@@ -218,7 +244,7 @@
                         <div class="col-12"><label class="form-label required">Work location</label><input class="form-control" maxlength="500" required data-permit-work-location /></div>
                         <div class="col-12"><label class="form-label required">Work description</label><textarea class="form-control" rows="3" required data-permit-work-description></textarea></div>
                         <div class="col-md-6"><label class="form-label">Special instructions</label><textarea class="form-control" rows="3" data-permit-special-instructions></textarea></div>
-                        <div class="col-md-6"><label class="form-label">Work height below surface</label><input class="form-control" maxlength="200" data-permit-work-height /></div>
+                        <div class="col-md-6"><label class="form-label">Work height below surface</label><input class="form-control" rows="3" maxlength="200" data-permit-work-height /></div>
                         <div class="col-12"><label class="form-label">Completion of works</label><textarea class="form-control" rows="2" maxlength="500" data-permit-completion></textarea></div>
                     </div>
 

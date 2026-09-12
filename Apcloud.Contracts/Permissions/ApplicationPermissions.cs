@@ -99,6 +99,14 @@ public static class ApplicationPermissions
         public const string Delete = "ListItem.Delete";
     }
 
+    public static class PermitApplicationGuidelines
+    {
+        public const string View = "PermitApplicationGuideline.View";
+        public const string Create = "PermitApplicationGuideline.Create";
+        public const string Edit = "PermitApplicationGuideline.Edit";
+        public const string Delete = "PermitApplicationGuideline.Delete";
+    }
+
     public static class Roles
     {
         public const string View = "Role.View";
@@ -188,6 +196,10 @@ public static class ApplicationPermissions
         P(ListItems.Create, "Create list items", "Create list items.", "ListItem", "ListItem"),
         P(ListItems.Edit, "Edit list items", "Edit list items.", "ListItem", "ListItem"),
         P(ListItems.Delete, "Delete list items", "Deactivate list items.", "ListItem", "ListItem"),
+        new(PermitApplicationGuidelines.View, "View permit application guidelines", "View and search permit-type guidelines.", OrganizationModule, "Setup", "PermitApplicationGuidelines", false),
+        new(PermitApplicationGuidelines.Create, "Create permit application guidelines", "Create permit-type guidelines.", OrganizationModule, "Setup", "PermitApplicationGuidelines", false),
+        new(PermitApplicationGuidelines.Edit, "Edit permit application guidelines", "Edit permit-type guidelines.", OrganizationModule, "Setup", "PermitApplicationGuidelines", false),
+        new(PermitApplicationGuidelines.Delete, "Deactivate permit application guidelines", "Deactivate permit-type guidelines.", OrganizationModule, "Setup", "PermitApplicationGuidelines", false),
         P(Roles.View, "View roles", "View roles and module options.", "Setup", "Role"),
         P(Roles.Create, "Create roles", "Create roles and initial module assignments.", "Setup", "Role"),
         P(Roles.Edit, "Edit roles", "Edit roles and module assignments.", "Setup", "Role"),

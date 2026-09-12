@@ -24,6 +24,10 @@
     const nextButton = form.querySelector("[data-risk-next]");
     const saveButton = form.querySelector("[data-risk-save]");
     const errorBox = form.querySelector("[data-risk-error]");
+    const riskHeaderNumber = modalElement.querySelector("[data-risk-header-number]");
+    const riskHeaderStatus = modalElement.querySelector("[data-risk-header-status]");
+    const riskLoadingOverlay = form.querySelector("[data-risk-loading-overlay]");
+    const permitLoadingOverlay = permitForm?.querySelector("[data-permit-loading-overlay]");
     const fields = {
       id: form.querySelector("[data-risk-id]"), number: form.querySelector("[data-risk-number]"),
       issueDate: form.querySelector("[data-risk-issue-date]"), location: form.querySelector("[data-risk-location]"),
@@ -58,6 +62,15 @@
     const permitOptionNames = ["inspectionPriorToCommencement", "worksOnWall", "workingInConfinedSpace"];
     const permitOptionContainers = permitForm ? Object.fromEntries(permitOptionNames.map(name =>
       [name, permitForm.querySelector(`[data-permit-options="${name}"]`)])) : {};
+
+    const setModalLoading = (overlay, loading) => {
+      if (!overlay) return;
+      const modalBody = overlay.closest(".modal-body");
+      overlay.classList.toggle("d-none", !loading);
+      modalBody?.classList.toggle("is-loading", loading);
+      if (loading) modalBody?.setAttribute("aria-busy", "true");
+      else modalBody?.removeAttribute("aria-busy");
+    };
 
     const normalizeCode = value => String(value ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
     const categoryMatchers = {
@@ -171,6 +184,13 @@
       }
     };
 
+    const setRiskHeader = (number, status) => {
+      const displayStatus = status || "Draft";
+      riskHeaderNumber.textContent = number || "Not assigned";
+      riskHeaderStatus.textContent = displayStatus;
+      riskHeaderStatus.className = `badge ${permitStatusClass(displayStatus)}`;
+    };
+
     const createPermitCell = (value, className = "") => {
       const cell = document.createElement("td");
       if (className) cell.className = className;
@@ -245,6 +265,7 @@
       permitForm.reset(); permitForm.querySelector("[data-permit-editor-error]").classList.add("d-none");
       setPermitPreviewMode(preview);
       permitModal.show();
+      setModalLoading(permitLoadingOverlay, true);
       try {
         const [details, users] = await Promise.all([
           window.apcloudApi.json(`permit/applications/${encodeURIComponent(permitId)}${printAfterOpen ? "/print-preview" : preview ? "/preview" : ""}`),
@@ -280,6 +301,8 @@
         box.textContent = error.message || "The permit application could not be loaded."; box.classList.remove("d-none");
         permitForm.querySelector("[data-permit-save]").classList.add("d-none");
         permitForm.querySelector("[data-permit-finalize]").classList.add("d-none");
+      } finally {
+        setModalLoading(permitLoadingOverlay, false);
       }
     };
 
@@ -428,21 +451,14 @@
 
     const renderReview = () => {
       const review = form.querySelector("[data-risk-review]");
-      const heading = document.createElement("div"); heading.className = "risk-review-heading";
-      const headingCopy = document.createElement("div");
-      const eyebrow = document.createElement("span"); eyebrow.className = "risk-review-eyebrow"; eyebrow.textContent = "Final verification";
-      const title = document.createElement("h4"); title.textContent = "Review before submitting";
-      const hint = document.createElement("p"); hint.textContent = "Confirm every detail below. With the current API workflow, submission saves the assessment in Draft status.";
-      const badge = document.createElement("span"); badge.className = "badge bg-yellow-lt risk-review-status"; badge.textContent = "Draft";
-      headingCopy.append(eyebrow, title, hint); heading.append(headingCopy, badge);
       const body = document.createElement("div"); body.className = "risk-review-body";
       body.append(
-        createReviewSection("Assessment", [
+        createReviewSection("Assessment details", [
           ["Assessment number", fields.number.value], ["Issue date", fields.issueDate.value],
           ["Location of work", fields.location.value], ["Planned start", displayDateTime(fields.start.value)],
           ["Planned end", displayDateTime(fields.end.value)]
         ]),
-        createReviewSection("People and work scope", [
+        createReviewSection("People and work scope details", [
           ["Permit issuer", selectedUserName(fields.issuer)], ["Permit receiver", selectedUserName(fields.receiver)],
           ["Area responsible", fields.responsible.value], ["Description of work", fields.description.value],
           ["Special instructions", fields.instructions.value]
@@ -458,7 +474,7 @@
           ["Other protection measures", fields.otherMeasures.value]
         ])
       );
-      review.replaceChildren(heading, body);
+      review.replaceChildren(body);
     };
 
     const renderOptions = (name, items, emptyMessage = "No active list-item category or options are configured for this section.") => {
@@ -546,6 +562,7 @@
       fields.instructions.value = property(record, "specialInstructions") || "";
       fields.otherPpe.value = property(record, "otherEquipmentsPPE") || "";
       fields.otherMeasures.value = property(record, "otherProtectionMeasures") || "";
+      setRiskHeader(fields.number.value, property(record, "riskAssessmentStatus"));
       groupNames.forEach(name => markSelections(name, property(record, name)));
     };
 
@@ -557,8 +574,10 @@
       fields.issueDate.value = new Date().toISOString().slice(0, 10);
       modalElement.querySelector("[data-risk-mode]").textContent = editingId ? "Edit risk assessment" : "Add risk assessment";
       modalElement.querySelector("[data-risk-title]").textContent = editingId ? "Update draft risk assessment" : "New risk assessment";
+      setRiskHeader("", "Draft");
       form.querySelector("[data-risk-save-label]").textContent = "Save & close";
       setStep(0); modal?.show();
+      setModalLoading(riskLoadingOverlay, true);
       try {
         await loadLookups();
         if (editingId) {
@@ -576,6 +595,8 @@
       } catch (error) {
         errorBox.textContent = error.message || "The risk assessment form could not be loaded.";
         errorBox.classList.remove("d-none"); saveButton.disabled = true;
+      } finally {
+        setModalLoading(riskLoadingOverlay, false);
       }
     };
 
@@ -634,6 +655,7 @@
       editingId = Number(property(result, "riskAssessmentId")) || editingId;
       fields.id.value = String(editingId || "");
       fields.number.value = property(result, "riskAssessmentNumber") || fields.number.value;
+      setRiskHeader(fields.number.value, property(result, "status"));
       return result;
     };
 

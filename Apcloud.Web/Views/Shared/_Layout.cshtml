@@ -15,6 +15,7 @@
     <partial name="_ThemeBootstrap" />
     <link rel="stylesheet" href="~/lib/tabler/css/tabler.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
     <script>

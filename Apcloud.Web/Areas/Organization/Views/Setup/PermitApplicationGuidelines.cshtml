@@ -1,0 +1,149 @@
+@using Apcloud.Contracts.Permissions
+@inject IConfiguration Configuration
+@{
+    ViewData["Title"] = "Permit Application Guidelines";
+    var modalLoadingOverlayEnabled = Configuration.GetValue("Ui:ModalLoadingOverlay:Enabled", true);
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css" />
+}
+
+<span data-permission-scope data-permission-module="@ApplicationPermissions.OrganizationModule"
+      data-permission-controller="Setup" data-permission-action="PermitApplicationGuidelines" hidden></span>
+
+<div class="page-header d-print-none mb-4">
+    <div class="row g-3 align-items-center">
+        <div class="col">
+            <div class="page-pretitle">Organization setup</div>
+            <h1 class="page-title">Permit application guidelines</h1>
+            <p class="text-secondary mt-2 mb-0">Maintain the formatted guidelines used by each permit type.</p>
+        </div>
+        <div class="col-auto ms-auto">
+            <button type="button" class="btn btn-primary" data-guideline-add
+                    data-requires-permission="@ApplicationPermissions.PermitApplicationGuidelines.Create">
+                <svg class="icon"><use href="#icon-plus" /></svg> Add guideline
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="card server-data-grid" data-server-grid data-guideline-grid
+     data-url="permit-application-guidelines?includeInactive=true"
+     data-page-size="10" data-search-param="searchTerm" data-server-sort="true"
+     data-default-sort="permitTypeName" data-default-sort-direction="asc"
+     data-row-actions="edit,delete"
+     data-permission-actions="edit:@ApplicationPermissions.PermitApplicationGuidelines.Edit,delete:@ApplicationPermissions.PermitApplicationGuidelines.Delete">
+    <div class="card-header server-grid-toolbar">
+        <div class="server-grid-search" role="search">
+            <div class="input-icon">
+                <span class="input-icon-addon"><svg class="icon"><use href="#icon-search" /></svg></span>
+                <input type="search" class="form-control" data-grid-search
+                       placeholder="Search permit types&hellip;" aria-label="Search permit application guidelines" autocomplete="off" />
+            </div>
+            <button type="button" class="btn btn-primary" data-grid-search-button>Search</button>
+            <button type="button" class="btn btn-outline-secondary" data-grid-clear>Clear</button>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <label for="guidelinePageSize" class="text-secondary small text-nowrap">Rows per page</label>
+            <select id="guidelinePageSize" class="form-select form-select-sm" data-grid-page-size>
+                <option value="10" selected>10</option><option value="25">25</option><option value="50">50</option>
+            </select>
+        </div>
+    </div>
+    <div class="server-grid-state" data-grid-loading role="status">
+        <span class="spinner-border spinner-border-sm text-primary" aria-hidden="true"></span>
+        <span>Loading permit application guidelines&hellip;</span>
+    </div>
+    <div class="server-grid-state d-none" data-grid-error role="alert">
+        <span class="server-grid-state-icon text-danger"><svg class="icon"><use href="#icon-alert" /></svg></span>
+        <div><strong>Unable to load guidelines</strong><p data-grid-error-message>The guideline data could not be loaded.</p></div>
+        <button type="button" class="btn btn-outline-danger ms-auto" data-grid-retry>Try again</button>
+    </div>
+    <div class="empty py-6 d-none" data-grid-empty>
+        <div class="empty-icon"><svg class="icon"><use href="#icon-files" /></svg></div>
+        <p class="empty-title">No permit application guidelines found</p>
+        <p class="empty-subtitle text-secondary">Add formatted guidelines for a permit type.</p>
+        <div class="empty-action">
+            <button type="button" class="btn btn-primary" data-guideline-add
+                    data-requires-permission="@ApplicationPermissions.PermitApplicationGuidelines.Create">Add guideline</button>
+        </div>
+    </div>
+    <div class="d-none" data-grid-content>
+        <div class="table-responsive server-grid-scroll">
+            <table class="table table-vcenter card-table server-grid-table">
+                <thead><tr data-grid-head>
+                    <th data-grid-column="permitTypeName">Permit type</th>
+                    <th data-grid-column="permitTypeSystemName">System name</th>
+                    <th data-grid-column="status">Status</th>
+                    <th data-grid-column="createdAtUtc">Created on</th>
+                    <th data-grid-column="updatedAtUtc">Updated on</th>
+                </tr></thead>
+                <tbody data-grid-body></tbody>
+            </table>
+        </div>
+        <div class="card-footer server-grid-footer">
+            <p class="m-0 text-secondary" data-grid-summary></p>
+            <ul class="pagination m-0 ms-auto" data-grid-pagination></ul>
+        </div>
+    </div>
+</div>
+
+<div class="modal modal-blur fade" id="permitGuidelineEditorModal" tabindex="-1"
+     aria-labelledby="permitGuidelineEditorTitle" aria-hidden="true" data-guideline-modal>
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <form data-guideline-form novalidate>
+                <div class="modal-header">
+                    <div><div class="text-secondary small" data-guideline-mode>Add guideline</div>
+                        <h2 class="modal-title" id="permitGuidelineEditorTitle">Permit application guideline</h2></div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body guideline-editor-modal-body">
+                    @if (modalLoadingOverlayEnabled)
+                    {
+                        <div class="modal-body-loading-overlay d-none" role="status" aria-live="polite" data-guideline-loading>
+                            <span class="spinner-border text-primary" aria-hidden="true"></span><strong>Loading guideline&hellip;</strong>
+                        </div>
+                    }
+                    <div class="alert alert-danger d-none" role="alert" data-guideline-error></div>
+                    <input type="hidden" data-guideline-id />
+                    <div class="row g-3">
+                        <div class="col-lg-9">
+                            <label for="guidelinePermitType" class="form-label required">Permit type</label>
+                            <select id="guidelinePermitType" class="form-select" required data-guideline-permit-type>
+                                <option value="">Loading permit types&hellip;</option>
+                            </select>
+                            <div class="invalid-feedback">Select a permit type.</div>
+                        </div>
+                        <div class="col-lg-3 d-flex align-items-end pb-2">
+                            <label class="form-check form-switch mb-1">
+                                <input class="form-check-input" type="checkbox" checked data-guideline-active />
+                                <span class="form-check-label">Active</span>
+                            </label>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label required">Guidelines</label>
+                            <div class="guideline-rich-editor" data-guideline-editor></div>
+                            <div class="invalid-feedback d-none" data-guideline-content-error>Enter guideline content.</div>
+                            <div class="form-hint">Formatted HTML is stored for later permit PDF generation.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-link link-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" data-guideline-save
+                            data-requires-permission="@ApplicationPermissions.PermitApplicationGuidelines.Create,@ApplicationPermissions.PermitApplicationGuidelines.Edit">
+                        <span data-guideline-save-label>Save guideline</span>
+                        <span class="d-none" data-guideline-saving><span class="spinner-border spinner-border-sm me-2"></span>Saving&hellip;</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+    <script src="~/js/permit-application-guidelines.js" asp-append-version="true"></script>
+}

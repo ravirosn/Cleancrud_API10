@@ -12,6 +12,14 @@
                     Search, edit and deactivate application modules.
                 </p>
             </div>
+            <div class="col-auto ms-auto">
+                <a asp-area="Organization" asp-controller="Setup" asp-action="PermitApplicationGuidelines"
+                   class="btn btn-outline-primary"
+                   data-requires-permission="@ApplicationPermissions.PermitApplicationGuidelines.View">
+                    <svg class="icon"><use href="#icon-files" /></svg>
+                    Permit guidelines
+                </a>
+            </div>
         </div>
     </div>
 

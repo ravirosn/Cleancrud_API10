@@ -31,4 +31,6 @@ public class ListItem
         new List<PermitApplicationWallWorks>();
     public ICollection<PermitApplicationConfinedSpace> PermitApplicationConfinedSpaces { get; set; } =
         new List<PermitApplicationConfinedSpace>();
+    public ICollection<PermitApplicationGuideline> PermitApplicationGuidelines { get; set; } =
+        new List<PermitApplicationGuideline>();
 }
