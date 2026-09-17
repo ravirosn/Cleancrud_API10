@@ -1136,6 +1136,7 @@ body:has([data-server-grid]) .footer {
 .theme-note span { margin-top: .2rem; color: var(--tblr-secondary); font-size: .66rem; }
 
 .footer {
+  padding-block: 1rem;
   color: var(--tblr-secondary);
   font-size: .72rem;
 }
@@ -1727,12 +1728,12 @@ a.menu-tree-link:hover { color: var(--tblr-primary); text-decoration: none; bord
 .server-grid-expand:hover { color: var(--tblr-primary); }
 .server-grid-expand.is-expanded { color: var(--tblr-primary); transform: rotate(90deg); background: rgba(var(--tblr-primary-rgb), .08); }
 .server-grid-actions { font-size: 1.2rem; font-weight: 700; line-height: 1; letter-spacing: .08em; }
-.server-grid-footer { display: flex; min-height: 4rem; align-items: center; }
+.server-grid-footer { display: flex; min-height: 2.5rem; padding-block: .25rem; align-items: center; }
 
 @media (max-width: 767.98px) {
   .server-grid-toolbar { align-items: stretch; flex-direction: column; }
   .server-grid-search { width: 100%; }
-  .server-grid-footer { align-items: flex-start; flex-direction: column; gap: 1rem; }
+  .server-grid-footer { align-items: flex-start; flex-direction: column; gap: .5rem; }
   .server-grid-footer .pagination { margin-left: 0 !important; }
 }
 
