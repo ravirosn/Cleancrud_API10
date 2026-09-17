@@ -636,6 +636,91 @@ body.apcloud-page-busy { overflow: hidden !important; }
   padding-top: 1.75rem;
 }
 
+/* Shared content width: use the available workspace while retaining comfortable gutters. */
+.app-page-container {
+  width: 100%;
+  max-width: none;
+  padding-inline: clamp(.75rem, 1.5vw, 1.5rem);
+}
+
+.app-page-content {
+  width: 100%;
+  min-width: 0;
+}
+
+/* Data-grid pages fill the viewport and keep the application footer visible. */
+html:has(body [data-server-grid]),
+body:has([data-server-grid]) {
+  height: 100%;
+  overflow: hidden;
+}
+
+body:has([data-server-grid]) .page,
+body:has([data-server-grid]) .page-wrapper {
+  height: 100dvh;
+  min-height: 0;
+}
+
+body:has([data-server-grid]) .page-wrapper {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+body:has([data-server-grid]) .page-body {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  padding-top: .4375rem;
+  overflow: hidden;
+}
+
+body:has([data-server-grid]) .app-page-container,
+body:has([data-server-grid]) .app-page-content {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+body:has([data-server-grid]) .app-page-content {
+  flex-direction: column;
+}
+
+body:has([data-server-grid]) .app-page-content > .page-header {
+  flex: 0 0 auto;
+  margin-bottom: .375rem !important;
+}
+
+body:has([data-server-grid]) [data-server-grid] {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+}
+
+body:has([data-server-grid]) [data-grid-content]:not(.d-none) {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+}
+
+body:has([data-server-grid]) .server-grid-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+  overflow: auto;
+}
+
+body:has([data-server-grid]) .server-grid-state,
+body:has([data-server-grid]) [data-grid-empty] {
+  flex: 1 1 auto;
+}
+
+body:has([data-server-grid]) .footer {
+  flex: 0 0 auto;
+}
+
 .dashboard-header {
   margin: 0 0 1.75rem;
 }
