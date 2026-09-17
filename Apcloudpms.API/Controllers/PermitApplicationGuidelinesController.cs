@@ -10,6 +10,7 @@ namespace Apcloudpms.API.Controllers;
 [ApiController]
 [Route("api/permit-application-guidelines")]
 [Authorize]
+[RequireMenu(ApplicationPermissions.OrganizationModule, "Setup", "PermitApplicationGuidelines")]
 public sealed class PermitApplicationGuidelinesController(
     IPermitApplicationGuidelineService service) : ControllerBase
 {

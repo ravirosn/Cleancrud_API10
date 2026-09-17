@@ -2,7 +2,108 @@
 @{
     ViewData["Title"] = "Roles";
 }
-<span data-permission-scope data-permission-module="@ApplicationPermissions.OrganizationModule" data-permission-controller="Setup" data-permission-action="Role" hidden></span>
+
+@section Styles {
+    <style>
+        html:has(body [data-role-page]),
+        body:has([data-role-page]) {
+            height: 100%;
+            overflow: hidden;
+        }
+
+        body:has([data-role-page]) .page,
+        body:has([data-role-page]) .page-wrapper {
+            height: 100dvh;
+            min-height: 0;
+        }
+
+        body:has([data-role-page]) .page-wrapper {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        body:has([data-role-page]) .page-body {
+            display: flex;
+            flex: 1 1 auto;
+            min-height: 0;
+            padding-top: .4375rem;
+            overflow: hidden;
+        }
+
+        body:has([data-role-page]) .page-body > .container-xl {
+            display: flex;
+            width: 100%;
+            min-height: 0;
+            max-width: none;
+            padding-inline: clamp(.75rem, 1.5vw, 1.5rem);
+        }
+
+        [data-role-page] {
+            display: flex;
+            flex: 1 1 auto;
+            min-width: 0;
+            min-height: 0;
+            flex-direction: column;
+        }
+
+        [data-role-page] > .page-header {
+            flex: 0 0 auto;
+            margin-bottom: .375rem !important;
+        }
+
+        [data-role-page] [data-role-grid] {
+            display: flex;
+            flex: 1 1 auto;
+            min-height: 0;
+            flex-direction: column;
+        }
+
+        [data-role-page] [data-grid-content]:not(.d-none) {
+            display: flex;
+            flex: 1 1 auto;
+            min-height: 0;
+            flex-direction: column;
+        }
+
+        [data-role-page] .server-grid-scroll {
+            flex: 1 1 auto;
+            min-height: 0;
+            height: auto;
+            overflow: auto;
+        }
+
+        [data-role-page] .server-grid-state,
+        [data-role-page] [data-grid-empty] {
+            flex: 1 1 auto;
+        }
+
+        body:has([data-role-page]) .footer {
+            flex: 0 0 auto;
+        }
+
+        [data-role-modules] .role-module-option {
+            display: grid;
+            grid-template-columns: 1rem minmax(0, 1fr);
+            align-items: start;
+            gap: .625rem;
+            padding: .625rem !important;
+        }
+
+        [data-role-modules] .role-module-option .form-check-input {
+            float: none;
+            margin: .125rem 0 0 !important;
+        }
+
+        [data-role-modules] .role-module-option .form-check-label {
+            min-width: 0;
+            overflow-wrap: anywhere;
+        }
+    </style>
+}
+
+<div data-role-page>
+    <span data-permission-scope data-permission-module="@ApplicationPermissions.OrganizationModule" data-permission-controller="Setup" data-permission-action="Role" hidden></span>
 
     <div class="page-header d-print-none mb-4">
         <div class="row g-3 align-items-center">
@@ -162,6 +263,7 @@
             </form>
         </div>
     </div>
+</div>
 
 @section Scripts {
     <script src="~/js/organization-role.js" asp-append-version="true"></script>

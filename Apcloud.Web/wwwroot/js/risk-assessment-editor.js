@@ -47,6 +47,7 @@
     let activePermitContainer = null;
     let permitPreviewMode = false;
     let permitUsersById = new Map();
+    const submittingRiskAssessments = new Set();
 
     const permitFields = permitForm ? {
       id: permitForm.querySelector("[data-permit-id]"), number: permitForm.querySelector("[data-permit-number]"),
@@ -600,9 +601,87 @@
       }
     };
 
+    const submitForApproval = async (id, record) => {
+      const riskAssessmentId = Number(id || property(record, "id"));
+      if (!riskAssessmentId || submittingRiskAssessments.has(riskAssessmentId)) return;
+
+      const assessmentNumber = property(record, "riskAssessmentNumber") || `#${riskAssessmentId}`;
+      const statusCode = normalizeCode(property(record, "riskAssessmentStatus"));
+      if (statusCode !== "DRAFT" && statusCode !== "REJECTED") {
+        const message = statusCode === "APPROVED"
+          ? `Risk assessment ${assessmentNumber} is already approved.`
+          : statusCode === "DELETED"
+            ? `Risk assessment ${assessmentNumber} has been deleted and cannot be submitted.`
+            : statusCode === "SUBMITTEDFORAPPROVAL"
+              ? `Risk assessment ${assessmentNumber} has already been submitted for approval.`
+              : `Risk assessment ${assessmentNumber} cannot be submitted from its current status.`;
+        notify("error", message, "Cannot submit for approval");
+        return;
+      }
+
+      submittingRiskAssessments.add(riskAssessmentId);
+      try {
+        const result = await window.apcloudApi.json(
+          `risk-assessments/${encodeURIComponent(riskAssessmentId)}/permit-applications`);
+        const permits = Array.isArray(result) ? result : (property(result, "data") ?? []);
+        if (!permits.length) {
+          notify("error",
+            `Risk assessment ${assessmentNumber} has no related permit applications.`,
+            "Cannot submit for approval");
+          return;
+        }
+
+        const notFinalized = permits.filter(permit =>
+          normalizeCode(property(permit, "permitStatusSystemName")) !== "FINALIZEDFORAPPROVAL");
+        if (notFinalized.length) {
+          const permitDetails = notFinalized.slice(0, 5).map(permit => {
+            const number = property(permit, "permitNumber") || `#${property(permit, "id")}`;
+            const status = property(permit, "permitStatusName") || "Unknown status";
+            return `${number} (${status})`;
+          }).join(", ");
+          const remaining = notFinalized.length > 5
+            ? ` and ${notFinalized.length - 5} more`
+            : "";
+          notify("error",
+            `Finalize every related permit application first. Not finalized: ${permitDetails}${remaining}.`,
+            "Permits are not ready");
+          return;
+        }
+
+        if (!window.apcloudConfirmation)
+          throw new Error("The confirmation dialog is unavailable. Refresh the page and try again.");
+
+        const confirmation = await window.apcloudConfirmation.show({
+          title: "Submit for approval?",
+          message: `Risk assessment ${assessmentNumber} and all ${permits.length} related permit application${permits.length === 1 ? "" : "s"} will be submitted to their configured approval workflows.`,
+          confirmText: "Submit for approval",
+          cancelText: "Cancel",
+          confirmButtonClass: "btn-primary",
+          loadingText: "Submitting risk assessment for approval…",
+          onConfirm: () => window.apcloudApi.json(
+            `risk-assessments/${encodeURIComponent(riskAssessmentId)}/submit`,
+            { method: "POST" }),
+          successTitle: "Submitted for approval",
+          successMessage: response => property(response, "returnMessage") ||
+            "The risk assessment and related permits were submitted for approval."
+        });
+        if (confirmation.confirmed)
+          grid?.dispatchEvent(new CustomEvent("server-grid:reload"));
+      } catch (error) {
+        notify("error",
+          error.message || "The risk assessment could not be submitted for approval.",
+          "Cannot submit for approval");
+      } finally {
+        submittingRiskAssessments.delete(riskAssessmentId);
+      }
+    };
+
     document.querySelectorAll("[data-risk-add]").forEach(button => button.addEventListener("click", () => openEditor()));
     grid?.addEventListener("server-grid:action", event => {
-      if (event.detail?.action === "edit") openEditor(property(event.detail.record, "id"));
+      const action = event.detail?.action;
+      if (action === "edit") openEditor(property(event.detail.record, "id"));
+      else if (action === "submit-for-approval")
+        submitForApproval(event.detail?.id, event.detail?.record);
     });
     grid?.addEventListener("server-grid:expand", event => {
       const { id, row, button, columnCount } = event.detail ?? {};

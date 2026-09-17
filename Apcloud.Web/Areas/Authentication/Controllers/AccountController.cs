@@ -22,6 +22,16 @@ public class AccountController(
     IOptions<MicrosoftEntraOptions> entraOptions,
     ILogger<AccountController> logger) : Controller
 {
+    [Authorize]
+    [HttpGet]
+    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+    public IActionResult AccessDenied()
+    {
+        HttpContext.Session.Remove(ModuleSessionContext.ActiveModuleIdKey);
+        Response.StatusCode = StatusCodes.Status403Forbidden;
+        return View();
+    }
+
     [AllowAnonymous]
     [HttpGet]
     public IActionResult Login(string? returnUrl = null)

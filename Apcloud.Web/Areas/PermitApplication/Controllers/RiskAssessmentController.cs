@@ -7,22 +7,21 @@ namespace Apcloud.Web.Areas.PermitApplication.Controllers;
 
 [Area("PermitApplication")]
 [Authorize]
-[Route("PermitApplication/RiskAssessment")]
+[Route("RiskAssessment")]
 public sealed class RiskAssessmentController : Controller
 {
-    [HttpGet("")]
     [HttpGet("Index")]
-    [RequireMenu(ApplicationPermissions.PermitModule, "PermitApplications", "Index")]
+    [RequireMenu(ApplicationPermissions.PermitModule, "RiskAssessment", "Index")]
     [RequirePermission(ApplicationPermissions.RiskAssessments.View)]
     public IActionResult Index() => View();
 
     [HttpGet("Create")]
-    [RequireMenu(ApplicationPermissions.PermitModule, "PermitApplications", "Index")]
+    [RequireMenu(ApplicationPermissions.PermitModule, "RiskAssessment", "Create")]
     [RequirePermission(ApplicationPermissions.RiskAssessments.Create)]
     public IActionResult Create() => RedirectToAction(nameof(Index), new { create = true });
 
     [HttpGet("Edit/{id}")]
-    [RequireMenu(ApplicationPermissions.PermitModule, "PermitApplications", "Index")]
+    [RequireMenu(ApplicationPermissions.PermitModule, "RiskAssessment", "Edit")]
     [RequirePermission(ApplicationPermissions.RiskAssessments.Edit)]
     public IActionResult Edit(string id)
     {

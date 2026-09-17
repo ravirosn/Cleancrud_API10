@@ -7,10 +7,9 @@ namespace Apcloud.Web.Areas.Organization.Controllers;
 
 [Area("Organization")]
 [Authorize]
-[Route("Organization/ListItem")]
+[Route("ListItem")]
 public sealed class ListItemController : Controller
 {
-    [HttpGet("")]
     [HttpGet("Index")]
     [RequireMenu(ApplicationPermissions.OrganizationModule, "ListItem", "Index")]
     [RequirePermission(ApplicationPermissions.ListItemCategories.View)]

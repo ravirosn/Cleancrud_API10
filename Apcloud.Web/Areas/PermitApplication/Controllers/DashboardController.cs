@@ -7,7 +7,7 @@ namespace Apcloud.Web.Areas.PermitApplication.Controllers;
 
 [Area("PermitApplication")]
 [Authorize]
-[Route("PermitApplication/Dashboard")]
+[Route("PermitDashboard")]
 public sealed class DashboardController : Controller
 {
     [HttpGet("")]

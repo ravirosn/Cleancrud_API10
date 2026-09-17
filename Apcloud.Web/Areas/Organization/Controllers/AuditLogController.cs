@@ -7,7 +7,7 @@ namespace Apcloud.Web.Areas.Organization.Controllers;
 
 [Area("Organization")]
 [Authorize]
-[Route("Organization/AuditLog")]
+[Route("AuditLog")]
 public sealed class AuditLogController : Controller
 {
     [HttpGet("Index")]

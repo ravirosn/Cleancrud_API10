@@ -1,0 +1,31 @@
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Limited permissions";
+}
+
+<main class="access-denied-page">
+    <section class="access-denied-card" aria-labelledby="accessDeniedTitle">
+        <div class="access-denied-status" aria-hidden="true">403</div>
+        <div class="access-denied-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24">
+                <path d="M12 3 20 6v5c0 5-3.4 8.3-8 10-4.6-1.7-8-5-8-10V6l8-3z" />
+                <path d="M9 11V9a3 3 0 0 1 6 0v2M8 11h8v6H8z" />
+            </svg>
+        </div>
+        <span class="access-denied-eyebrow">Access restricted</span>
+        <h1 id="accessDeniedTitle">You have limited permissions</h1>
+        <p>
+            You are signed in, but this portal, module, menu, or page has not been assigned to your account.
+            Contact your system administrator if you need access.
+        </p>
+        <div class="access-denied-actions">
+            <a asp-area="Portal" asp-controller="Portal" asp-action="Index" class="btn btn-primary">
+                Return to portal
+            </a>
+            <form asp-area="Authentication" asp-controller="Account" asp-action="Logout" method="post">
+                <button type="submit" class="btn btn-outline-secondary">Sign out</button>
+            </form>
+        </div>
+        <small>If you believe this is an error, provide the requested page and your user account to the administrator.</small>
+    </section>
+</main>

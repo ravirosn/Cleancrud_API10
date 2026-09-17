@@ -7,7 +7,7 @@ namespace Apcloud.Web.Areas.Organization.Controllers;
 
 [Area("Organization")]
 [Authorize]
-[Route("Organization/Workflow")]
+[Route("Workflow")]
 public sealed class WorkflowController : Controller
 {
     [HttpGet("Index")]

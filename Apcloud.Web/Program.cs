@@ -156,7 +156,7 @@ builder.Services
     .Configure<ITicketStore>((options, ticketStore) =>
     {
         options.LoginPath = "/Authentication/Account/Login";
-        options.AccessDeniedPath = "/Authentication/Account/Login";
+        options.AccessDeniedPath = "/Authentication/Account/AccessDenied";
         options.Cookie.Name = "__Host-Apcloud.Auth";
         options.Cookie.HttpOnly = true;
         options.Cookie.SameSite = SameSiteMode.Lax;
@@ -216,6 +216,18 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseStatusCodePages(statusContext =>
+{
+    var httpContext = statusContext.HttpContext;
+    if (httpContext.Response.StatusCode == StatusCodes.Status403Forbidden &&
+        !httpContext.Request.Path.StartsWithSegments("/bff") &&
+        !httpContext.Request.Path.StartsWithSegments("/Authentication/Account/AccessDenied"))
+    {
+        httpContext.Response.Redirect("/Authentication/Account/AccessDenied");
+    }
+
+    return Task.CompletedTask;
+});
 app.UseRouting();
 app.UseSession();
 

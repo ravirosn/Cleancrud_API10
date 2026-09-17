@@ -7,10 +7,9 @@ namespace Apcloud.Web.Areas.PermitApplication.Controllers;
 
 [Area("PermitApplication")]
 [Authorize]
-[Route("PermitApplication/PermitApplication")]
+[Route("PermitApplications")]
 public sealed class PermitApplicationController : Controller
 {
-    [HttpGet("")]
     [HttpGet("Index")]
     [RequireMenu(ApplicationPermissions.PermitModule, "PermitApplications", "Index")]
     [RequirePermission(ApplicationPermissions.PermitApplications.View)]
@@ -20,7 +19,7 @@ public sealed class PermitApplicationController : Controller
     }
 
     [HttpGet("PermitApproval")]
-    [RequireMenu(ApplicationPermissions.PermitModule, "PermitApprovals", "Index")]
+    [RequireMenu(ApplicationPermissions.PermitModule, "PermitApplications", "PermitApproval")]
     [RequirePermission(ApplicationPermissions.PermitApprovals.View)]
     public IActionResult PermitApproval()
     {
@@ -28,7 +27,7 @@ public sealed class PermitApplicationController : Controller
     }
 
     [HttpGet("Create")]
-    [RequireMenu(ApplicationPermissions.PermitModule, "PermitApplications", "Index")]
+    [RequireMenu(ApplicationPermissions.PermitModule, "PermitApplications", "Create")]
     [RequirePermission(ApplicationPermissions.PermitApplications.Create)]
     public IActionResult Create()
     {
@@ -36,7 +35,7 @@ public sealed class PermitApplicationController : Controller
     }
 
     [HttpGet("Edit/{id}")]
-    [RequireMenu(ApplicationPermissions.PermitModule, "PermitApplications", "Index")]
+    [RequireMenu(ApplicationPermissions.PermitModule, "PermitApplications", "Edit")]
     [RequirePermission(ApplicationPermissions.PermitApplications.Edit)]
     public IActionResult Edit(string id)
     {

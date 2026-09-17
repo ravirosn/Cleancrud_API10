@@ -7,7 +7,7 @@ namespace Apcloud.Web.Areas.Organization.Controllers;
 
 [Area("Organization")]
 [Authorize]
-[Route("Organization/Organization")]
+[Route("Organization")]
 public sealed class OrganizationController : Controller
 {
     [HttpGet("Index")]

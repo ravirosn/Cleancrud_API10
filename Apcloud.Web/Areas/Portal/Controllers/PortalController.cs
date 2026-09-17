@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Net;
 using System.Text.Json;
 using Apcloud.Web.Areas.Portal.Models;
 using Apcloud.Web.Infrastructure;
@@ -52,7 +53,7 @@ public class PortalController(
             var module = modules.FirstOrDefault(item => item.Id.Equals(moduleId, StringComparison.OrdinalIgnoreCase));
             if (module is null)
             {
-                return NotFound();
+                return Forbid();
             }
 
             var menus = await apiClient.SelectModuleMenusAsync(module.Id, cancellationToken);
@@ -71,6 +72,11 @@ public class PortalController(
             };
             HttpContext.Items[ModuleNavigationViewComponent.ModuleMenusViewModelItemKey] = viewModel;
             return View(viewModel);
+        }
+        catch (AuthApiException exception) when (
+            exception.StatusCode == HttpStatusCode.Forbidden)
+        {
+            return Forbid();
         }
         catch (Exception exception) when (
             !cancellationToken.IsCancellationRequested &&

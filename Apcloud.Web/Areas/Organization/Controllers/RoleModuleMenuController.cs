@@ -7,7 +7,7 @@ namespace Apcloud.Web.Areas.Organization.Controllers;
 
 [Area("Organization")]
 [Authorize]
-[Route("Organization/RoleModuleMenu")]
+[Route("RoleModuleMenu")]
 public sealed class RoleModuleMenuController : Controller
 {
     [HttpGet("Index")]

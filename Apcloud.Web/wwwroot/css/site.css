@@ -203,6 +203,109 @@ body {
 
 .apcloud-toast-success .apcloud-toast-icon { background: var(--tblr-success); }
 
+.apcloud-confirmation-modal .modal-dialog { width: min(30rem, calc(100vw - 2rem)); }
+.apcloud-confirmation-modal .modal-content { overflow: hidden; border: 1px solid var(--tblr-border-color); box-shadow: 0 1.5rem 4rem rgb(15 23 42 / 28%); }
+.apcloud-confirmation-modal .modal-footer { padding-top: .85rem; padding-bottom: 1rem; background: var(--tblr-bg-surface-secondary); }
+.apcloud-confirmation-icon {
+  display: inline-grid;
+  width: 3.25rem;
+  height: 3.25rem;
+  place-items: center;
+  color: var(--tblr-warning);
+  font-size: 1.55rem;
+  font-weight: 800;
+  border: 1px solid color-mix(in srgb, var(--tblr-warning), transparent 65%);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--tblr-warning), transparent 88%);
+}
+.apcloud-confirmation-message { white-space: pre-line; line-height: 1.6; }
+.apcloud-confirmation-backdrop {
+  background: rgb(15 23 42 / 58%);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+.apcloud-page-loading-overlay {
+  position: fixed;
+  z-index: 2000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: rgb(15 23 42 / 36%);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+.apcloud-page-loading-card {
+  display: flex;
+  min-width: min(19rem, calc(100vw - 2rem));
+  padding: 1.15rem 1.35rem;
+  align-items: center;
+  justify-content: center;
+  gap: .9rem;
+  color: var(--tblr-body-color);
+  border: 1px solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius-lg);
+  background: var(--tblr-bg-surface);
+  box-shadow: 0 1rem 3rem rgb(15 23 42 / 24%);
+}
+.apcloud-page-loading-card strong { font-size: .82rem; font-weight: 650; }
+body.apcloud-page-busy { overflow: hidden !important; }
+
+.access-denied-page {
+  display: grid;
+  min-height: 100vh;
+  padding: 2rem 1rem;
+  place-items: center;
+  background:
+    radial-gradient(circle at 18% 20%, rgb(var(--tblr-primary-rgb) / 12%), transparent 30rem),
+    radial-gradient(circle at 82% 80%, rgb(245 159 0 / 10%), transparent 26rem),
+    var(--tblr-body-bg);
+}
+.access-denied-card {
+  position: relative;
+  width: min(34rem, 100%);
+  padding: 3rem;
+  overflow: hidden;
+  text-align: center;
+  border: 1px solid var(--tblr-border-color);
+  border-radius: var(--tblr-border-radius-xl);
+  background: var(--tblr-bg-surface);
+  box-shadow: 0 1.5rem 4rem rgb(15 23 42 / 13%);
+}
+.access-denied-status {
+  position: absolute;
+  top: -.8rem;
+  right: 1rem;
+  color: rgb(var(--tblr-primary-rgb) / 5%);
+  font-size: 7rem;
+  font-weight: 850;
+  letter-spacing: -.08em;
+  line-height: 1;
+}
+.access-denied-icon {
+  position: relative;
+  display: inline-grid;
+  width: 4.5rem;
+  height: 4.5rem;
+  margin-bottom: 1.35rem;
+  place-items: center;
+  color: var(--tblr-primary);
+  border: 1px solid rgb(var(--tblr-primary-rgb) / 18%);
+  border-radius: 50%;
+  background: rgb(var(--tblr-primary-rgb) / 9%);
+}
+.access-denied-icon svg { width: 2.35rem; height: 2.35rem; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+.access-denied-eyebrow { display: block; margin-bottom: .45rem; color: var(--tblr-primary); font-size: .68rem; font-weight: 750; letter-spacing: .1em; text-transform: uppercase; }
+.access-denied-card h1 { position: relative; margin: 0; font-size: clamp(1.65rem, 5vw, 2.2rem); letter-spacing: -.035em; }
+.access-denied-card p { position: relative; max-width: 28rem; margin: 1rem auto 0; color: var(--tblr-secondary-color); line-height: 1.7; }
+.access-denied-actions { display: flex; margin-top: 1.75rem; align-items: center; justify-content: center; flex-wrap: wrap; gap: .75rem; }
+.access-denied-actions form { margin: 0; }
+.access-denied-card small { display: block; max-width: 27rem; margin: 1.5rem auto 0; color: var(--tblr-tertiary-color); line-height: 1.5; }
+
+@media (max-width: 575.98px) {
+  .access-denied-card { padding: 2.25rem 1.25rem; }
+  .access-denied-actions, .access-denied-actions .btn, .access-denied-actions form { width: 100%; }
+}
+
 [data-bs-theme="dark"] .topbar {
   border-color: var(--tblr-border-color);
 }

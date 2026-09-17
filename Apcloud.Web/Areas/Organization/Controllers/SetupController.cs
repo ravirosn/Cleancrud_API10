@@ -7,7 +7,7 @@ namespace Apcloud.Web.Areas.Organization.Controllers;
 
 [Area("Organization")]
 [Authorize]
-[Route("Organization/Setup")]
+[Route("Setup")]
 public sealed class SetupController : Controller
 {
     [HttpGet("Role")]
@@ -26,6 +26,7 @@ public sealed class SetupController : Controller
     public IActionResult Permission() => View();
 
     [HttpGet("PermitApplicationGuidelines")]
+    [RequireMenu(ApplicationPermissions.OrganizationModule, "Setup", "PermitApplicationGuidelines")]
     [RequirePermission(ApplicationPermissions.PermitApplicationGuidelines.View)]
     public IActionResult PermitApplicationGuidelines() => View();
 }

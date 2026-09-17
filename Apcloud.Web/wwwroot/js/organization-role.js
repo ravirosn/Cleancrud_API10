@@ -53,7 +53,7 @@
         const column = document.createElement("div");
         column.className = "col-md-6";
         const label = document.createElement("label");
-        label.className = "form-check border rounded p-2 h-100 m-0";
+        label.className = "form-check role-module-option border rounded h-100 m-0";
         const checkbox = document.createElement("input");
         checkbox.type = "checkbox";
         checkbox.className = "form-check-input";
