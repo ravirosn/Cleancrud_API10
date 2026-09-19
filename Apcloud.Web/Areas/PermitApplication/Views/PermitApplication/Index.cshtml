@@ -11,7 +11,7 @@
             <h1 class="page-title">Permit Applications</h1>
             <p class="text-secondary mt-2 mb-0">Search and manage permit applications without leaving this page.</p>
         </div>
-        <div class="col-auto ms-auto d-print-none">
+        <div class="col-auto ms-auto d-print-none d-none">
             <a asp-action="Create" class="btn btn-primary" data-requires-permission="@ApplicationPermissions.PermitApplications.Create">
                 <svg class="icon"><use href="#icon-plus" /></svg>
                 Add permit application
@@ -65,7 +65,7 @@
         <div class="empty-icon"><svg class="icon"><use href="#icon-search" /></svg></div>
         <p class="empty-title">No permit applications found</p>
         <p class="empty-subtitle text-secondary">Try changing the search term or add a new permit application.</p>
-        <div class="empty-action"><a asp-action="Create" class="btn btn-primary" data-requires-permission="@ApplicationPermissions.PermitApplications.Create"><svg class="icon"><use href="#icon-plus" /></svg>Add permit application</a></div>
+        <div class="empty-action d-none"><a asp-action="Create" class="btn btn-primary" data-requires-permission="@ApplicationPermissions.PermitApplications.Create"><svg class="icon"><use href="#icon-plus" /></svg>Add permit application</a></div>
     </div>
 
     <div class="d-none" data-grid-content>

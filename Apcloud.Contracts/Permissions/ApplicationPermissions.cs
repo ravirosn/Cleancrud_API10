@@ -17,7 +17,6 @@ public static class ApplicationPermissions
 {
     public const string OrganizationModule = "ORGANIZATION";
     public const string PermitModule = "PERMIT";
-    public const string PortalModule = "PORTAL";
 
     public static class PermitDashboard
     {
@@ -165,12 +164,6 @@ public static class ApplicationPermissions
         public const string Delete = "PermissionAssignment.Delete";
     }
 
-    public static class Portal
-    {
-        public const string View = "Portal.View";
-        public const string SelectModule = "Portal.SelectModule";
-    }
-
     public static IReadOnlyList<PermissionDefinition> All { get; } =
     [
         P(Organization.View, "View organization", "View organization details.", "Organization", "Index"),
@@ -246,9 +239,7 @@ public static class ApplicationPermissions
         PermitP(PermitApprovals.View, "View permit approvals", "View pending and historical permit approvals.", "PermitApprovals"),
         PermitP(PermitApprovals.Decide, "Decide permit approvals", "Approve or reject assigned permit approvals.", "PermitApprovals"),
         PermitP(PermitApprovals.ViewAssignments, "View approval assignments", "View pending approval assignments across approvers.", "PermitApprovals"),
-        PermitP(PermitApprovals.ManageAlternateApprovers, "Manage alternate approvers", "Assign alternate users for permit approvals.", "PermitApprovals"),
-        new(Portal.View, "Open portal", "Open the application portal.", PortalModule, "Portal", "Index", false),
-        new(Portal.SelectModule, "Select portal modules", "Open a module from the portal.", PortalModule, "Portal", "Module", false)
+        PermitP(PermitApprovals.ManageAlternateApprovers, "Manage alternate approvers", "Assign alternate users for permit approvals.", "PermitApprovals")
     ];
 
     private static PermissionDefinition P(
